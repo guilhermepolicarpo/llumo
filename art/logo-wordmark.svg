@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 32" width="104" height="32">
+  <style>
+    .wordmark { fill: #18181b; }
+    @media (prefers-color-scheme: dark) {
+      .wordmark { fill: #fafafa; }
+    }
+  </style>
+  <rect width="32" height="32" rx="6" fill="#2563eb" />
+  <g transform="translate(6 6) scale(0.833333)" fill="none" stroke="#ffffff" stroke-width="1.5">
+    <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+  </g>
+  <text class="wordmark" x="44" y="23"
+        font-family="Instrument Sans, ui-sans-serif, system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="21" font-weight="700">llumo</text>
+</svg>

@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="art/logo.svg" width="80" alt="llumo">
+  <img src="art/logo-wordmark.svg" width="180" alt="llumo">
 </p>
-
-<h1 align="center">llumo</h1>
 
 <p align="center">
   Gestão para centros e casas espíritas — livre, self-hosted e feito com carinho.

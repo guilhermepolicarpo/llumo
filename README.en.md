@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="art/logo.svg" width="80" alt="llumo">
+  <img src="art/logo-wordmark.svg" width="180" alt="llumo">
 </p>
-
-<h1 align="center">llumo</h1>
 
 <p align="center">
   Management for Spiritist centers — free, self-hosted and built with care.
