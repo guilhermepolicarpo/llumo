@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\TeamRole;
 use Database\Factories\TeamInvitationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\RouteKey;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -26,6 +27,7 @@ use Illuminate\Support\Str;
  * @property-read User $inviter
  */
 #[Fillable(['team_id', 'email', 'role', 'invited_by', 'expires_at', 'accepted_at'])]
+#[RouteKey('code')]
 class TeamInvitation extends Model
 {
     /** @use HasFactory<TeamInvitationFactory> */
@@ -101,13 +103,5 @@ class TeamInvitation extends Model
             'expires_at' => 'datetime',
             'accepted_at' => 'datetime',
         ];
-    }
-
-    /**
-     * Get the route key for the model.
-     */
-    public function getRouteKeyName(): string
-    {
-        return 'code';
     }
 }
