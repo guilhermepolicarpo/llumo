@@ -25,7 +25,7 @@
 
                 <div
                     class="relative flex h-full w-full flex-col justify-end overflow-hidden rounded-lg bg-zinc-900 bg-cover bg-center p-16 text-white"
-                    style="background-image: url('{{ \Illuminate\Support\Facades\Vite::asset('resources/images/auth_aurora_2x.png') }}')"
+                    style="background-image: url('{{ \Illuminate\Support\Facades\Vite::asset('resources/images/auth_aurora_2x.webp') }}')"
                 >
                     <blockquote class="relative z-10">
                         <p class="mb-6 text-3xl italic xl:text-4xl">&ldquo;{{ trim($message) }}&rdquo;</p>
