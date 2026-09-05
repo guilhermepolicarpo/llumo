@@ -11,6 +11,7 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/js/passkeys.js',
             ],
+            assets: ['resources/images/**'],
             refresh: true,
             fonts: [
                 bunny('Instrument Sans', {

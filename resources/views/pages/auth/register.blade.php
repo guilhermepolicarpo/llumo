@@ -1,6 +1,6 @@
 <x-layouts::auth :title="__('Register')">
-    <div class="flex flex-col gap-6">
-        <x-auth-header :title="__('Create an account')" :description="__('Enter your details below to create your account')" />
+    <div class="space-y-6">
+        <flux:heading class="text-center" size="xl" level="1">{{ __('Create an account') }}</flux:heading>
 
         <!-- Session Status -->
         <x-auth-session-status class="text-center" :status="session('status')" />
@@ -58,15 +58,13 @@
                 viewable
             />
 
-            <div class="flex items-center justify-end">
-                <flux:button type="submit" variant="primary" class="w-full" data-test="register-user-button">
-                    {{ __('Create account') }}
-                </flux:button>
-            </div>
+            <flux:button type="submit" variant="primary" class="w-full" data-test="register-user-button">
+                {{ __('Create account') }}
+            </flux:button>
         </form>
 
-        <div class="space-x-1 rtl:space-x-reverse text-center text-sm text-zinc-600 dark:text-zinc-400">
-            <span>{{ __('Already have an account?') }}</span>
+        <flux:text class="text-center">
+            {{ __('Already have an account?') }}
             <flux:link
                 :href="$teamInvitation ? route('login', ['invitation' => $teamInvitation['code']]) : route('login')"
                 data-test="team-invitation-login-link"
@@ -74,6 +72,6 @@
             >
                 {{ __('Log in') }}
             </flux:link>
-        </div>
+        </flux:text>
     </div>
 </x-layouts::auth>
