@@ -23,3 +23,17 @@ test('new users can register', function () {
 
     $this->assertAuthenticated();
 });
+
+test('registration creates a personal team named after the user first name', function () {
+    $this->post(route('register.store'), [
+        'name' => 'John Doe',
+        'email' => 'test@example.com',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ]);
+
+    $user = User::where('email', 'test@example.com')->sole();
+
+    expect($user->currentTeam->name)->toBe("John's Team")
+        ->and($user->currentTeam->is_personal)->toBeTrue();
+});
