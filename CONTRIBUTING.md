@@ -2,6 +2,8 @@
 
 Obrigado pelo interesse em contribuir. O llumo é um projeto voltado a centros e casas espíritas, e toda ajuda — código, tradução, documentação, relato de bug ou simplesmente contar como sua casa funciona — é bem-vinda.
 
+Ao participar do projeto, você concorda em seguir nosso [Código de Conduta](CODE_OF_CONDUCT.md).
+
 ## Antes de começar
 
 O projeto está em desenvolvimento inicial e segue um [roadmap definido](README.md#roadmap). Antes de investir tempo em código:
