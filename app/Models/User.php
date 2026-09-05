@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\PasskeyUser;
@@ -66,5 +67,37 @@ class User extends Authenticatable implements PasskeyUser
         return Str::length($initials) > 1
             ? Str::substr($initials, 0, 1).Str::substr($initials, -1)
             : $initials;
+    }
+
+    /**
+     * Get the user's first name
+     */
+    public function firstName(): string
+    {
+        return Arr::first($this->nameParts()) ?? '';
+    }
+
+    /**
+     * Get the user's first and last name
+     */
+    public function firstAndLastName(): string
+    {
+        $names = $this->nameParts();
+
+        if (count($names) < 2) {
+            return Arr::first($names) ?? '';
+        }
+
+        return Arr::first($names).' '.Arr::last($names);
+    }
+
+    /**
+     * Get the user's name split into its individual parts
+     *
+     * @return array<int, string>
+     */
+    private function nameParts(): array
+    {
+        return Str::of($this->name)->squish()->explode(' ')->all();
     }
 }
