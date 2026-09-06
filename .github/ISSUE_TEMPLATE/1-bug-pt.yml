@@ -1,0 +1,83 @@
+name: "🐛 Reportar bug"
+description: "Relate um comportamento incorreto no llumo"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por reportar. Antes de continuar, verifique se já não existe uma
+        [issue aberta](https://github.com/guilhermepolicarpo/llumo/issues) sobre o mesmo problema.
+
+        ⚠️ **Encontrou uma vulnerabilidade de segurança?** Não use este formulário —
+        reporte pelos [Security Advisories](https://github.com/guilhermepolicarpo/llumo/security/advisories/new).
+
+  - type: textarea
+    id: descricao
+    attributes:
+      label: O que aconteceu
+      description: Descreva o comportamento incorreto.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproducao
+    attributes:
+      label: Como reproduzir
+      description: Passos para chegar ao problema.
+      placeholder: |
+        1. Acesse '...'
+        2. Clique em '...'
+        3. O erro aparece
+    validations:
+      required: true
+
+  - type: textarea
+    id: esperado
+    attributes:
+      label: O que era esperado
+    validations:
+      required: true
+
+  - type: input
+    id: php
+    attributes:
+      label: Versão do PHP
+      description: "Resultado de `php -v`"
+      placeholder: "8.4.3"
+    validations:
+      required: true
+
+  - type: input
+    id: versao
+    attributes:
+      label: Versão do llumo
+      description: "A tag, ou o commit atual (`git rev-parse --short HEAD`)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: banco
+    attributes:
+      label: Banco de dados
+      options:
+        - SQLite (padrão)
+        - MySQL / MariaDB
+        - PostgreSQL
+        - Outro
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs ou mensagem de erro
+      description: "Cole o trecho relevante de `storage/logs/laravel.log`. Será formatado como código automaticamente."
+      render: shell
+
+  - type: checkboxes
+    id: confirmacoes
+    attributes:
+      label: Confirmações
+      options:
+        - label: Procurei por issues existentes sobre este problema
+          required: true

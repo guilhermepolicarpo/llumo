@@ -1,31 +1,35 @@
-## O que muda
+## O que muda / What changes
 
-<!-- Descreva de forma objetiva o que este PR faz. -->
+<!-- PT: Descreva de forma objetiva o que este PR faz.
+     EN: Briefly describe what this PR does. -->
 
-## Por quê
+## Por quê / Why
 
-<!-- Qual problema resolve? Se há uma issue, referencie: Closes #123 -->
+<!-- PT: Qual problema resolve? Se há uma issue, referencie: Closes #123
+     EN: What problem does it solve? If there is an issue: Closes #123 -->
 
-## Tipo de mudança
+## Tipo de mudança / Type of change
 
-- [ ] Correção de bug
-- [ ] Nova funcionalidade
-- [ ] Refatoração (sem mudança de comportamento)
-- [ ] Documentação
-- [ ] Outro:
+- [ ] Correção de bug / Bug fix
+- [ ] Nova funcionalidade / New feature
+- [ ] Refatoração, sem mudança de comportamento / Refactor, no behavior change
+- [ ] Documentação / Documentation
+- [ ] Outro / Other:
 
-## Como testar
+## Como testar / How to test
 
-<!-- Passos para verificar a mudança, ou o comando de teste que a cobre.
-     Ex.: php artisan test --filter=nomeDoTeste -->
+<!-- PT: Passos para verificar, ou o comando de teste que cobre a mudança.
+     EN: Steps to verify, or the test command covering the change.
+     ex.: php artisan test --filter=nomeDoTeste -->
 
-## Capturas de tela
+## Capturas de tela / Screenshots
 
-<!-- Obrigatório se a mudança for visual. Antes e depois, se possível. -->
+<!-- PT: Obrigatório se a mudança for visual. Antes e depois, se possível.
+     EN: Required for visual changes. Before and after, if possible. -->
 
 ## Checklist
 
-- [ ] `composer test` passa localmente (Pint, PHPStan e Pest)
-- [ ] Adicionei ou atualizei testes cobrindo a mudança
-- [ ] Strings de interface estão dentro de `__()`
-- [ ] Li o [guia de contribuição](../CONTRIBUTING.md)
+- [ ] `composer test` passa localmente / passes locally (Pint, PHPStan, Pest)
+- [ ] Testes cobrindo a mudança / Tests covering the change
+- [ ] Strings de interface dentro de `__()` / UI strings wrapped in `__()`
+- [ ] Li o guia de contribuição / Read the contributing guide ([PT](../CONTRIBUTING.md) · [EN](../CONTRIBUTING.en.md))

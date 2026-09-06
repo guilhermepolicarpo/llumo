@@ -1,0 +1,82 @@
+name: "🐛 Report a bug"
+description: "Report incorrect behavior in llumo"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Before continuing, please check there is no
+        [open issue](https://github.com/guilhermepolicarpo/llumo/issues) about the same problem.
+
+        ⚠️ **Found a security vulnerability?** Do not use this form —
+        report it through [Security Advisories](https://github.com/guilhermepolicarpo/llumo/security/advisories/new).
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened
+      description: Describe the incorrect behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: How to reproduce
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. The error appears
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+
+  - type: input
+    id: php
+    attributes:
+      label: PHP version
+      description: "Output of `php -v`"
+      placeholder: "8.4.3"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: llumo version
+      description: "The tag, or the current commit (`git rev-parse --short HEAD`)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: database
+    attributes:
+      label: Database
+      options:
+        - SQLite (default)
+        - MySQL / MariaDB
+        - PostgreSQL
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or error message
+      description: "Paste the relevant part of `storage/logs/laravel.log`. It will be formatted as code automatically."
+      render: shell
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched for existing issues about this problem
+          required: true

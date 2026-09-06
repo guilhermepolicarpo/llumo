@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Dúvidas e conversa geral / Questions and general discussion
+    url: https://github.com/guilhermepolicarpo/llumo/discussions
+    about: "Para perguntas, ideias em formação e conversa sobre o projeto. / For questions, early ideas and general talk."
+  - name: 🔒 Vulnerabilidade de segurança / Security vulnerability
+    url: https://github.com/guilhermepolicarpo/llumo/security/advisories/new
+    about: "Reporte em canal privado, nunca em issue pública. / Report privately, never in a public issue."

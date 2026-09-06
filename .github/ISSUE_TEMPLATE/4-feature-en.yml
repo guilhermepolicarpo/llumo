@@ -1,0 +1,59 @@
+name: "💡 Request a feature"
+description: "Suggest an improvement or a new feature"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For ideas still taking shape, or questions about the project's direction, prefer
+        [Discussions](https://github.com/guilhermepolicarpo/llumo/discussions) — talking it
+        through first usually leads to a better proposal.
+
+        Please check the [roadmap](https://github.com/guilhermepolicarpo/llumo/blob/main/README.en.md#roadmap)
+        first: the feature may already be planned.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve
+      description: Describe the real situation at the Spiritist center that motivates it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: Related module
+      options:
+        - Assisted persons (assistidos)
+        - Scheduling
+        - Sessions (atendimentos)
+        - Spiritual mentors (mentores)
+        - Fluidic prescriptions (fluídicos)
+        - Library
+        - Centers (multi-tenancy)
+        - Accounts and access
+        - Other / not applicable
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: How does your center handle this today?
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched for existing issues and discussions about this idea
+          required: true

@@ -1,0 +1,59 @@
+name: "💡 Sugerir funcionalidade"
+description: "Proponha uma melhoria ou funcionalidade nova"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Para ideias ainda em formação ou dúvidas sobre a direção do projeto, prefira as
+        [Discussions](https://github.com/guilhermepolicarpo/llumo/discussions) — conversa
+        antes de virar issue costuma render uma proposta melhor.
+
+        Vale conferir o [roadmap](https://github.com/guilhermepolicarpo/llumo#roadmap) antes:
+        a funcionalidade pode já estar planejada.
+
+  - type: textarea
+    id: problema
+    attributes:
+      label: Qual problema isso resolve
+      description: Descreva a situação real na casa espírita que motiva a sugestão.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solucao
+    attributes:
+      label: Solução proposta
+    validations:
+      required: true
+
+  - type: dropdown
+    id: modulo
+    attributes:
+      label: Módulo relacionado
+      options:
+        - Assistidos
+        - Agendamento
+        - Atendimentos
+        - Mentores
+        - Fluídicos
+        - Biblioteca
+        - Casas (multi-tenancy)
+        - Contas e acesso
+        - Outro / não se aplica
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas consideradas
+      description: Como sua casa resolve isso hoje?
+
+  - type: checkboxes
+    id: confirmacoes
+    attributes:
+      label: Confirmações
+      options:
+        - label: Procurei por issues e discussions existentes sobre esta ideia
+          required: true
