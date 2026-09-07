@@ -44,11 +44,12 @@ new class extends Component {
             ->notify(new TeamInvitationNotification($invitation));
 
         $this->reset('inviteEmail', 'inviteRole');
-        $this->dispatch('close-modal', name: 'invite-member');
+
+        Flux::modal('invite-member')->close();
+
+        $this->dispatch('invitation-created');
 
         Flux::toast(variant: 'success', text: __('Invitation sent.'));
-
-        $this->redirectRoute('teams.edit', ['team' => $this->team->slug], navigate: true);
     }
 
     #[Computed]

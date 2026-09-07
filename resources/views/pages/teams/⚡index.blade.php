@@ -23,8 +23,6 @@ new #[Title('Teams')] class extends Component {
 
         $team = $createTeam->handle(Auth::user(), $validated['name']);
 
-        $this->dispatch('close-modal', name: 'create-team');
-
         $this->reset('name');
 
         Flux::toast(variant: 'success', text: __('Team created.'));
@@ -51,8 +49,6 @@ new #[Title('Teams')] class extends Component {
             $user->switchTeam($fallbackTeam);
         }
 
-        $this->dispatch('close-modal', name: "leave-team-{$teamId}");
-
         Flux::toast(variant: 'success', text: __('You left the team ":name"', ['name' => $team->name]));
 
         $this->redirectRoute('teams.index', navigate: true);
@@ -76,7 +72,7 @@ new #[Title('Teams')] class extends Component {
     <x-pages::settings.layout :heading="__('Teams')" :subheading="__('Manage your teams and team memberships')">
         <div class="flex items-center justify-end">
             <flux:modal.trigger name="create-team">
-                <flux:button variant="primary" icon="plus" x-data="" x-on:click.prevent="$dispatch('open-modal', 'create-team')" data-test="teams-new-team-button">
+                <flux:button variant="primary" icon="plus" data-test="teams-new-team-button">
                     {{ __('New team') }}
                 </flux:button>
             </flux:modal.trigger>
@@ -107,8 +103,6 @@ new #[Title('Teams')] class extends Component {
                                         variant="ghost"
                                         size="sm"
                                         icon="arrow-right-start-on-rectangle"
-                                        x-data=""
-                                        x-on:click.prevent="$dispatch('open-modal', 'leave-team-{{ $team->id }}')"
                                         data-test="team-leave-button"
                                     />
                                 </flux:tooltip>

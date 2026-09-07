@@ -4,9 +4,11 @@ use App\Data\UserTeam;
 use App\Models\Team;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Computed;
 use Livewire\Component;
 
 new class extends Component {
+    #[Computed]
     public function currentTeam(): ?array
     {
         $team = Auth::user()->currentTeam;
@@ -22,6 +24,7 @@ new class extends Component {
     /**
      * @return Collection<int, UserTeam>
      */
+    #[Computed]
     public function teams(): Collection
     {
         return Auth::user()->toUserTeams(includeCurrent: true);
@@ -81,7 +84,7 @@ new class extends Component {
 
 <div>
     <flux:dropdown position="bottom" align="start">
-        @php($currentTeam = $this->currentTeam())
+        @php($currentTeam = $this->currentTeam)
 
         <flux:button variant="ghost" class="group w-full justify-start in-data-flux-sidebar-collapsed-desktop:justify-center" data-test="team-switcher-trigger">
             @if ($currentTeam)
@@ -100,7 +103,7 @@ new class extends Component {
         <flux:menu class="min-w-56">
             <flux:menu.heading>{{ __('Teams') }}</flux:menu.heading>
 
-            @foreach ($this->teams() as $team)
+            @foreach ($this->teams as $team)
                 <flux:menu.item
                     wire:click="switchTeam('{{ $team->slug }}')"
                     class="cursor-pointer"

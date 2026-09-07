@@ -46,11 +46,11 @@ new class extends Component {
             $user->switchTeam($user->personalTeam());
         }
 
-        $this->dispatch('close-modal', name: $this->modalName);
+        Flux::modal($this->modalName)->close();
+
+        $this->dispatch('member-removed');
 
         Flux::toast(variant: 'success', text: __('Member removed.'));
-
-        $this->redirectRoute('teams.edit', ['team' => $this->team->slug], navigate: true);
     }
 }; ?>
 
