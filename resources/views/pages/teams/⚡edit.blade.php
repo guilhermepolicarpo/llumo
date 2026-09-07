@@ -80,7 +80,7 @@ new class extends Component
 
         $this->reset('logo');
 
-        Flux::toast(variant: 'success', text: __('Team updated.'));
+        Flux::toast(variant: 'success', text: __('Spiritist Center updated.'));
 
         if ($this->team->wasChanged('slug')) {
             $this->redirectRoute('teams.edit', ['team' => $this->team->slug], navigate: true);
@@ -191,11 +191,11 @@ new class extends Component
 <section class="w-full">
     @include('partials.settings-heading')
 
-    <flux:heading level="2" class="sr-only">{{ __('Teams') }}</flux:heading>
+    <flux:heading level="2" class="sr-only">{{ __('Spiritist Centers') }}</flux:heading>
 
     <x-pages::settings.layout>
         <div x-data="{ tab: 'info' }" wire:key="team-tabs" class="space-y-6">
-            <div class="flex gap-6 border-b border-zinc-200 dark:border-zinc-700" role="tablist" aria-label="{{ __('Teams') }}">
+            <div class="flex gap-6 border-b border-zinc-200 dark:border-zinc-700" role="tablist" aria-label="{{ __('Spiritist Centers') }}">
                 <button
                     type="button"
                     role="tab"
@@ -205,7 +205,7 @@ new class extends Component
                     class="-mb-px border-b-2 pb-3 text-sm font-medium transition"
                     data-test="team-tab-info"
                 >
-                    {{ __('Team Info') }}
+                    {{ __('Spiritist Center Info') }}
                 </button>
 
                 <button
@@ -217,14 +217,14 @@ new class extends Component
                     class="-mb-px border-b-2 pb-3 text-sm font-medium transition"
                     data-test="team-tab-members"
                 >
-                    {{ __('Team Members') }}
+                    {{ __('Spiritist Center Members') }}
                 </button>
             </div>
 
             <div x-show="tab === 'info'" x-cloak role="tabpanel" class="space-y-10">
             <div>
-                <flux:heading>{{ __('Team Info') }}</flux:heading>
-                <flux:subheading>{{ __('Manage your team logo, name, and address') }}</flux:subheading>
+                <flux:heading>{{ __('Spiritist Center Info') }}</flux:heading>
+                <flux:subheading>{{ __('Manage your Spiritist Center logo, name, and address') }}</flux:subheading>
             </div>
 
             <div class="space-y-6">
@@ -277,7 +277,7 @@ new class extends Component
                                 <flux:error name="logo" />
                             </flux:field>
 
-                            <flux:input wire:model="teamName" :label="__('Team name')" required data-test="team-name-input" />
+                            <flux:input wire:model="teamName" :label="__('Spiritist Center name')" required data-test="team-name-input" />
 
                             <div class="space-y-6">
                                 <div>
@@ -363,8 +363,8 @@ new class extends Component
             @if ($this->permissions->canDeleteTeam && ! $team->is_personal)
                 <div class="space-y-6">
                     <div>
-                        <flux:heading>{{ __('Delete team') }}</flux:heading>
-                        <flux:subheading>{{ __('Permanently delete your team') }}</flux:subheading>
+                        <flux:heading>{{ __('Delete Spiritist Center') }}</flux:heading>
+                        <flux:subheading>{{ __('Permanently delete your Spiritist Center') }}</flux:subheading>
                     </div>
 
                     <div class="space-y-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-200/10 dark:bg-red-900/20 dark:text-red-100">
@@ -375,7 +375,7 @@ new class extends Component
 
                         <flux:modal.trigger name="delete-team">
                             <flux:button variant="danger" data-test="delete-team-button">
-                                {{ __('Delete team') }}
+                                {{ __('Delete Spiritist Center') }}
                             </flux:button>
                         </flux:modal.trigger>
                     </div>
@@ -387,9 +387,9 @@ new class extends Component
             <div class="space-y-6">
                 <div class="flex items-center justify-between">
                     <div>
-                        <flux:heading>{{ __('Team members') }}</flux:heading>
+                        <flux:heading>{{ __('Spiritist Center members') }}</flux:heading>
                         @if ($this->permissions->canAddMember || $this->permissions->canUpdateMember || $this->permissions->canRemoveMember)
-                            <flux:subheading>{{ __('Manage who belongs to this team') }}</flux:subheading>
+                            <flux:subheading>{{ __('Manage who belongs to this Spiritist Center') }}</flux:subheading>
                         @endif
                     </div>
 

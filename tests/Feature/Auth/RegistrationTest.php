@@ -34,6 +34,6 @@ test('registration creates a personal team named after the user first name', fun
 
     $user = User::where('email', 'test@example.com')->sole();
 
-    expect($user->currentTeam->name)->toBe("John's Team")
+    expect($user->currentTeam->name)->toBe('Centro Espírita de John')
         ->and($user->currentTeam->is_personal)->toBeTrue();
 });

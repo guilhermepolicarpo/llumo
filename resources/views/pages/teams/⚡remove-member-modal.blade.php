@@ -61,9 +61,9 @@ new class extends Component {
 <flux:modal name="remove-member" focusable class="max-w-lg">
     <form wire:submit="removeMember" class="space-y-6">
         <div>
-            <flux:heading size="lg">{{ __('Remove team member') }}</flux:heading>
+            <flux:heading size="lg">{{ __('Remove Spiritist Center member') }}</flux:heading>
             <flux:subheading>
-                {{ __('Are you sure you want to remove :name from this team?', ['name' => $memberName]) }}
+                {{ __('Are you sure you want to remove :name from this Spiritist Center?', ['name' => $memberName]) }}
             </flux:subheading>
         </div>
         <div class="flex justify-end space-x-2 rtl:space-x-reverse">

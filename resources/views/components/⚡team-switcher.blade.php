@@ -92,7 +92,7 @@ new class extends Component {
             @else
                 <flux:icon name="users" class="size-4 in-data-flux-sidebar-collapsed-desktop:block" />
             @endif
-            <span class="truncate font-semibold in-data-flux-sidebar-collapsed-desktop:hidden">{{ $currentTeam['name'] ?? __('Select team') }}</span>
+            <span class="truncate font-semibold in-data-flux-sidebar-collapsed-desktop:hidden">{{ $currentTeam['name'] ?? __('Select Spiritist Center') }}</span>
             <flux:icon
                 name="chevrons-up-down"
                 variant="micro"
@@ -101,7 +101,7 @@ new class extends Component {
         </flux:button>
 
         <flux:menu class="min-w-56">
-            <flux:menu.heading>{{ __('Teams') }}</flux:menu.heading>
+            <flux:menu.heading>{{ __('Spiritist Centers') }}</flux:menu.heading>
 
             @foreach ($this->teams as $team)
                 <flux:menu.item
@@ -125,7 +125,7 @@ new class extends Component {
 
             <flux:modal.trigger name="create-team-switcher">
                 <flux:menu.item icon="plus" class="cursor-pointer" data-test="team-switcher-new-team">
-                    {{ __('New team') }}
+                    {{ __('New Spiritist Center') }}
                 </flux:menu.item>
             </flux:modal.trigger>
         </flux:menu>
