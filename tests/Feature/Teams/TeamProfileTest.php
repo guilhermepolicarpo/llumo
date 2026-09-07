@@ -53,6 +53,76 @@ test('owners can update the full team address', function () {
     ]);
 });
 
+test('renaming the team redirects to the new slug url', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user, ['name' => 'Old Name']);
+
+    $this->actingAs($user);
+
+    Livewire::test('pages::teams.edit', ['team' => $team])
+        ->set('teamName', 'New Name')
+        ->call('updateTeam')
+        ->assertHasNoErrors()
+        ->assertRedirectToRoute('teams.edit', ['team' => $team->fresh()->slug]);
+});
+
+test('updating the address without renaming the team does not redirect', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $this->actingAs($user);
+
+    Livewire::test('pages::teams.edit', ['team' => $team])
+        ->set('city', 'São Paulo')
+        ->call('updateTeam')
+        ->assertHasNoErrors()
+        ->assertNoRedirect();
+});
+
+test('the invitation-created event refreshes the pending invitations list in place', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $this->actingAs($user);
+
+    $component = Livewire::test('pages::teams.edit', ['team' => $team])
+        ->assertDontSee('invited@example.com');
+
+    $team->invitations()->create([
+        'email' => 'invited@example.com',
+        'role' => TeamRole::Member,
+        'invited_by' => $user->id,
+        'expires_at' => now()->addDays(3),
+    ]);
+
+    $component->dispatch('invitation-created')
+        ->assertSee('invited@example.com')
+        ->assertNoRedirect();
+});
+
+test('the invitation-cancelled event refreshes the pending invitations list in place', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $team->invitations()->create([
+        'email' => 'invited@example.com',
+        'role' => TeamRole::Member,
+        'invited_by' => $user->id,
+        'expires_at' => now()->addDays(3),
+    ]);
+
+    $this->actingAs($user);
+
+    $component = Livewire::test('pages::teams.edit', ['team' => $team])
+        ->assertSee('invited@example.com');
+
+    $team->invitations()->delete();
+
+    $component->dispatch('invitation-cancelled')
+        ->assertDontSee('invited@example.com')
+        ->assertNoRedirect();
+});
+
 test('blank address fields are stored as null', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user, ['city' => 'Santos']);
