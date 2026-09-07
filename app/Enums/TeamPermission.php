@@ -13,4 +13,9 @@ enum TeamPermission: string
 
     case CreateInvitation = 'invitation:create';
     case CancelInvitation = 'invitation:cancel';
+
+    case ViewAssistedPerson = 'assisted-person:view';
+    case CreateAssistedPerson = 'assisted-person:create';
+    case UpdateAssistedPerson = 'assisted-person:update';
+    case DeleteAssistedPerson = 'assisted-person:delete';
 }

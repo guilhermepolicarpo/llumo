@@ -1,5 +1,8 @@
 <?php
 
+use App\Enums\TeamRole;
+use App\Models\Team;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -44,7 +47,45 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * Create a user whose current team is a shared team with the given role.
+ *
+ * @return array{0: User, 1: Team}
+ */
+function memberOfTeam(TeamRole $role = TeamRole::Member): array
 {
-    // ..
+    $user = User::factory()->create();
+    $team = Team::factory()->create();
+
+    $team->members()->attach($user, ['role' => $role->value]);
+    $user->switchTeam($team);
+
+    return [$user, $team];
+}
+
+/**
+ * Get a complete, valid set of assisted person form values.
+ *
+ * @param  array<string, string>  $overrides
+ * @return array<string, string>
+ */
+function assistedPersonFormValues(array $overrides = []): array
+{
+    $values = array_merge([
+        'name' => 'Maria da Silva',
+        'birth_date' => '1980-05-10',
+        'email' => 'maria@example.com',
+        'phone' => '(11) 98765-4321',
+        'postal_code' => '01310-100',
+        'street' => 'Avenida Paulista',
+        'number' => '1000',
+        'complement' => 'Apto 42',
+        'district' => 'Bela Vista',
+        'city' => 'São Paulo',
+        'state' => 'SP',
+    ], $overrides);
+
+    return collect($values)
+        ->mapWithKeys(fn (string $value, string $key): array => ["form.{$key}" => $value])
+        ->all();
 }
