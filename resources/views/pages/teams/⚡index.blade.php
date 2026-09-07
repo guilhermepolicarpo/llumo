@@ -9,10 +9,9 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Title('Spiritist Centers')] class extends Component {
+new class extends Component {
     public string $name = '';
 
     public function createTeam(CreateTeam $createTeam): void
@@ -61,6 +60,11 @@ new #[Title('Spiritist Centers')] class extends Component {
     public function teams(): Collection
     {
         return Auth::user()->toUserTeams(includeCurrent: true);
+    }
+
+    public function render()
+    {
+        return $this->view()->title(__('Spiritist Centers'));
     }
 }; ?>
 
