@@ -64,7 +64,7 @@ test('team invitations can be cancelled by owner', function () {
     $this->actingAs($owner);
 
     Livewire::test('pages::teams.cancel-invitation-modal', ['team' => $team])
-        ->set('invitationCode', $invitation->code)
+        ->call('confirmCancelInvitation', $invitation->code, $invitation->email)
         ->call('cancelInvitation')
         ->assertHasNoErrors()
         ->assertDispatched('invitation-cancelled')
@@ -73,6 +73,26 @@ test('team invitations can be cancelled by owner', function () {
     $this->assertDatabaseMissing('team_invitations', [
         'id' => $invitation->id,
     ]);
+});
+
+test('confirming cancellation from the shared modal sets the target invitation and shows the modal', function () {
+    $owner = User::factory()->create();
+    $team = Team::factory()->create();
+
+    $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+
+    $invitation = TeamInvitation::factory()->create([
+        'team_id' => $team->id,
+        'invited_by' => $owner->id,
+    ]);
+
+    $this->actingAs($owner);
+
+    Livewire::test('pages::teams.cancel-invitation-modal', ['team' => $team])
+        ->dispatch('confirm-cancel-invitation', invitationCode: $invitation->code, invitationEmail: $invitation->email)
+        ->assertSet('invitationCode', $invitation->code)
+        ->assertSet('invitationEmail', $invitation->email)
+        ->assertSee($invitation->email);
 });
 
 test('team invitations can be accepted', function () {

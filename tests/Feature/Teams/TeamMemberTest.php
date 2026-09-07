@@ -50,7 +50,7 @@ test('team member can be removed by owner', function () {
     $this->actingAs($owner);
 
     Livewire::test('pages::teams.remove-member-modal', ['team' => $team])
-        ->set('memberId', $member->id)
+        ->call('confirmRemoveMember', $member->id, $member->name)
         ->call('removeMember')
         ->assertHasNoErrors()
         ->assertDispatched('member-removed')
@@ -92,9 +92,74 @@ test('team member cannot be removed by non owners', function () {
     $this->actingAs($admin);
 
     Livewire::test('pages::teams.remove-member-modal', ['team' => $team])
-        ->set('memberId', $member->id)
+        ->call('confirmRemoveMember', $member->id, $member->name)
         ->call('removeMember')
         ->assertForbidden();
+});
+
+test('owner cannot remove themselves via a tampered member id', function () {
+    $owner = User::factory()->create();
+    $team = Team::factory()->create();
+
+    $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+
+    $this->actingAs($owner);
+
+    Livewire::test('pages::teams.remove-member-modal', ['team' => $team])
+        ->call('confirmRemoveMember', $owner->id, $owner->name)
+        ->call('removeMember')
+        ->assertForbidden();
+
+    expect($owner->fresh()->belongsToTeam($team))->toBeTrue();
+});
+
+test('owner cannot promote a member to owner via updateMember', function () {
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    $team = Team::factory()->create();
+
+    $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+    $team->members()->attach($member, ['role' => TeamRole::Member->value]);
+
+    $this->actingAs($owner);
+
+    Livewire::test('pages::teams.edit', ['team' => $team])
+        ->call('updateMember', $member->id, TeamRole::Owner->value)
+        ->assertHasErrors(['role']);
+
+    expect($team->members()->where('user_id', $member->id)->first()->pivot->role)->toEqual(TeamRole::Member);
+});
+
+test('owner role cannot be changed via updateMember even with a tampered role value', function () {
+    $owner = User::factory()->create();
+    $team = Team::factory()->create();
+
+    $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+
+    $this->actingAs($owner);
+
+    Livewire::test('pages::teams.edit', ['team' => $team])
+        ->call('updateMember', $owner->id, TeamRole::Admin->value)
+        ->assertForbidden();
+
+    expect($team->members()->where('user_id', $owner->id)->first()->pivot->role)->toEqual(TeamRole::Owner);
+});
+
+test('confirming removal from the shared modal sets the target member and shows the modal', function () {
+    $owner = User::factory()->create();
+    $member = User::factory()->create(['name' => 'Removable Member']);
+    $team = Team::factory()->create();
+
+    $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+    $team->members()->attach($member, ['role' => TeamRole::Member->value]);
+
+    $this->actingAs($owner);
+
+    Livewire::test('pages::teams.remove-member-modal', ['team' => $team])
+        ->dispatch('confirm-remove-member', memberId: $member->id, memberName: $member->name)
+        ->assertSet('memberId', $member->id)
+        ->assertSet('memberName', $member->name)
+        ->assertSee('Removable Member');
 });
 
 test('removed members current team is set to personal team', function () {
@@ -111,7 +176,7 @@ test('removed members current team is set to personal team', function () {
     $this->actingAs($owner);
 
     Livewire::test('pages::teams.remove-member-modal', ['team' => $team])
-        ->set('memberId', $member->id)
+        ->call('confirmRemoveMember', $member->id, $member->name)
         ->call('removeMember')
         ->assertHasNoErrors();
 

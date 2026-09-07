@@ -80,7 +80,7 @@ new class extends Component {
             <flux:modal.close>
                 <flux:button variant="filled">{{ __('Cancel') }}</flux:button>
             </flux:modal.close>
-            <flux:button variant="primary" type="submit" data-test="invite-submit">{{ __('Send invitation') }}</flux:button>
+            <flux:button variant="primary" type="submit" wire:loading.attr="disabled" data-test="invite-submit">{{ __('Send invitation') }}</flux:button>
         </div>
     </form>
 </flux:modal>

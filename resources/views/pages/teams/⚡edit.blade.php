@@ -121,13 +121,16 @@ new class extends Component
         Gate::authorize('updateMember', $this->team);
 
         $validated = Validator::make(['role' => $role], [
-            'role' => ['required', 'string', Rule::enum(TeamRole::class)],
+            'role' => ['required', 'string', Rule::enum(TeamRole::class)->except([TeamRole::Owner])],
         ])->validate();
 
-        $this->team->memberships()
+        $membership = $this->team->memberships()
             ->where('user_id', $userId)
-            ->firstOrFail()
-            ->update(['role' => TeamRole::from($validated['role'])]);
+            ->firstOrFail();
+
+        abort_if($membership->role === TeamRole::Owner, 403);
+
+        $membership->update(['role' => TeamRole::from($validated['role'])]);
 
         Flux::toast(variant: 'success', text: __('Member role updated.'));
     }
@@ -434,29 +437,18 @@ new class extends Component
                                 @endif
 
                                 @if ($member->pivot->role !== TeamRole::Owner && $this->permissions->canRemoveMember)
-                                    <flux:modal.trigger name="remove-member-{{ $member->id }}">
-                                        <flux:tooltip :content="__('Remove member')">
-                                            <flux:button
-                                                variant="ghost"
-                                                size="sm"
-                                                icon="x-mark"
-                                                data-test="member-remove-button"
-                                            />
-                                        </flux:tooltip>
-                                    </flux:modal.trigger>
+                                    <flux:tooltip :content="__('Remove member')">
+                                        <flux:button
+                                            variant="ghost"
+                                            size="sm"
+                                            icon="x-mark"
+                                            wire:click="$dispatch('confirm-remove-member', { memberId: {{ $member->id }}, memberName: @js($member->name) })"
+                                            data-test="member-remove-button"
+                                        />
+                                    </flux:tooltip>
                                 @endif
                             </div>
                         </div>
-
-                        @if ($member->pivot->role !== TeamRole::Owner && $this->permissions->canRemoveMember)
-                            <livewire:pages::teams.remove-member-modal
-                                :team="$team"
-                                :member-id="$member->id"
-                                :member-name="$member->name"
-                                :modal-name="'remove-member-'.$member->id"
-                                :key="'remove-member-modal-'.$member->id"
-                            />
-                        @endif
                     @endforeach
                 </div>
             </div>
@@ -482,27 +474,17 @@ new class extends Component
                                 </div>
 
                                 @if ($this->permissions->canCancelInvitation)
-                                    <flux:modal.trigger name="cancel-invitation-{{ $invitation->code }}">
-                                        <flux:tooltip :content="__('Cancel invitation')">
-                                            <flux:button
-                                                variant="ghost"
-                                                size="sm"
-                                                icon="x-mark"
-                                                data-test="invitation-cancel-button"
-                                            />
-                                        </flux:tooltip>
-                                    </flux:modal.trigger>
+                                    <flux:tooltip :content="__('Cancel invitation')">
+                                        <flux:button
+                                            variant="ghost"
+                                            size="sm"
+                                            icon="x-mark"
+                                            wire:click="$dispatch('confirm-cancel-invitation', { invitationCode: @js($invitation->code), invitationEmail: @js($invitation->email) })"
+                                            data-test="invitation-cancel-button"
+                                        />
+                                    </flux:tooltip>
                                 @endif
                             </div>
-                            @if ($this->permissions->canCancelInvitation)
-                                <livewire:pages::teams.cancel-invitation-modal
-                                    :team="$team"
-                                    :invitation-code="$invitation->code"
-                                    :invitation-email="$invitation->email"
-                                    :modal-name="'cancel-invitation-'.$invitation->code"
-                                    :key="'cancel-invitation-modal-'.$invitation->code"
-                                />
-                            @endif
                         @endforeach
                     </div>
                 </div>
@@ -517,5 +499,13 @@ new class extends Component
 
     @if ($this->permissions->canDeleteTeam && ! $team->is_personal)
         <livewire:pages::teams.delete-team-modal :team="$team" />
+    @endif
+
+    @if ($this->permissions->canRemoveMember)
+        <livewire:pages::teams.remove-member-modal :team="$team" />
+    @endif
+
+    @if ($this->permissions->canCancelInvitation)
+        <livewire:pages::teams.cancel-invitation-modal :team="$team" />
     @endif
 </section>
