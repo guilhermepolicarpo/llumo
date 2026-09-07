@@ -86,6 +86,8 @@ new #[Title('Teams')] class extends Component {
             @forelse ($this->teams as $team)
                 <div class="flex items-center justify-between gap-4 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900" data-test="team-row">
                     <div class="flex items-center gap-4">
+                        <flux:avatar :src="$team->logoUrl" :name="$team->name" class="shrink-0" data-test="team-logo" />
+
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="font-medium">{{ $team->name }}</span>

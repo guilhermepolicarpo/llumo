@@ -14,6 +14,10 @@ return [
     |
     */
 
+    'brasil_api' => [
+        'url' => env('BRASIL_API_URL', 'https://brasilapi.com.br/api'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

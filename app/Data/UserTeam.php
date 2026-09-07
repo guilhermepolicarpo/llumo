@@ -9,6 +9,7 @@ readonly class UserTeam
         public string $name,
         public string $slug,
         public bool $isPersonal,
+        public ?string $logoUrl,
         public ?string $role,
         public ?string $roleLabel,
         public ?bool $isCurrent = null,

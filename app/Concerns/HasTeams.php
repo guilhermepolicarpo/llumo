@@ -154,6 +154,7 @@ trait HasTeams
             name: $team->name,
             slug: $team->slug,
             isPersonal: $team->is_personal,
+            logoUrl: $team->logo_url,
             role: $role?->value,
             roleLabel: $role?->label(),
             isCurrent: $this->isCurrentTeam($team),

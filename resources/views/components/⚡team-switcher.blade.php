@@ -15,6 +15,7 @@ new class extends Component {
             'id' => $team->id,
             'name' => $team->name,
             'slug' => $team->slug,
+            'logo_url' => $team->logo_url,
         ] : null;
     }
 
@@ -80,9 +81,15 @@ new class extends Component {
 
 <div>
     <flux:dropdown position="bottom" align="start">
+        @php($currentTeam = $this->currentTeam())
+
         <flux:button variant="ghost" class="group w-full justify-start in-data-flux-sidebar-collapsed-desktop:justify-center" data-test="team-switcher-trigger">
-            <flux:icon name="users" class="hidden size-4 in-data-flux-sidebar-collapsed-desktop:block" />
-            <span class="truncate font-semibold in-data-flux-sidebar-collapsed-desktop:hidden">{{ $this->currentTeam()['name'] ?? __('Select team') }}</span>
+            @if ($currentTeam)
+                <flux:avatar size="xs" :src="$currentTeam['logo_url']" :name="$currentTeam['name']" class="shrink-0" />
+            @else
+                <flux:icon name="users" class="size-4 in-data-flux-sidebar-collapsed-desktop:block" />
+            @endif
+            <span class="truncate font-semibold in-data-flux-sidebar-collapsed-desktop:hidden">{{ $currentTeam['name'] ?? __('Select team') }}</span>
             <flux:icon
                 name="chevrons-up-down"
                 variant="micro"
@@ -99,8 +106,11 @@ new class extends Component {
                     class="cursor-pointer"
                     data-test="team-switcher-item"
                 >
-                    <div class="flex w-full items-center justify-between">
-                        <span>{{ $team->name }}</span>
+                    <div class="flex w-full items-center justify-between gap-2">
+                        <span class="flex min-w-0 items-center gap-2">
+                            <flux:avatar size="xs" :src="$team->logoUrl" :name="$team->name" class="shrink-0" />
+                            <span class="truncate">{{ $team->name }}</span>
+                        </span>
                         @if ($team->isCurrent)
                             <flux:icon name="check" class="size-4" />
                         @endif

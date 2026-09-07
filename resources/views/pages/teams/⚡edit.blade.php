@@ -1,23 +1,46 @@
 <?php
 
+use App\Actions\Teams\FetchAddressByPostalCode;
+use App\Actions\Teams\UpdateTeamProfile;
 use App\Data\TeamPermissions;
+use App\Enums\BrazilianState;
 use App\Enums\TeamRole;
 use App\Models\Team;
-use App\Rules\TeamName;
+use App\Rules\PostalCode;
+use App\Rules\TeamProfileRules;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 
 new class extends Component
 {
+    use WithFileUploads;
+
     public Team $teamModel;
 
     public string $teamName = '';
+
+    public ?TemporaryUploadedFile $logo = null;
+
+    public string $postalCode = '';
+
+    public string $street = '';
+
+    public string $number = '';
+
+    public string $complement = '';
+
+    public string $district = '';
+
+    public string $city = '';
+
+    public string $state = '';
 
     public array $teamData = [];
 
@@ -34,32 +57,76 @@ new class extends Component
         $this->teamModel = $team;
         $this->teamName = $team->name;
 
+        $this->postalCode = PostalCode::format($team->postal_code);
+        $this->street = $team->street ?? '';
+        $this->number = $team->number ?? '';
+        $this->complement = $team->complement ?? '';
+        $this->district = $team->district ?? '';
+        $this->city = $team->city ?? '';
+        $this->state = $team->state?->value ?? '';
+
         $this->populateTeamData();
     }
 
-    public function updateTeam(): void
+    public function updateTeam(UpdateTeamProfile $updateTeamProfile): void
     {
         Gate::authorize('update', $this->teamModel);
 
-        $validated = $this->validate([
-            'teamName' => ['required', 'string', 'max:255', new TeamName],
-        ]);
+        $validated = $this->validate(TeamProfileRules::all());
 
-        $team = DB::transaction(function () use ($validated) {
-            $team = Team::whereKey($this->teamModel->id)->lockForUpdate()->firstOrFail();
+        $this->teamModel = $updateTeamProfile->handle(
+            $this->teamModel,
+            [
+                'name' => $validated['teamName'],
+                'postal_code' => $validated['postalCode'] ?? null,
+                'street' => $validated['street'] ?? null,
+                'number' => $validated['number'] ?? null,
+                'complement' => $validated['complement'] ?? null,
+                'district' => $validated['district'] ?? null,
+                'city' => $validated['city'] ?? null,
+                'state' => $validated['state'] ?? null,
+            ],
+            logo: $this->logo,
+        );
 
-            $team->update(['name' => $validated['teamName']]);
-
-            return $team;
-        });
-
-        $this->teamModel = $team;
+        $this->reset('logo');
 
         $this->populateTeamData();
 
         Flux::toast(variant: 'success', text: __('Team updated.'));
 
-        $this->redirectRoute('teams.edit', ['team' => $this->teamModel->fresh()->slug], navigate: true);
+        $this->redirectRoute('teams.edit', ['team' => $this->teamModel->slug], navigate: true);
+    }
+
+    public function removeLogo(UpdateTeamProfile $updateTeamProfile): void
+    {
+        Gate::authorize('update', $this->teamModel);
+
+        $this->teamModel = $updateTeamProfile->removeLogo($this->teamModel);
+
+        $this->reset('logo');
+
+        $this->populateTeamData();
+
+        Flux::toast(variant: 'success', text: __('Logo removed.'));
+    }
+
+    /**
+     * Fill the blank address fields from the postal code lookup.
+     */
+    public function updatedPostalCode(string $value): void
+    {
+        $address = app(FetchAddressByPostalCode::class)->handle($value);
+
+        if ($address === null) {
+            return;
+        }
+
+        foreach (['street', 'district', 'city', 'state'] as $field) {
+            if ($this->{$field} === '' && $address[$field] !== null) {
+                $this->{$field} = $address[$field];
+            }
+        }
     }
 
     public function updateMember(int $userId, string $role): void
@@ -84,13 +151,15 @@ new class extends Component
     {
         $user = Auth::user();
 
-        $team = $this->teamModel->fresh();
+        $team = $this->teamModel;
 
         $this->teamData = [
             'id' => $team->id,
             'name' => $team->name,
             'slug' => $team->slug,
             'is_personal' => $team->is_personal,
+            'logo_url' => $team->logo_url,
+            'formatted_address' => $team->formatted_address,
         ];
 
         $this->members = $team->members()->get()->map(fn ($member) => [
@@ -135,6 +204,15 @@ new class extends Component
     {
         return Auth::user()->toTeamPermissions($this->teamModel);
     }
+
+    /**
+     * @return array<int, array{value: string, label: string}>
+     */
+    #[Computed]
+    public function states(): array
+    {
+        return BrazilianState::options();
+    }
 }; ?>
 
 <section class="w-full">
@@ -148,7 +226,112 @@ new class extends Component
                 @if ($this->permissions->canUpdateTeam)
                     <div class="space-y-4">
                         <form wire:submit="updateTeam" class="space-y-6">
+                            <flux:field>
+                                <flux:label>{{ __('Logo') }}</flux:label>
+
+                                <div class="flex items-center gap-4">
+                                    <flux:avatar
+                                        size="lg"
+                                        :src="$logo?->isPreviewable() ? $logo->temporaryUrl() : $teamData['logo_url']"
+                                        :name="$teamData['name']"
+                                        data-test="team-logo-preview"
+                                    />
+
+                                    <div class="flex flex-1 flex-col gap-2">
+                                        <flux:input
+                                            type="file"
+                                            wire:model="logo"
+                                            accept="image/png,image/jpeg,image/webp"
+                                            data-test="team-logo-input"
+                                        />
+
+                                        <div class="flex items-center gap-3">
+                                            <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">
+                                                {{ __('PNG, JPG or WEBP up to 2 MB.') }}
+                                            </flux:text>
+
+                                            <flux:text wire:loading wire:target="logo" class="text-xs text-zinc-500 dark:text-zinc-400">
+                                                {{ __('Uploading...') }}
+                                            </flux:text>
+
+                                            @if ($teamData['logo_url'])
+                                                <flux:button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    type="button"
+                                                    wire:click="removeLogo"
+                                                    data-test="team-logo-remove-button"
+                                                >
+                                                    {{ __('Remove logo') }}
+                                                </flux:button>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <flux:error name="logo" />
+                            </flux:field>
+
                             <flux:input wire:model="teamName" :label="__('Team name')" required data-test="team-name-input" />
+
+                            <div class="space-y-6">
+                                <div>
+                                    <flux:heading>{{ __('Address') }}</flux:heading>
+                                    <flux:subheading>{{ __('Fill in the postal code to complete the address automatically') }}</flux:subheading>
+                                </div>
+
+                                <div class="grid gap-6 sm:grid-cols-6">
+                                    <div class="sm:col-span-2">
+                                        <flux:input
+                                            wire:model.live.blur="postalCode"
+                                            :label="__('Postal code')"
+                                            placeholder="00000-000"
+                                            inputmode="numeric"
+                                            mask="99999-999"
+                                            data-test="team-postal-code-input"
+                                        />
+
+                                        <flux:text wire:loading wire:target="postalCode" class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                                            {{ __('Looking up address...') }}
+                                        </flux:text>
+                                    </div>
+
+                                    <div class="sm:col-span-4">
+                                        <flux:input wire:model="street" :label="__('Street')" data-test="team-street-input" />
+                                    </div>
+
+                                    <div class="sm:col-span-2">
+                                        <flux:input wire:model="number" :label="__('Number')" data-test="team-number-input" />
+                                    </div>
+
+                                    <div class="sm:col-span-4">
+                                        <flux:input wire:model="complement" :label="__('Complement')" data-test="team-complement-input" />
+                                    </div>
+
+                                    <div class="sm:col-span-2">
+                                        <flux:input wire:model="district" :label="__('District')" data-test="team-district-input" />
+                                    </div>
+
+                                    <div class="sm:col-span-2">
+                                        <flux:input wire:model="city" :label="__('City')" data-test="team-city-input" />
+                                    </div>
+
+                                    <div class="sm:col-span-2">
+                                        <flux:select
+                                            wire:model="state"
+                                            :label="__('State')"
+                                            :placeholder="__('UF')"
+                                            data-test="team-state-select"
+                                        >
+                                            @foreach ($this->states as $stateOption)
+                                                <flux:select.option :value="$stateOption['value']">
+                                                    {{ $stateOption['label'] }}
+                                                </flux:select.option>
+                                            @endforeach
+                                        </flux:select>
+                                    </div>
+                                </div>
+                            </div>
 
                             <flux:button variant="primary" type="submit" data-test="team-save-button">
                                 {{ __('Save') }}
@@ -156,8 +339,18 @@ new class extends Component
                         </form>
                     </div>
                 @else
-                    <div>
-                        <flux:heading>{{ $teamData['name'] }}</flux:heading>
+                    <div class="flex items-center gap-4">
+                        <flux:avatar size="lg" :src="$teamData['logo_url']" :name="$teamData['name']" data-test="team-logo-preview" />
+
+                        <div>
+                            <flux:heading>{{ $teamData['name'] }}</flux:heading>
+
+                            @if ($teamData['formatted_address'])
+                                <flux:text class="text-sm text-zinc-500 dark:text-zinc-400" data-test="team-formatted-address">
+                                    {{ $teamData['formatted_address'] }}
+                                </flux:text>
+                            @endif
+                        </div>
                     </div>
                 @endif
             </div>
