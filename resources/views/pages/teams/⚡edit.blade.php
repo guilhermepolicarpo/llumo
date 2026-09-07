@@ -221,7 +221,34 @@ new class extends Component
     <flux:heading level="2" class="sr-only">{{ __('Teams') }}</flux:heading>
 
     <x-pages::settings.layout :heading="__('Teams')" :subheading="__('Manage your team settings')">
-        <div class="space-y-10">
+        <div x-data="{ tab: 'info' }" wire:key="team-tabs" class="space-y-6">
+            <div class="flex gap-6 border-b border-zinc-200 dark:border-zinc-700" role="tablist" aria-label="{{ __('Teams') }}">
+                <button
+                    type="button"
+                    role="tab"
+                    :aria-selected="(tab === 'info').toString()"
+                    @click="tab = 'info'"
+                    :class="tab === 'info' ? 'border-zinc-950 text-zinc-950 dark:border-white dark:text-white' : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'"
+                    class="-mb-px border-b-2 pb-3 text-sm font-medium transition"
+                    data-test="team-tab-info"
+                >
+                    {{ __('Team Info') }}
+                </button>
+
+                <button
+                    type="button"
+                    role="tab"
+                    :aria-selected="(tab === 'members').toString()"
+                    @click="tab = 'members'"
+                    :class="tab === 'members' ? 'border-zinc-950 text-zinc-950 dark:border-white dark:text-white' : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'"
+                    class="-mb-px border-b-2 pb-3 text-sm font-medium transition"
+                    data-test="team-tab-members"
+                >
+                    {{ __('Team Members') }}
+                </button>
+            </div>
+
+            <div x-show="tab === 'info'" x-cloak role="tabpanel" class="space-y-10">
             <div class="space-y-6">
                 @if ($this->permissions->canUpdateTeam)
                     <div class="space-y-4">
@@ -355,6 +382,30 @@ new class extends Component
                 @endif
             </div>
 
+            @if ($this->permissions->canDeleteTeam && ! $teamData['is_personal'])
+                <div class="space-y-6">
+                    <div>
+                        <flux:heading>{{ __('Delete team') }}</flux:heading>
+                        <flux:subheading>{{ __('Permanently delete your team') }}</flux:subheading>
+                    </div>
+
+                    <div class="space-y-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-200/10 dark:bg-red-900/20 dark:text-red-100">
+                        <div>
+                            <p class="font-medium">{{ __('Warning') }}</p>
+                            <p class="text-sm">{{ __('Please proceed with caution, this cannot be undone.') }}</p>
+                        </div>
+
+                        <flux:modal.trigger name="delete-team">
+                            <flux:button variant="danger" data-test="delete-team-button">
+                                {{ __('Delete team') }}
+                            </flux:button>
+                        </flux:modal.trigger>
+                    </div>
+                </div>
+            @endif
+            </div>
+
+            <div x-show="tab === 'members'" x-cloak role="tabpanel" class="space-y-10">
             <div class="space-y-6">
                 <div class="flex items-center justify-between">
                     <div>
@@ -481,28 +532,7 @@ new class extends Component
                     </div>
                 </div>
             @endif
-
-            @if ($this->permissions->canDeleteTeam && ! $teamData['is_personal'])
-                <div class="space-y-6">
-                    <div>
-                        <flux:heading>{{ __('Delete team') }}</flux:heading>
-                        <flux:subheading>{{ __('Permanently delete your team') }}</flux:subheading>
-                    </div>
-
-                    <div class="space-y-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-200/10 dark:bg-red-900/20 dark:text-red-100">
-                        <div>
-                            <p class="font-medium">{{ __('Warning') }}</p>
-                            <p class="text-sm">{{ __('Please proceed with caution, this cannot be undone.') }}</p>
-                        </div>
-
-                        <flux:modal.trigger name="delete-team">
-                            <flux:button variant="danger" data-test="delete-team-button">
-                                {{ __('Delete team') }}
-                            </flux:button>
-                        </flux:modal.trigger>
-                    </div>
-                </div>
-            @endif
+            </div>
         </div>
     </x-pages::settings.layout>
 
