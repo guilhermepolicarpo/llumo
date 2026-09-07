@@ -220,7 +220,7 @@ new class extends Component
 
     <flux:heading level="2" class="sr-only">{{ __('Teams') }}</flux:heading>
 
-    <x-pages::settings.layout :heading="__('Teams')" :subheading="__('Manage your team settings')">
+    <x-pages::settings.layout>
         <div x-data="{ tab: 'info' }" wire:key="team-tabs" class="space-y-6">
             <div class="flex gap-6 border-b border-zinc-200 dark:border-zinc-700" role="tablist" aria-label="{{ __('Teams') }}">
                 <button
@@ -249,6 +249,11 @@ new class extends Component
             </div>
 
             <div x-show="tab === 'info'" x-cloak role="tabpanel" class="space-y-10">
+            <div>
+                <flux:heading>{{ __('Team Info') }}</flux:heading>
+                <flux:subheading>{{ __('Manage your team logo, name, and address') }}</flux:subheading>
+            </div>
+
             <div class="space-y-6">
                 @if ($this->permissions->canUpdateTeam)
                     <div class="space-y-4">
@@ -258,7 +263,7 @@ new class extends Component
 
                                 <div class="flex items-center gap-4">
                                     <flux:avatar
-                                        size="lg"
+                                        size="xl"
                                         :src="$logo?->isPreviewable() ? $logo->temporaryUrl() : $teamData['logo_url']"
                                         :name="$teamData['name']"
                                         data-test="team-logo-preview"
