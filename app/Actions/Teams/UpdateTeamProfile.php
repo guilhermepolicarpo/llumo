@@ -75,7 +75,7 @@ class UpdateTeamProfile
         $path = $logo->store('team-logos', 'public');
 
         if (! is_string($path)) {
-            throw new RuntimeException('The team logo could not be stored.');
+            throw new RuntimeException(__('The team logo could not be stored.'));
         }
 
         return $path;

@@ -205,7 +205,7 @@ new class extends Component
                     class="-mb-px border-b-2 pb-3 text-sm font-medium transition"
                     data-test="team-tab-info"
                 >
-                    {{ __('Spiritist Center Info') }}
+                    {{ __('Info') }}
                 </button>
 
                 <button
@@ -217,7 +217,7 @@ new class extends Component
                     class="-mb-px border-b-2 pb-3 text-sm font-medium transition"
                     data-test="team-tab-members"
                 >
-                    {{ __('Spiritist Center Members') }}
+                    {{ __('Members') }}
                 </button>
             </div>
 
