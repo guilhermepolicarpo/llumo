@@ -59,26 +59,6 @@ test('team member can be removed by owner', function () {
     expect($member->fresh()->belongsToTeam($team))->toBeFalse();
 });
 
-test('the member-removed event refreshes the members list in place', function () {
-    $owner = User::factory()->create();
-    $member = User::factory()->create(['name' => 'Removable Member']);
-    $team = Team::factory()->create();
-
-    $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
-    $team->members()->attach($member, ['role' => TeamRole::Member->value]);
-
-    $this->actingAs($owner);
-
-    $component = Livewire::test('pages::teams.edit', ['team' => $team])
-        ->assertSee('Removable Member');
-
-    $team->memberships()->where('user_id', $member->id)->delete();
-
-    $component->dispatch('member-removed')
-        ->assertDontSee('Removable Member')
-        ->assertNoRedirect();
-});
-
 test('team member cannot be removed by non owners', function () {
     $owner = User::factory()->create();
     $admin = User::factory()->create();

@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
@@ -100,14 +99,6 @@ new class extends Component
         $membership->update(['role' => TeamRole::from($validated['role'])]);
 
         Flux::toast(variant: 'success', text: __('Member role updated.'));
-    }
-
-    #[On('invitation-created')]
-    #[On('invitation-cancelled')]
-    #[On('member-removed')]
-    public function refreshTeamData(): void
-    {
-        // Listening is enough: it forces a re-render, and the computed properties recompute fresh each request.
     }
 
     public function render()
@@ -398,7 +389,7 @@ new class extends Component
     </x-pages::settings.layout>
 
     @if ($this->permissions->canCreateInvitation)
-        <livewire:pages::teams.invite-member-modal :team="$team" />
+        <livewire:pages::teams.invite-member-modal :team="$team" @invitation-created="$refresh" />
     @endif
 
     @if ($this->permissions->canDeleteTeam && ! $team->is_personal)
@@ -406,10 +397,10 @@ new class extends Component
     @endif
 
     @if ($this->permissions->canRemoveMember)
-        <livewire:pages::teams.remove-member-modal :team="$team" />
+        <livewire:pages::teams.remove-member-modal :team="$team" @member-removed="$refresh" />
     @endif
 
     @if ($this->permissions->canCancelInvitation)
-        <livewire:pages::teams.cancel-invitation-modal :team="$team" />
+        <livewire:pages::teams.cancel-invitation-modal :team="$team" @invitation-cancelled="$refresh" />
     @endif
 </section>

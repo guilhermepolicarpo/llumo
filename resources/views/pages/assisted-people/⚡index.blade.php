@@ -5,7 +5,6 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -25,12 +24,6 @@ new class extends Component
     public function assistedPeople(): LengthAwarePaginator
     {
         return Auth::user()->currentTeam->assistedPeople()->orderBy('created_at', 'desc')->paginate(10);
-    }
-
-    #[On('assisted-person-deleted')]
-    public function refreshAssistedPeople(): void
-    {
-        // Listening is enough: it forces a re-render, and the computed property recomputes fresh each request.
     }
 
     public function render()
@@ -59,7 +52,7 @@ new class extends Component
 
     <flux:separator variant="subtle" class="my-4" />
 
-    <flux:card class="mt-6">
+    <flux:card class="mt-6 p-4 [--flux-bleed:1rem]">
         @if ($this->assistedPeople->isNotEmpty())
             <flux:table bleed :paginate="$this->assistedPeople" pagination:scroll-to >
                 <flux:table.columns>
@@ -131,5 +124,5 @@ new class extends Component
         @endif
     </flux:card>
 
-    <livewire:pages::assisted-people.delete-assisted-person-modal />
+    <livewire:pages::assisted-people.delete-assisted-person-modal @assisted-person-deleted="$refresh" />
 </section>

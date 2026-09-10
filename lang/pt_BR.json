@@ -373,5 +373,7 @@
   "Edit": "Editar",
   "Delete assisted person": "Excluir assistido",
   "Are you sure you want to delete :name? This action cannot be undone.": "Tem certeza que deseja excluir :name? Esta ação não pode ser desfeita.",
-  "Assisted person deleted.": "Assistido excluído."
+  "Assisted person deleted.": "Assistido excluído.",
+  "Edit assisted person": "Editar assistido",
+  "Welcome": "Bem-vindo"
 }

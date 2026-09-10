@@ -70,50 +70,6 @@ test('updating the address without renaming the team does not redirect', functio
         ->assertNoRedirect();
 });
 
-test('the invitation-created event refreshes the pending invitations list in place', function () {
-    $user = User::factory()->create();
-    $team = teamOwnedBy($user);
-
-    $this->actingAs($user);
-
-    $component = Livewire::test('pages::teams.edit', ['team' => $team])
-        ->assertDontSee('invited@example.com');
-
-    $team->invitations()->create([
-        'email' => 'invited@example.com',
-        'role' => TeamRole::Member,
-        'invited_by' => $user->id,
-        'expires_at' => now()->addDays(3),
-    ]);
-
-    $component->dispatch('invitation-created')
-        ->assertSee('invited@example.com')
-        ->assertNoRedirect();
-});
-
-test('the invitation-cancelled event refreshes the pending invitations list in place', function () {
-    $user = User::factory()->create();
-    $team = teamOwnedBy($user);
-
-    $team->invitations()->create([
-        'email' => 'invited@example.com',
-        'role' => TeamRole::Member,
-        'invited_by' => $user->id,
-        'expires_at' => now()->addDays(3),
-    ]);
-
-    $this->actingAs($user);
-
-    $component = Livewire::test('pages::teams.edit', ['team' => $team])
-        ->assertSee('invited@example.com');
-
-    $team->invitations()->delete();
-
-    $component->dispatch('invitation-cancelled')
-        ->assertDontSee('invited@example.com')
-        ->assertNoRedirect();
-});
-
 test('blank address fields are stored as null', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user, ['city' => 'Santos']);
