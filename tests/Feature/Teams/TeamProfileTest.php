@@ -10,15 +10,6 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
-function teamOwnedBy(User $user, array $attributes = []): Team
-{
-    $team = Team::factory()->create($attributes);
-
-    $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
-
-    return $team;
-}
-
 beforeEach(function () {
     Storage::fake('public');
     Http::preventStrayRequests();

@@ -1,5 +1,8 @@
 <?php
 
+use App\Enums\TeamRole;
+use App\Models\Team;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -47,4 +50,18 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Create a team owned by the given user.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function teamOwnedBy(User $user, array $attributes = []): Team
+{
+    $team = Team::factory()->create($attributes);
+
+    $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
+
+    return $team;
 }
