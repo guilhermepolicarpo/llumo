@@ -189,53 +189,55 @@ new class extends Component
                 @if ($this->permissions->canUpdateTeam)
                     <div class="space-y-4">
                         <form wire:submit="updateTeam" class="space-y-6">
-                            <flux:field>
-                                <flux:label>{{ __('Logo') }}</flux:label>
+                            <flux:fieldset>
+                                <flux:field>
+                                    <flux:label>{{ __('Logo') }}</flux:label>
 
-                                <div class="flex items-center gap-4">
-                                    <flux:avatar
-                                        size="xl"
-                                        :src="$logo?->isPreviewable() ? $logo->temporaryUrl() : $team->logo_url"
-                                        :name="$team->name"
-                                        data-test="team-logo-preview"
-                                    />
-
-                                    <div class="flex flex-1 flex-col gap-2">
-                                        <flux:input
-                                            type="file"
-                                            wire:model="logo"
-                                            accept="image/png,image/jpeg,image/webp"
-                                            data-test="team-logo-input"
+                                    <div class="flex items-center gap-4">
+                                        <flux:avatar
+                                            size="xl"
+                                            :src="$logo?->isPreviewable() ? $logo->temporaryUrl() : $team->logo_url"
+                                            :name="$team->name"
+                                            data-test="team-logo-preview"
                                         />
 
-                                        <div class="flex items-center gap-3">
-                                            <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">
-                                                {{ __('PNG, JPG or WEBP up to 2 MB.') }}
-                                            </flux:text>
+                                        <div class="flex flex-1 flex-col gap-2">
+                                            <flux:input
+                                                type="file"
+                                                wire:model="logo"
+                                                accept="image/png,image/jpeg,image/webp"
+                                                data-test="team-logo-input"
+                                            />
 
-                                            <flux:text wire:loading wire:target="logo" class="text-xs text-zinc-500 dark:text-zinc-400">
-                                                {{ __('Uploading...') }}
-                                            </flux:text>
+                                            <div class="flex items-center gap-3">
+                                                <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">
+                                                    {{ __('PNG, JPG or WEBP up to 2 MB.') }}
+                                                </flux:text>
 
-                                            @if ($team->logo_url)
-                                                <flux:button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    type="button"
-                                                    wire:click="removeLogo"
-                                                    data-test="team-logo-remove-button"
-                                                >
-                                                    {{ __('Remove logo') }}
-                                                </flux:button>
-                                            @endif
+                                                <flux:text wire:loading wire:target="logo" class="text-xs text-zinc-500 dark:text-zinc-400">
+                                                    {{ __('Uploading...') }}
+                                                </flux:text>
+
+                                                @if ($team->logo_url)
+                                                    <flux:button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        type="button"
+                                                        wire:click="removeLogo"
+                                                        data-test="team-logo-remove-button"
+                                                    >
+                                                        {{ __('Remove logo') }}
+                                                    </flux:button>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <flux:error name="logo" />
-                            </flux:field>
+                                    <flux:error name="logo" />
+                                </flux:field>
 
-                            <flux:input wire:model="teamName" :label="__('Spiritist Center name')" required data-test="team-name-input" />
+                                <flux:input wire:model="teamName" :label="__('Spiritist Center name')" required data-test="team-name-input" />
+                            </flux:fieldset>
 
                             <x-pages::address-form :states="$this->states" test-prefix="team" />
 
