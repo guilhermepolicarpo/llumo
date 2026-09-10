@@ -2,6 +2,7 @@
 
 use App\Models\AssistedPerson;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 
@@ -404,6 +405,58 @@ test('each row links to the assisted person edit page', function () {
 
     Livewire::test('pages::assisted-people.index')
         ->assertSeeHtml(route('assisted-people.edit', ['assistedPerson' => $assistedPerson]));
+});
+
+test('members can delete an assisted person', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $assistedPerson = $team->assistedPeople()->create(['name' => 'Maria Silva']);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::assisted-people.delete-assisted-person-modal')
+        ->call('confirmDeleteAssistedPerson', $assistedPerson->id, $assistedPerson->name)
+        ->call('deleteAssistedPerson')
+        ->assertDispatched('assisted-person-deleted');
+
+    $this->assertSoftDeleted('assisted_people', ['id' => $assistedPerson->id]);
+});
+
+test('deleting an assisted person removes it from the index', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $assistedPerson = $team->assistedPeople()->create(['name' => 'Maria Silva']);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::assisted-people.delete-assisted-person-modal')
+        ->call('confirmDeleteAssistedPerson', $assistedPerson->id, $assistedPerson->name)
+        ->call('deleteAssistedPerson');
+
+    Livewire::test('pages::assisted-people.index')
+        ->assertDontSee('Maria Silva');
+});
+
+test('members cannot delete another team assisted person', function () {
+    $owner = User::factory()->create();
+    $outsider = User::factory()->create();
+    $team = teamOwnedBy($owner);
+    $outsiderTeam = teamOwnedBy($outsider);
+
+    $assistedPerson = $team->assistedPeople()->create(['name' => 'Maria Silva']);
+
+    $this->actingAs($outsider);
+    $outsider->switchTeam($outsiderTeam);
+
+    $this->expectException(ModelNotFoundException::class);
+
+    Livewire::test('pages::assisted-people.delete-assisted-person-modal')
+        ->call('confirmDeleteAssistedPerson', $assistedPerson->id, $assistedPerson->name)
+        ->call('deleteAssistedPerson');
 });
 
 test('the postal code lookup fills the blank address fields', function () {

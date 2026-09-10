@@ -5,6 +5,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -24,6 +25,12 @@ new class extends Component
     public function assistedPeople(): LengthAwarePaginator
     {
         return Auth::user()->currentTeam->assistedPeople()->orderBy('created_at', 'desc')->paginate(10);
+    }
+
+    #[On('assisted-person-deleted')]
+    public function refreshAssistedPeople(): void
+    {
+        // Listening is enough: it forces a re-render, and the computed property recomputes fresh each request.
     }
 
     public function render()
@@ -59,6 +66,7 @@ new class extends Component
                     <flux:table.column>{{ __('Name') }}</flux:table.column>
                     <flux:table.column>{{ __('Address') }}</flux:table.column>
                     <flux:table.column>{{ __('Age') }}</flux:table.column>
+                    <flux:table.column></flux:table.column>
                 </flux:table.columns>
 
                 <flux:table.rows>
@@ -92,6 +100,26 @@ new class extends Component
                                     {{ $person->birth_date?->format('d/m/Y') ?? '—' }}
                                 </div>
                             </flux:table.cell>
+
+                            <flux:table.cell class="relative z-10">
+                                <flux:dropdown position="bottom" align="end">
+                                    <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" data-test="assisted-person-actions-trigger" />
+                                    <flux:menu>
+                                        <flux:menu.item as="a" href="{{ route('assisted-people.edit', ['assistedPerson' => $person]) }}" wire:navigate icon="pencil" data-test="assisted-person-edit-menu-item">
+                                            {{ __('Edit') }}
+                                        </flux:menu.item>
+                                        <flux:menu.item
+                                            variant="danger"
+                                            icon="trash"
+                                            wire:click="$dispatch('confirm-delete-assisted-person', { assistedPersonId: {{ $person->id }}, assistedPersonName: @js($person->name) })"
+                                            data-test="assisted-person-delete-menu-item"
+                                            class="cursor-pointer"
+                                        >
+                                            {{ __('Delete') }}
+                                        </flux:menu.item>
+                                    </flux:menu>
+                                </flux:dropdown>
+                            </flux:table.cell>
                         </flux:table.row>
                     @endforeach
                 </flux:table.rows>
@@ -102,4 +130,6 @@ new class extends Component
             </flux:text>
         @endif
     </flux:card>
+
+    <livewire:pages::assisted-people.delete-assisted-person-modal />
 </section>

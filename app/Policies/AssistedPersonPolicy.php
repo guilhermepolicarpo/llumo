@@ -29,6 +29,22 @@ class AssistedPersonPolicy
      */
     public function update(User $user, AssistedPerson $assistedPerson): bool
     {
+        return $this->belongsToPersonsTeam($user, $assistedPerson);
+    }
+
+    /**
+     * Determine whether the user can delete the model.
+     */
+    public function delete(User $user, AssistedPerson $assistedPerson): bool
+    {
+        return $this->belongsToPersonsTeam($user, $assistedPerson);
+    }
+
+    /**
+     * Determine whether the user belongs to the assisted person's team.
+     */
+    private function belongsToPersonsTeam(User $user, AssistedPerson $assistedPerson): bool
+    {
         return $user->belongsToTeam($assistedPerson->team);
     }
 }
