@@ -34,4 +34,38 @@ trait HasFormattedAddress
             return $address === '' ? null : $address;
         });
     }
+
+    /**
+     * Get the model's street and number, with the district, as a display line.
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function addressLine(): Attribute
+    {
+        return Attribute::make(get: function (): ?string {
+            $streetLine = collect([$this->street, $this->number])
+                ->filter()
+                ->implode(', ');
+
+            $line = collect([$streetLine, $this->district])->filter()->implode(' - ');
+
+            return $line === '' ? null : $line;
+        });
+    }
+
+    /**
+     * Get the model's city and abbreviated state as a display line.
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function addressCityLine(): Attribute
+    {
+        return Attribute::make(get: function (): ?string {
+            if ($this->city && $this->state) {
+                return $this->city.' - '.$this->state->value;
+            }
+
+            return $this->city ?? $this->state?->value;
+        });
+    }
 }

@@ -61,18 +61,30 @@ new class extends Component
 
                 <flux:table.rows>
                     @foreach ($this->assistedPeople as $person)
+                        @php
+                            $primaryClass = $loop->first
+                                ? 'font-semibold text-zinc-900 dark:text-white'
+                                : 'text-zinc-600 dark:text-zinc-300';
+                            $contact = $person->phone ? Phone::format($person->phone) : $person->email;
+                        @endphp
+
                         <flux:table.row data-test="assisted-person-row">
                             <flux:table.cell>
-                                <div class="font-medium">{{ $person->name }}</div>
+                                <div class="{{ $primaryClass }}">{{ $person->name }}</div>
+                                @if ($contact)
+                                    <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ $contact }}</div>
+                                @endif
+                            </flux:table.cell>
+
+                            <flux:table.cell>
+                                <div class="{{ $primaryClass }}">{{ $person->address_line ?? '—' }}</div>
                                 <div class="text-sm text-zinc-500 dark:text-zinc-400">
-                                    {{ $person->phone ? Phone::format($person->phone) : '—' }}
+                                    {{ $person->address_city_line ?? '—' }}
                                 </div>
                             </flux:table.cell>
 
-                            <flux:table.cell>{{ $person->formatted_address ?? '—' }}</flux:table.cell>
-
                             <flux:table.cell>
-                                <div>{{ $person->age ?? '—' }}</div>
+                                <div class="{{ $primaryClass }}">{{ $person->formatted_age ?? '—' }}</div>
                                 <div class="text-sm text-zinc-500 dark:text-zinc-400">
                                     {{ $person->birth_date?->format('d/m/Y') ?? '—' }}
                                 </div>

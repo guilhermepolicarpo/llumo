@@ -183,6 +183,87 @@ test('the index lists the team assisted people ordered by name', function () {
         ->assertSeeInOrder(['Ana', 'Zeca']);
 });
 
+test('the index shows the phone or the email, whichever is registered', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $team->assistedPeople()->create(['name' => 'Ana', 'phone' => '11987654321', 'email' => 'ana@example.com']);
+    $team->assistedPeople()->create(['name' => 'Bruno', 'email' => 'bruno@example.com']);
+    $team->assistedPeople()->create(['name' => 'Carla']);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::assisted-people.index')
+        ->assertSee('(11) 98765-4321')
+        ->assertDontSee('ana@example.com')
+        ->assertSee('bruno@example.com');
+});
+
+test('the index splits the address into a street line and a city line', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $team->assistedPeople()->create([
+        'name' => 'Ana',
+        'street' => 'Rua das Flores',
+        'number' => '100',
+        'district' => 'Centro',
+        'city' => 'Uberlândia',
+        'state' => 'MG',
+    ]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::assisted-people.index')
+        ->assertSee('Rua das Flores, 100 - Centro')
+        ->assertSee('Uberlândia - MG');
+});
+
+test('the index shows the age in years, or in months when under a year old', function (int $years, int $months, bool $expectYears) {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $team->assistedPeople()->create([
+        'name' => 'Ana',
+        'birth_date' => today()->subYears($years)->subMonths($months)->toDateString(),
+    ]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    $expected = $expectYears
+        ? trans_choice(':count year|:count years', $years)
+        : trans_choice(':count month|:count months', $months);
+
+    Livewire::test('pages::assisted-people.index')
+        ->assertSee($expected)
+        ->assertDontSee($expectYears
+            ? trans_choice(':count month|:count months', $months)
+            : trans_choice(':count year|:count years', $years));
+})->with([
+    'a single whole year, ignoring extra months' => [1, 2, true],
+    'whole years, plural' => [5, 0, true],
+    'a single month, under a year' => [0, 1, false],
+    'months only, plural, under a year' => [0, 2, false],
+]);
+
+test('the index highlights the first row and mutes the rest', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $team->assistedPeople()->create(['name' => 'Ana']);
+    $team->assistedPeople()->create(['name' => 'Bruno']);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::assisted-people.index')
+        ->assertSeeHtml('font-semibold text-zinc-900 dark:text-white">Ana')
+        ->assertSeeHtml('text-zinc-600 dark:text-zinc-300">Bruno');
+});
+
 test('the postal code lookup fills the blank address fields', function () {
     Http::fake([
         'brasilapi.com.br/api/cep/v2/01310100' => Http::response([

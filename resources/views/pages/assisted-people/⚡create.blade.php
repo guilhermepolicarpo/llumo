@@ -62,9 +62,10 @@ new class extends Component
     <flux:subheading>{{ __('Register a new assisted person for this Spiritist Center') }}</flux:subheading>
     <flux:separator variant="subtle" class="my-4" />
 
-    <flux:card class="mt-6 max-w-4xl">
-        <form wire:submit="createAssistedPerson" class="space-y-6">
-            <flux:input wire:model="name" :label="__('Name')" required autofocus data-test="assisted-person-name-input" />
+    <form wire:submit="createAssistedPerson" class="space-y-6">
+        <flux:fieldset>
+            <flux:input wire:model="name" :label="__('Name')" required autofocus data-test="assisted-person-name-input" class="w-full sm:max-w-sm"/>
+            <flux:input type="email" wire:model="email" :label="__('Email')" data-test="assisted-person-email-input" class="w-full sm:max-w-sm" />
 
             <div class="grid gap-6 sm:grid-cols-6">
                 <div class="sm:col-span-2">
@@ -74,23 +75,19 @@ new class extends Component
                 <div class="sm:col-span-2">
                     <flux:input wire:model="phone" :label="__('Phone')" placeholder="(00) 00000-0000" inputmode="numeric" mask="(99) 99999-9999" data-test="assisted-person-phone-input" />
                 </div>
-
-                <div class="sm:col-span-2">
-                    <flux:input type="email" wire:model="email" :label="__('Email')" data-test="assisted-person-email-input" />
-                </div>
             </div>
+        </flux:fieldset>
+        
+        <x-pages::address-form :states="$this->states" test-prefix="assisted-person" />
 
-            <x-pages::address-form :states="$this->states" test-prefix="assisted-person" />
+        <div class="flex justify-end gap-2">
+            <flux:button variant="ghost" :href="route('assisted-people.index')" wire:navigate>
+                {{ __('Cancel') }}
+            </flux:button>
 
-            <div class="flex justify-end gap-2">
-                <flux:button variant="ghost" :href="route('assisted-people.index')" wire:navigate>
-                    {{ __('Cancel') }}
-                </flux:button>
-
-                <flux:button variant="primary" type="submit" data-test="assisted-person-save-button">
-                    {{ __('Save') }}
-                </flux:button>
-            </div>
-        </form>
-    </flux:card>
+            <flux:button variant="primary" type="submit" data-test="assisted-person-save-button">
+                {{ __('Save') }}
+            </flux:button>
+        </div>
+    </form>
 </section>

@@ -31,7 +31,10 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  * @property-read string|null $formatted_address
+ * @property-read string|null $address_line
+ * @property-read string|null $address_city_line
  * @property-read int|null $age
+ * @property-read string|null $formatted_age
  * @property-read Team $team
  */
 #[Fillable([
@@ -71,6 +74,30 @@ class AssistedPerson extends Model
     protected function age(): Attribute
     {
         return Attribute::make(get: fn (): ?int => $this->birth_date?->diffInYears(today()));
+    }
+
+    /**
+     * Get the assisted person's age as a display string in years, or months if under a year old.
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function formattedAge(): Attribute
+    {
+        return Attribute::make(get: function (): ?string {
+            if (! $this->birth_date) {
+                return null;
+            }
+
+            $years = (int) $this->birth_date->diffInYears(today());
+
+            if ($years >= 1) {
+                return trans_choice(':count year|:count years', $years);
+            }
+
+            $months = (int) $this->birth_date->diffInMonths(today());
+
+            return trans_choice(':count month|:count months', $months);
+        });
     }
 
     /**

@@ -1,6 +1,8 @@
 {
   "(and :count more error)": "(e mais :count erro)",
   "(and :count more errors)": "(e mais :count erros)",
+  ":count month|:count months": ":count mês|:count meses",
+  ":count year|:count years": ":count ano|:count anos",
   "A fresh verification link has been sent to your email address.": "Um novo link de verificação foi enviado para seu e-mail",
   "A new verification link has been sent to your email address.": "Um novo link de verificação foi enviado para seu endereço de e-mail.",
   "A new verification link has been sent to the email address you provided during registration.": "Um novo link de verificação foi enviado para o endereço de e-mail que você forneceu durante o registro.",
