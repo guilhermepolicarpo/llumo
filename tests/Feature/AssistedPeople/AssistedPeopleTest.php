@@ -313,6 +313,71 @@ test('the index paginates the team assisted people 10 per page', function () {
     expect($component->get('assistedPeople')->count())->toBe(1);
 });
 
+test('the index can be filtered by partial, case-insensitive name', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $team->assistedPeople()->create(['name' => 'Maria Silva']);
+    $team->assistedPeople()->create(['name' => 'João Souza']);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::assisted-people.index')
+        ->set('search', 'MARIA')
+        ->assertSee('Maria Silva')
+        ->assertDontSee('João Souza');
+});
+
+test('searching resets pagination to the first page', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    AssistedPerson::factory()->for($team)->count(11)->create(['name' => 'Zeca']);
+    $team->assistedPeople()->create(['name' => 'Maria Silva']);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::assisted-people.index')
+        ->call('nextPage')
+        ->assertSet('paginators.page', 2)
+        ->set('search', 'Maria')
+        ->assertSet('paginators.page', 1);
+});
+
+test('clearing the search restores the full list', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $team->assistedPeople()->create(['name' => 'Maria Silva']);
+    $team->assistedPeople()->create(['name' => 'João Souza']);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::assisted-people.index')
+        ->set('search', 'Maria')
+        ->set('search', '')
+        ->assertSee('Maria Silva')
+        ->assertSee('João Souza');
+});
+
+test('the index shows a distinct empty state when the search has no matches', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $team->assistedPeople()->create(['name' => 'Maria Silva']);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::assisted-people.index')
+        ->set('search', 'Nonexistent')
+        ->assertSee(__('No assisted people match your search.'))
+        ->assertDontSee(__('No assisted people have been registered yet.'));
+});
+
 test('the index shows the phone or the email, whichever is registered', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);

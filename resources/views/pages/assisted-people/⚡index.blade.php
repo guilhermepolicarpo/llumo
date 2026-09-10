@@ -12,9 +12,16 @@ new class extends Component
 {
     use WithPagination;
 
+    public string $search = '';
+
     public function mount(): void
     {
         Gate::authorize('viewAny', [AssistedPerson::class, Auth::user()->currentTeam]);
+    }
+
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
     }
 
     /**
@@ -23,7 +30,10 @@ new class extends Component
     #[Computed]
     public function assistedPeople(): LengthAwarePaginator
     {
-        return Auth::user()->currentTeam->assistedPeople()->orderBy('created_at', 'desc')->paginate(10);
+        return Auth::user()->currentTeam->assistedPeople()
+            ->when($this->search !== '', fn ($query) => $query->whereLike('name', "%{$this->search}%"))
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
     }
 
     public function render()
@@ -51,6 +61,14 @@ new class extends Component
     </div>
 
     <flux:separator variant="subtle" class="my-4" />
+
+    <flux:input
+        wire:model.live.debounce.300ms="search"
+        icon="magnifying-glass"
+        :placeholder="__('Search by name...')"
+        clearable
+        data-test="assisted-people-search-input"
+    />
 
     <flux:card class="mt-6 p-4 [--flux-bleed:1rem]">
         @if ($this->assistedPeople->isNotEmpty())
@@ -119,7 +137,11 @@ new class extends Component
             </flux:table>
         @else
             <flux:text class="py-4 text-center text-zinc-500 dark:text-zinc-400">
-                {{ __('No assisted people have been registered yet.') }}
+                @if ($this->search !== '')
+                    {{ __('No assisted people match your search.') }}
+                @else
+                    {{ __('No assisted people have been registered yet.') }}
+                @endif
             </flux:text>
         @endif
     </flux:card>
