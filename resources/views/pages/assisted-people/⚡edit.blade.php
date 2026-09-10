@@ -57,7 +57,7 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <flux:heading size="xl">{{ __('Edit :name', ['name' => $assistedPerson->name]) }}</flux:heading>
+    <flux:heading size="xl">{{ __('Edit assisted person') }}</flux:heading>
     <flux:subheading>{{ __("Update this assisted person's details for this Spiritist Center") }}</flux:subheading>
     <flux:separator variant="subtle" class="my-4" />
 

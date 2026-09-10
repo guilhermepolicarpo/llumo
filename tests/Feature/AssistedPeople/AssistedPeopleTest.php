@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AssistedPerson;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
@@ -288,6 +289,27 @@ test('the index lists the team assisted people ordered by name', function () {
 
     Livewire::test('pages::assisted-people.index')
         ->assertSeeInOrder(['Ana', 'Zeca']);
+});
+
+test('the index paginates the team assisted people 10 per page', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    AssistedPerson::factory()->for($team)->count(11)->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    $component = Livewire::test('pages::assisted-people.index');
+
+    expect($component->get('assistedPeople')->total())->toBe(11)
+        ->and($component->get('assistedPeople')->perPage())->toBe(10)
+        ->and($component->get('assistedPeople')->count())->toBe(10);
+
+    $component->call('nextPage')
+        ->assertSet('paginators.page', 2);
+
+    expect($component->get('assistedPeople')->count())->toBe(1);
 });
 
 test('the index shows the phone or the email, whichever is registered', function () {

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Concerns\HasFormattedAddress;
 use App\Enums\BrazilianState;
+use App\Rules\Phone;
 use Database\Factories\AssistedPersonFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -35,6 +36,7 @@ use Illuminate\Support\Carbon;
  * @property-read string|null $address_city_line
  * @property-read int|null $age
  * @property-read string|null $formatted_age
+ * @property-read string|null $contact
  * @property-read Team $team
  */
 #[Fillable([
@@ -98,6 +100,16 @@ class AssistedPerson extends Model
 
             return trans_choice(':count month|:count months', $months);
         });
+    }
+
+    /**
+     * Get the assisted person's formatted phone, or their email as a fallback.
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function contact(): Attribute
+    {
+        return Attribute::make(get: fn (): ?string => $this->phone ? Phone::format($this->phone) : $this->email);
     }
 
     /**

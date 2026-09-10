@@ -1,27 +1,29 @@
 <?php
 
 use App\Models\AssistedPerson;
-use App\Rules\Phone;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 new class extends Component
 {
+    use WithPagination;
+
     public function mount(): void
     {
         Gate::authorize('viewAny', [AssistedPerson::class, Auth::user()->currentTeam]);
     }
 
     /**
-     * @return Collection<int, AssistedPerson>
+     * @return LengthAwarePaginator<int, AssistedPerson>
      */
     #[Computed]
-    public function assistedPeople(): Collection
+    public function assistedPeople(): LengthAwarePaginator
     {
-        return Auth::user()->currentTeam->assistedPeople()->orderBy('created_at', 'desc')->get();
+        return Auth::user()->currentTeam->assistedPeople()->orderBy('created_at', 'desc')->paginate(10);
     }
 
     public function render()
@@ -52,7 +54,7 @@ new class extends Component
 
     <flux:card class="mt-6">
         @if ($this->assistedPeople->isNotEmpty())
-            <flux:table>
+            <flux:table bleed :paginate="$this->assistedPeople" pagination:scroll-to >
                 <flux:table.columns>
                     <flux:table.column>{{ __('Name') }}</flux:table.column>
                     <flux:table.column>{{ __('Address') }}</flux:table.column>
@@ -61,14 +63,7 @@ new class extends Component
 
                 <flux:table.rows>
                     @foreach ($this->assistedPeople as $person)
-                        @php
-                            $primaryClass = $loop->first
-                                ? 'font-semibold text-zinc-900 dark:text-white'
-                                : 'text-zinc-600 dark:text-zinc-300';
-                            $contact = $person->phone ? Phone::format($person->phone) : $person->email;
-                        @endphp
-
-                        <flux:table.row class="relative cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800" data-test="assisted-person-row">
+                        <flux:table.row :key="$person->id" class="relative cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800" data-test="assisted-person-row">
                             <flux:table.cell>
                                 <a
                                     href="{{ route('assisted-people.edit', ['assistedPerson' => $person]) }}"
@@ -78,22 +73,22 @@ new class extends Component
                                     data-test="assisted-person-edit-link"
                                 ></a>
 
-                                <div class="{{ $primaryClass }}">{{ $person->name }}</div>
-                                @if ($contact)
-                                    <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ $contact }}</div>
+                                <div class="text-zinc-900 dark:text-white">{{ $person->name }}</div>
+                                @if ($person->contact)
+                                    <div class="text-sm">{{ $person->contact }}</div>
                                 @endif
                             </flux:table.cell>
 
                             <flux:table.cell>
-                                <div class="{{ $primaryClass }}">{{ $person->address_line ?? '—' }}</div>
-                                <div class="text-sm text-zinc-500 dark:text-zinc-400">
+                                <div class="text-zinc-900 dark:text-white">{{ $person->address_line ?? '—' }}</div>
+                                <div class="text-sm">
                                     {{ $person->address_city_line ?? '—' }}
                                 </div>
                             </flux:table.cell>
 
                             <flux:table.cell>
-                                <div class="{{ $primaryClass }}">{{ $person->formatted_age ?? '—' }}</div>
-                                <div class="text-sm text-zinc-500 dark:text-zinc-400">
+                                <div class="text-zinc-900 dark:text-white">{{ $person->formatted_age ?? '—' }}</div>
+                                <div class="text-sm">
                                     {{ $person->birth_date?->format('d/m/Y') ?? '—' }}
                                 </div>
                             </flux:table.cell>
@@ -102,7 +97,7 @@ new class extends Component
                 </flux:table.rows>
             </flux:table>
         @else
-            <flux:text class="py-8 text-center text-zinc-500 dark:text-zinc-400">
+            <flux:text class="py-4 text-center text-zinc-500 dark:text-zinc-400">
                 {{ __('No assisted people have been registered yet.') }}
             </flux:text>
         @endif
