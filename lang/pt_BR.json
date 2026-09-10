@@ -327,6 +327,10 @@
   "City": "Cidade",
   "State": "Estado",
   "UF": "UF",
+  "Main St": "Rua das Flores",
+  "Apt 4B": "Apto 4B",
+  "Downtown": "Centro",
+  "New York": "São Paulo",
   "The :attribute must be a valid Brazilian postal code.": "O campo :attribute deve ser um CEP brasileiro válido.",
   "Search": "Buscar",
   "Continue": "Continuar",
@@ -360,6 +364,8 @@
   "Birth date": "Data de nascimento",
   "Phone": "Telefone",
   "Register a new assisted person for this Spiritist Center": "Cadastre um novo assistido para este Centro Espírita",
+  "John Doe": "João da Silva",
+  "john.doe@example.com": "joao.silva@exemplo.com",
   "Assisted person created.": "Assistido cadastrado.",
   "The :attribute must be a valid Brazilian phone number.": "O campo :attribute deve ser um telefone brasileiro válido."
 }

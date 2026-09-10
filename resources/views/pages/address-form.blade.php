@@ -11,30 +11,20 @@
         inputmode="numeric"
         mask="99999-999"
         data-test="{{ $testPrefix }}-postal-code-input"
-        class="max-w-3xs"
+        class="max-w-50"
     />
-    
-    
-    <div class="grid gap-6 sm:grid-cols-6 max-w-2xl">
-        <div class="sm:col-span-2">
-            <flux:input wire:model="street" :label="__('Street')" data-test="{{ $testPrefix }}-street-input" />
-        </div>
 
-        <div class="sm:col-span-1">
-            <flux:input wire:model="number" :label="__('Number')" data-test="{{ $testPrefix }}-number-input" />
-        </div>
+    <flux:input wire:model="street" :label="__('Street')" :placeholder="__('Main St')" data-test="{{ $testPrefix }}-street-input" />
 
-        <div class="sm:col-span-2">
-            <flux:input wire:model="complement" :label="__('Complement')" data-test="{{ $testPrefix }}-complement-input" />
-        </div>
+    <div class="mb-3 grid gap-6 sm:grid-cols-2">
+        <flux:input wire:model="number" :label="__('Number')" placeholder="123" data-test="{{ $testPrefix }}-number-input" />
+        <flux:input wire:model="complement" :label="__('Complement')" :placeholder="__('Apt 4B')" data-test="{{ $testPrefix }}-complement-input" />
+    </div>
 
-        <div class="sm:col-span-2">
-            <flux:input wire:model="district" :label="__('District')" data-test="{{ $testPrefix }}-district-input" />
-        </div>
+    <flux:input wire:model="district" :label="__('District')" :placeholder="__('Downtown')" data-test="{{ $testPrefix }}-district-input" />
 
-        <div class="sm:col-span-2">
-            <flux:input wire:model="city" :label="__('City')" data-test="{{ $testPrefix }}-city-input" />
-        </div>
+    <div class="grid gap-6 sm:grid-cols-2">
+        <flux:input wire:model="city" :label="__('City')" :placeholder="__('New York')" data-test="{{ $testPrefix }}-city-input" />
 
         <flux:select
             wire:model="state"
