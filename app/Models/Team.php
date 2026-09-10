@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use App\Concerns\GeneratesUniqueTeamSlugs;
+use App\Concerns\HasFormattedAddress;
 use App\Enums\BrazilianState;
 use App\Enums\TeamRole;
-use App\Rules\PostalCode;
 use Database\Factories\TeamFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
@@ -40,6 +40,7 @@ use Illuminate\Support\Facades\Storage;
  * @property-read Collection<int, TeamInvitation> $invitations
  * @property-read Collection<int, Membership> $memberships
  * @property-read Collection<int, User> $members
+ * @property-read Collection<int, AssistedPerson> $assistedPeople
  */
 #[Fillable([
     'name',
@@ -58,7 +59,7 @@ use Illuminate\Support\Facades\Storage;
 class Team extends Model
 {
     /** @use HasFactory<TeamFactory> */
-    use GeneratesUniqueTeamSlugs, HasFactory, SoftDeletes;
+    use GeneratesUniqueTeamSlugs, HasFactory, HasFormattedAddress, SoftDeletes;
 
     /**
      * Bootstrap the model and its traits.
@@ -124,6 +125,16 @@ class Team extends Model
     }
 
     /**
+     * Get all assisted people belonging to this team.
+     *
+     * @return HasMany<AssistedPerson, $this>
+     */
+    public function assistedPeople(): HasMany
+    {
+        return $this->hasMany(AssistedPerson::class);
+    }
+
+    /**
      * Get the publicly accessible URL for the team's logo.
      *
      * @return Attribute<string|null, never>
@@ -133,34 +144,6 @@ class Team extends Model
         return Attribute::make(get: fn (): ?string => $this->logo_path
             ? Storage::disk('public')->url($this->logo_path)
             : null);
-    }
-
-    /**
-     * Get the team's address as a single display string.
-     *
-     * @return Attribute<string|null, never>
-     */
-    protected function formattedAddress(): Attribute
-    {
-        return Attribute::make(get: function (): ?string {
-            $streetLine = collect([$this->street, $this->number])
-                ->filter()
-                ->implode(', ');
-
-            $cityLine = $this->city && $this->state
-                ? $this->city.'/'.$this->state->value
-                : ($this->city ?? $this->state?->value);
-
-            $address = collect([
-                $streetLine,
-                $this->complement,
-                $this->district,
-                $cityLine,
-                $this->postal_code ? __('Postal code :code', ['code' => PostalCode::format($this->postal_code)]) : null,
-            ])->filter()->implode(' — ');
-
-            return $address === '' ? null : $address;
-        });
     }
 
     /**

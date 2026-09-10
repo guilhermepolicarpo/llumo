@@ -349,5 +349,15 @@
   "login using an authentication code": "entrar usando um código de autenticação",
   "or you can": "ou você pode",
   "Info": "Informações",
-  "Members": "Membros"
+  "Members": "Membros",
+  "Assisted people": "Assistidos",
+  "New assisted person": "Novo assistido",
+  "People assisted by this Spiritist Center": "Pessoas assistidas por este Centro Espírita",
+  "No assisted people have been registered yet.": "Nenhum assistido foi cadastrado ainda.",
+  "Age": "Idade",
+  "Birth date": "Data de nascimento",
+  "Phone": "Telefone",
+  "Register a new assisted person for this Spiritist Center": "Cadastre um novo assistido para este Centro Espírita",
+  "Assisted person created.": "Assistido cadastrado.",
+  "The :attribute must be a valid Brazilian phone number.": "O campo :attribute deve ser um telefone brasileiro válido."
 }

@@ -2,9 +2,7 @@
 
 namespace App\Rules;
 
-use App\Enums\BrazilianState;
 use Illuminate\Contracts\Validation\ValidationRule;
-use Illuminate\Validation\Rule;
 
 class TeamProfileRules
 {
@@ -52,14 +50,6 @@ class TeamProfileRules
      */
     public static function address(): array
     {
-        return [
-            'postalCode' => ['nullable', 'string', new PostalCode],
-            'street' => ['nullable', 'string', 'max:255'],
-            'number' => ['nullable', 'string', 'max:20'],
-            'complement' => ['nullable', 'string', 'max:255'],
-            'district' => ['nullable', 'string', 'max:255'],
-            'city' => ['nullable', 'string', 'max:255'],
-            'state' => ['nullable', Rule::enum(BrazilianState::class)],
-        ];
+        return AddressRules::all();
     }
 }

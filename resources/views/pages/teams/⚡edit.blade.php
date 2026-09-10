@@ -1,9 +1,8 @@
 <?php
 
-use App\Actions\Teams\FetchAddressByPostalCode;
 use App\Actions\Teams\UpdateTeamProfile;
+use App\Concerns\InteractsWithAddressForm;
 use App\Data\TeamPermissions;
-use App\Enums\BrazilianState;
 use App\Enums\TeamRole;
 use App\Models\Team;
 use App\Rules\PostalCode;
@@ -21,27 +20,13 @@ use Livewire\WithFileUploads;
 
 new class extends Component
 {
-    use WithFileUploads;
+    use InteractsWithAddressForm, WithFileUploads;
 
     public Team $team;
 
     public string $teamName = '';
 
     public ?TemporaryUploadedFile $logo = null;
-
-    public string $postalCode = '';
-
-    public string $street = '';
-
-    public string $number = '';
-
-    public string $complement = '';
-
-    public string $district = '';
-
-    public string $city = '';
-
-    public string $state = '';
 
     public function mount(Team $team): void
     {
@@ -98,24 +83,6 @@ new class extends Component
         Flux::toast(variant: 'success', text: __('Logo removed.'));
     }
 
-    /**
-     * Fill the blank address fields from the postal code lookup.
-     */
-    public function updatedPostalCode(string $value): void
-    {
-        $address = app(FetchAddressByPostalCode::class)->handle($value);
-
-        if ($address === null) {
-            return;
-        }
-
-        foreach (['street', 'district', 'city', 'state'] as $field) {
-            if ($this->{$field} === '' && $address[$field] !== null) {
-                $this->{$field} = $address[$field];
-            }
-        }
-    }
-
     public function updateMember(int $userId, string $role): void
     {
         Gate::authorize('updateMember', $this->team);
@@ -158,15 +125,6 @@ new class extends Component
     public function permissions(): TeamPermissions
     {
         return Auth::user()->toTeamPermissions($this->team);
-    }
-
-    /**
-     * @return array<int, array{value: string, label: string}>
-     */
-    #[Computed]
-    public function states(): array
-    {
-        return BrazilianState::options();
     }
 
     #[Computed]
@@ -279,64 +237,7 @@ new class extends Component
 
                             <flux:input wire:model="teamName" :label="__('Spiritist Center name')" required data-test="team-name-input" />
 
-                            <div class="space-y-6">
-                                <div>
-                                    <flux:heading>{{ __('Address') }}</flux:heading>
-                                    <flux:subheading>{{ __('Fill in the postal code to complete the address automatically') }}</flux:subheading>
-                                </div>
-
-                                <div class="grid gap-6 sm:grid-cols-6">
-                                    <div class="sm:col-span-2">
-                                        <flux:input
-                                            wire:model.live.blur="postalCode"
-                                            :label="__('Postal code')"
-                                            placeholder="00000-000"
-                                            inputmode="numeric"
-                                            mask="99999-999"
-                                            data-test="team-postal-code-input"
-                                        />
-
-                                        <flux:text wire:loading wire:target="postalCode" class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                                            {{ __('Looking up address...') }}
-                                        </flux:text>
-                                    </div>
-
-                                    <div class="sm:col-span-4">
-                                        <flux:input wire:model="street" :label="__('Street')" data-test="team-street-input" />
-                                    </div>
-
-                                    <div class="sm:col-span-2">
-                                        <flux:input wire:model="number" :label="__('Number')" data-test="team-number-input" />
-                                    </div>
-
-                                    <div class="sm:col-span-4">
-                                        <flux:input wire:model="complement" :label="__('Complement')" data-test="team-complement-input" />
-                                    </div>
-
-                                    <div class="sm:col-span-2">
-                                        <flux:input wire:model="district" :label="__('District')" data-test="team-district-input" />
-                                    </div>
-
-                                    <div class="sm:col-span-2">
-                                        <flux:input wire:model="city" :label="__('City')" data-test="team-city-input" />
-                                    </div>
-
-                                    <div class="sm:col-span-2">
-                                        <flux:select
-                                            wire:model="state"
-                                            :label="__('State')"
-                                            :placeholder="__('UF')"
-                                            data-test="team-state-select"
-                                        >
-                                            @foreach ($this->states as $stateOption)
-                                                <flux:select.option :value="$stateOption['value']">
-                                                    {{ $stateOption['label'] }}
-                                                </flux:select.option>
-                                            @endforeach
-                                        </flux:select>
-                                    </div>
-                                </div>
-                            </div>
+                            <x-pages::address-form :states="$this->states" test-prefix="team" />
 
                             <flux:button variant="primary" type="submit" data-test="team-save-button">
                                 {{ __('Save') }}
