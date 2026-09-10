@@ -1,12 +1,13 @@
 <?php
 
-use App\Actions\AssistedPeople\CreateAssistedPerson;
+use App\Actions\AssistedPeople\UpdateAssistedPerson;
 use App\Concerns\InteractsWithAddressForm;
 use App\Concerns\InteractsWithAssistedPersonForm;
 use App\Models\AssistedPerson;
 use App\Rules\AssistedPersonRules;
+use App\Rules\Phone;
+use App\Rules\PostalCode;
 use Flux\Flux;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 
@@ -14,36 +15,53 @@ new class extends Component
 {
     use InteractsWithAddressForm, InteractsWithAssistedPersonForm;
 
-    public function mount(): void
+    public AssistedPerson $assistedPerson;
+
+    public function mount(AssistedPerson $assistedPerson): void
     {
-        Gate::authorize('create', [AssistedPerson::class, Auth::user()->currentTeam]);
+        Gate::authorize('update', $assistedPerson);
+
+        $this->assistedPerson = $assistedPerson;
+
+        $this->name = $assistedPerson->name;
+        $this->birthDate = $assistedPerson->birth_date?->format('Y-m-d') ?? '';
+        $this->phone = Phone::format($assistedPerson->phone);
+        $this->email = $assistedPerson->email ?? '';
+
+        $this->postalCode = PostalCode::format($assistedPerson->postal_code);
+        $this->street = $assistedPerson->street ?? '';
+        $this->number = $assistedPerson->number ?? '';
+        $this->complement = $assistedPerson->complement ?? '';
+        $this->district = $assistedPerson->district ?? '';
+        $this->city = $assistedPerson->city ?? '';
+        $this->state = $assistedPerson->state?->value ?? '';
     }
 
-    public function createAssistedPerson(CreateAssistedPerson $createAssistedPerson): void
+    public function updateAssistedPerson(UpdateAssistedPerson $updateAssistedPerson): void
     {
-        Gate::authorize('create', [AssistedPerson::class, Auth::user()->currentTeam]);
+        Gate::authorize('update', $this->assistedPerson);
 
         $validated = $this->validate(AssistedPersonRules::all());
 
-        $createAssistedPerson->handle(Auth::user()->currentTeam, $this->assistedPersonAttributes($validated));
+        $updateAssistedPerson->handle($this->assistedPerson, $this->assistedPersonAttributes($validated));
 
-        Flux::toast(variant: 'success', text: __('Assisted person created.'));
+        Flux::toast(variant: 'success', text: __('Assisted person updated.'));
 
         $this->redirectRoute('assisted-people.index', navigate: true);
     }
 
     public function render()
     {
-        return $this->view()->title(__('New assisted person'));
+        return $this->view()->title(__('Edit :name', ['name' => $this->assistedPerson->name]));
     }
 }; ?>
 
 <section class="w-full">
-    <flux:heading size="xl">{{ __('New assisted person') }}</flux:heading>
-    <flux:subheading>{{ __('Register a new assisted person for this Spiritist Center') }}</flux:subheading>
+    <flux:heading size="xl">{{ __('Edit :name', ['name' => $assistedPerson->name]) }}</flux:heading>
+    <flux:subheading>{{ __("Update this assisted person's details for this Spiritist Center") }}</flux:subheading>
     <flux:separator variant="subtle" class="my-4" />
 
-    <form wire:submit="createAssistedPerson" class="max-w-xl space-y-6">
+    <form wire:submit="updateAssistedPerson" class="max-w-xl space-y-6">
         <flux:fieldset>
             <flux:input wire:model="name" :label="__('Name')" required autofocus :placeholder="__('John Doe')" data-test="assisted-person-name-input" />
             <flux:input type="email" wire:model="email" :label="__('Email')" :placeholder="__('john.doe@example.com')" data-test="assisted-person-email-input" />

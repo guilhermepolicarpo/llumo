@@ -67,7 +67,7 @@ new class extends Component {
         </div>
 
         <div class="space-y-4">
-            <flux:input wire:model="inviteEmail" type="email" :label="__('Email address')" required data-test="invite-email" />
+            <flux:input wire:model="inviteEmail" type="email" :label="__('Email address')" :placeholder="__('john.doe@example.com')" required data-test="invite-email" />
 
             <flux:select wire:model="inviteRole" :label="__('Role')" data-test="invite-role">
                 @foreach ($this->availableRoles as $role)
@@ -78,7 +78,7 @@ new class extends Component {
 
         <div class="flex justify-end space-x-2 rtl:space-x-reverse">
             <flux:modal.close>
-                <flux:button variant="filled">{{ __('Cancel') }}</flux:button>
+                <flux:button variant="ghost">{{ __('Cancel') }}</flux:button>
             </flux:modal.close>
             <flux:button variant="primary" type="submit" wire:loading.attr="disabled" data-test="invite-submit">{{ __('Send invitation') }}</flux:button>
         </div>

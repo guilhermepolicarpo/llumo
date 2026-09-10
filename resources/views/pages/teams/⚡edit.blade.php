@@ -206,6 +206,7 @@ new class extends Component
                                                 type="file"
                                                 wire:model="logo"
                                                 accept="image/png,image/jpeg,image/webp"
+                                                size="sm"
                                                 data-test="team-logo-input"
                                             />
 
@@ -236,7 +237,7 @@ new class extends Component
                                     <flux:error name="logo" />
                                 </flux:field>
 
-                                <flux:input wire:model="teamName" :label="__('Spiritist Center name')" required data-test="team-name-input" />
+                                <flux:input wire:model="teamName" :label="__('Name')" required data-test="team-name-input" />
                             </flux:fieldset>
 
                             <x-pages::address-form :states="$this->states" test-prefix="team" />

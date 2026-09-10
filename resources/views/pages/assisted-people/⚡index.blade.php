@@ -21,7 +21,7 @@ new class extends Component
     #[Computed]
     public function assistedPeople(): Collection
     {
-        return Auth::user()->currentTeam->assistedPeople()->orderBy('name')->get();
+        return Auth::user()->currentTeam->assistedPeople()->orderBy('created_at', 'desc')->get();
     }
 
     public function render()
@@ -68,8 +68,16 @@ new class extends Component
                             $contact = $person->phone ? Phone::format($person->phone) : $person->email;
                         @endphp
 
-                        <flux:table.row data-test="assisted-person-row">
+                        <flux:table.row class="relative cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800" data-test="assisted-person-row">
                             <flux:table.cell>
+                                <a
+                                    href="{{ route('assisted-people.edit', ['assistedPerson' => $person]) }}"
+                                    wire:navigate
+                                    class="absolute inset-0"
+                                    aria-label="{{ __('Edit :name', ['name' => $person->name]) }}"
+                                    data-test="assisted-person-edit-link"
+                                ></a>
+
                                 <div class="{{ $primaryClass }}">{{ $person->name }}</div>
                                 @if ($contact)
                                     <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ $contact }}</div>

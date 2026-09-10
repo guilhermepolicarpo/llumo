@@ -169,6 +169,113 @@ test('non members cannot view or create assisted people', function (string $rout
     'create' => 'assisted-people.create',
 ]);
 
+test('the edit form is pre-filled with the assisted person data', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $assistedPerson = $team->assistedPeople()->create([
+        'name' => 'Maria Silva',
+        'birth_date' => '1990-05-20',
+        'phone' => '11987654321',
+        'email' => 'maria@example.com',
+        'postal_code' => '01310100',
+        'street' => 'Avenida Paulista',
+        'number' => '1578',
+        'complement' => 'Sala 12',
+        'district' => 'Bela Vista',
+        'city' => 'São Paulo',
+        'state' => 'SP',
+    ]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::assisted-people.edit', ['assistedPerson' => $assistedPerson])
+        ->assertSet('name', 'Maria Silva')
+        ->assertSet('birthDate', '1990-05-20')
+        ->assertSet('phone', '(11) 98765-4321')
+        ->assertSet('email', 'maria@example.com')
+        ->assertSet('postalCode', '01310-100')
+        ->assertSet('street', 'Avenida Paulista')
+        ->assertSet('number', '1578')
+        ->assertSet('complement', 'Sala 12')
+        ->assertSet('district', 'Bela Vista')
+        ->assertSet('city', 'São Paulo')
+        ->assertSet('state', 'SP');
+});
+
+test('members can update an assisted person', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $assistedPerson = $team->assistedPeople()->create(['name' => 'Maria Silva']);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::assisted-people.edit', ['assistedPerson' => $assistedPerson])
+        ->set('name', 'Maria Santos')
+        ->set('phone', '(11) 98765-4321')
+        ->set('email', 'maria.santos@example.com')
+        ->call('updateAssistedPerson')
+        ->assertHasNoErrors()
+        ->assertRedirectToRoute('assisted-people.index');
+
+    $this->assertDatabaseHas('assisted_people', [
+        'id' => $assistedPerson->id,
+        'name' => 'Maria Santos',
+        'phone' => '11987654321',
+        'email' => 'maria.santos@example.com',
+    ]);
+});
+
+test('clearing an optional field on update sets it to null', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $assistedPerson = $team->assistedPeople()->create(['name' => 'Maria Silva', 'phone' => '11987654321']);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::assisted-people.edit', ['assistedPerson' => $assistedPerson])
+        ->set('phone', '')
+        ->call('updateAssistedPerson')
+        ->assertHasNoErrors();
+
+    $this->assertDatabaseHas('assisted_people', [
+        'id' => $assistedPerson->id,
+        'phone' => null,
+    ]);
+});
+
+test('the name is required when updating an assisted person', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $assistedPerson = $team->assistedPeople()->create(['name' => 'Maria Silva']);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::assisted-people.edit', ['assistedPerson' => $assistedPerson])
+        ->set('name', '')
+        ->call('updateAssistedPerson')
+        ->assertHasErrors(['name' => 'required']);
+});
+
+test('non members cannot view or update another team assisted person', function () {
+    $owner = User::factory()->create();
+    $outsider = User::factory()->create();
+    $team = teamOwnedBy($owner);
+
+    $assistedPerson = $team->assistedPeople()->create(['name' => 'Maria Silva']);
+
+    $this->actingAs($outsider)
+        ->get(route('assisted-people.edit', ['current_team' => $team->slug, 'assistedPerson' => $assistedPerson]))
+        ->assertForbidden();
+});
+
 test('the index lists the team assisted people ordered by name', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
@@ -262,6 +369,19 @@ test('the index highlights the first row and mutes the rest', function () {
     Livewire::test('pages::assisted-people.index')
         ->assertSeeHtml('font-semibold text-zinc-900 dark:text-white">Ana')
         ->assertSeeHtml('text-zinc-600 dark:text-zinc-300">Bruno');
+});
+
+test('each row links to the assisted person edit page', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $assistedPerson = $team->assistedPeople()->create(['name' => 'Ana']);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::assisted-people.index')
+        ->assertSeeHtml(route('assisted-people.edit', ['assistedPerson' => $assistedPerson]));
 });
 
 test('the postal code lookup fills the blank address fields', function () {

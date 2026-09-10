@@ -367,5 +367,7 @@
   "John Doe": "João da Silva",
   "john.doe@example.com": "joao.silva@exemplo.com",
   "Assisted person created.": "Assistido cadastrado.",
-  "The :attribute must be a valid Brazilian phone number.": "O campo :attribute deve ser um telefone brasileiro válido."
+  "The :attribute must be a valid Brazilian phone number.": "O campo :attribute deve ser um telefone brasileiro válido.",
+  "Assisted person updated.": "Assistido atualizado.",
+  "Update this assisted person's details for this Spiritist Center": "Atualize os dados deste assistido para este Centro Espírita"
 }

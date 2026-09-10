@@ -4,21 +4,22 @@ namespace App\Actions\AssistedPeople;
 
 use App\Concerns\NormalizesAssistedPersonAttributes;
 use App\Models\AssistedPerson;
-use App\Models\Team;
 
-class CreateAssistedPerson
+class UpdateAssistedPerson
 {
     use NormalizesAssistedPersonAttributes;
 
     /**
-     * Create a new assisted person for the given team.
+     * Update an existing assisted person's profile.
      *
      * @param  array{name: string, birth_date?: ?string, phone?: ?string, email?: ?string,
      *              postal_code?: ?string, street?: ?string, number?: ?string, complement?: ?string,
      *              district?: ?string, city?: ?string, state?: ?string}  $attributes
      */
-    public function handle(Team $team, array $attributes): AssistedPerson
+    public function handle(AssistedPerson $assistedPerson, array $attributes): AssistedPerson
     {
-        return $team->assistedPeople()->create($this->attributesToPersist($attributes));
+        $assistedPerson->update($this->attributesToPersist($attributes));
+
+        return $assistedPerson;
     }
 }
