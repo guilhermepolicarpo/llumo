@@ -1,9 +1,33 @@
 <?php
 
 use App\Enums\TeamRole;
+use App\Models\Membership;
 use App\Models\Team;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Livewire\Livewire;
+
+test('membership factory persists the correct role for each state', function () {
+    $team = Team::factory()->create();
+
+    $owner = Membership::factory()->for($team)->owner()->create();
+    $admin = Membership::factory()->for($team)->admin()->create();
+    $member = Membership::factory()->for($team)->member()->create();
+
+    expect($owner->role)->toEqual(TeamRole::Owner)
+        ->and($admin->role)->toEqual(TeamRole::Admin)
+        ->and($member->role)->toEqual(TeamRole::Member);
+});
+
+test('membership factory respects the unique team and user constraint', function () {
+    $team = Team::factory()->create();
+    $user = User::factory()->create();
+
+    Membership::factory()->for($team)->for($user)->member()->create();
+
+    expect(fn () => Membership::factory()->for($team)->for($user)->admin()->create())
+        ->toThrow(QueryException::class);
+});
 
 test('team member role can be updated by owner', function () {
     $owner = User::factory()->create();

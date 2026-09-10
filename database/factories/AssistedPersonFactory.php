@@ -70,4 +70,14 @@ class AssistedPersonFactory extends Factory
             'state' => fake()->randomElement(BrazilianState::cases()),
         ]);
     }
+
+    /**
+     * Indicate that the assisted person has been deleted.
+     */
+    public function trashed(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'deleted_at' => now(),
+        ]);
+    }
 }
