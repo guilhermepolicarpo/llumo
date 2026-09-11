@@ -77,7 +77,6 @@ new class extends Component
                     <flux:table.column>{{ __('Name') }}</flux:table.column>
                     <flux:table.column>{{ __('Address') }}</flux:table.column>
                     <flux:table.column>{{ __('Age') }}</flux:table.column>
-                    <flux:table.column></flux:table.column>
                 </flux:table.columns>
 
                 <flux:table.rows>
@@ -112,7 +111,7 @@ new class extends Component
                                 </div>
                             </flux:table.cell>
 
-                            <flux:table.cell class="relative z-10">
+                            <flux:table.cell align="end" class="relative z-10">
                                 <flux:dropdown position="bottom" align="end">
                                     <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" data-test="assisted-person-actions-trigger" />
                                     <flux:menu>
