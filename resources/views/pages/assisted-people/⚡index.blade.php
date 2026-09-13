@@ -5,6 +5,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Session;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -12,7 +13,15 @@ new class extends Component
 {
     use WithPagination;
 
+    /**
+     * @var list<int>
+     */
+    public const array PER_PAGE_OPTIONS = [5, 10, 25, 50, 100];
+
     public string $search = '';
+
+    #[Session('assisted-people-per-page')]
+    public int $perPage = 5;
 
     public function mount(): void
     {
@@ -20,6 +29,11 @@ new class extends Component
     }
 
     public function updatedSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedPerPage(): void
     {
         $this->resetPage();
     }
@@ -33,7 +47,7 @@ new class extends Component
         return Auth::user()->currentTeam->assistedPeople()
             ->when($this->search !== '', fn ($query) => $query->whereLike('name', "%{$this->search}%"))
             ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->paginate(in_array($this->perPage, self::PER_PAGE_OPTIONS, true) ? $this->perPage : self::PER_PAGE_OPTIONS[0]);
     }
 
     public function render()
@@ -43,40 +57,42 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <div class="flex items-center justify-between gap-4">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <flux:heading size="xl">{{ __('Assisted people') }}</flux:heading>
             <flux:subheading>{{ __('People assisted by this Spiritist Center') }}</flux:subheading>
         </div>
-        
-        <flux:button
-            variant="primary"
-            icon="plus"
-            :href="route('assisted-people.create')"
-            wire:navigate
-            data-test="assisted-people-new-button"
-            >
-            {{ __('New assisted person') }}
-        </flux:button>
+
+        <div class="flex items-center gap-3">
+            <flux:input
+                wire:model.live.debounce.300ms="search"
+                icon="magnifying-glass"
+                :placeholder="__('Search by name...')"
+                clearable
+                class="max-sm:flex-1"
+                data-test="assisted-people-search-input"
+            />
+
+            <flux:button
+                variant="primary"
+                icon="plus"
+                :href="route('assisted-people.create')"
+                wire:navigate
+                data-test="assisted-people-new-button"
+                >
+                {{ __('New assisted person') }}
+            </flux:button>
+        </div>
     </div>
 
-    <flux:separator variant="subtle" class="my-4" />
-
-    <flux:input
-        wire:model.live.debounce.300ms="search"
-        icon="magnifying-glass"
-        :placeholder="__('Search by name...')"
-        clearable
-        data-test="assisted-people-search-input"
-    />
-
-    <flux:card class="mt-6 p-4 [--flux-bleed:1rem]">
+    <flux:card class="mt-6 px-4 pt-0 pb-4 [--flux-bleed:1rem]">
         @if ($this->assistedPeople->isNotEmpty())
-            <flux:table bleed :paginate="$this->assistedPeople" pagination:scroll-to >
+            <flux:table bleed>
                 <flux:table.columns>
                     <flux:table.column>{{ __('Name') }}</flux:table.column>
                     <flux:table.column>{{ __('Address') }}</flux:table.column>
                     <flux:table.column>{{ __('Age') }}</flux:table.column>
+                    <flux:table.column></flux:table.column>
                 </flux:table.columns>
 
                 <flux:table.rows>
@@ -124,7 +140,7 @@ new class extends Component
                                             wire:click="$dispatch('confirm-delete-assisted-person', { assistedPersonId: {{ $person->id }}, assistedPersonName: @js($person->name) })"
                                             data-test="assisted-person-delete-menu-item"
                                             class="cursor-pointer"
-                                        >
+                                            >
                                             {{ __('Delete') }}
                                         </flux:menu.item>
                                     </flux:menu>
@@ -134,8 +150,21 @@ new class extends Component
                     @endforeach
                 </flux:table.rows>
             </flux:table>
+
+            <div class="@container flex flex-wrap items-center justify-center gap-3 border-t border-zinc-100 pt-3 dark:border-zinc-700">
+                <flux:pagination :paginator="$this->assistedPeople" scroll-to class="contents! @container-normal! *:order-2 [&>:first-child]:order-none [&>:first-child]:font-normal @max-[40rem]:[&>:first-child]:w-full @max-[40rem]:[&>:first-child]:text-center" />
+
+                <div class="order-1 flex items-center gap-2 @[40rem]:ms-auto">
+                    <flux:text class="whitespace-nowrap text-xs">{{ __('Per page') }}</flux:text>
+                    <flux:select wire:model.live="perPage" size="xs" data-test="assisted-people-per-page-select">
+                        @foreach ($this::PER_PAGE_OPTIONS as $option)
+                            <flux:select.option :value="$option">{{ $option }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                </div>
+            </div>
         @else
-            <flux:text class="py-4 text-center text-zinc-500 dark:text-zinc-400">
+            <flux:text class="pt-8 pb-4 text-center text-zinc-500 dark:text-zinc-400">
                 @if ($this->search !== '')
                     {{ __('No assisted people match your search.') }}
                 @else

@@ -292,25 +292,70 @@ test('the index lists the team assisted people ordered by name', function () {
         ->assertSeeInOrder(['Ana', 'Zeca']);
 });
 
-test('the index paginates the team assisted people 10 per page', function () {
+test('the index paginates the team assisted people 5 per page by default', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
 
-    AssistedPerson::factory()->for($team)->count(11)->create();
+    AssistedPerson::factory()->for($team)->count(6)->create();
 
     $this->actingAs($user);
     $user->switchTeam($team);
 
     $component = Livewire::test('pages::assisted-people.index');
 
-    expect($component->get('assistedPeople')->total())->toBe(11)
-        ->and($component->get('assistedPeople')->perPage())->toBe(10)
-        ->and($component->get('assistedPeople')->count())->toBe(10);
+    expect($component->get('assistedPeople')->total())->toBe(6)
+        ->and($component->get('assistedPeople')->perPage())->toBe(5)
+        ->and($component->get('assistedPeople')->count())->toBe(5);
 
     $component->call('nextPage')
         ->assertSet('paginators.page', 2);
 
     expect($component->get('assistedPeople')->count())->toBe(1);
+});
+
+test('the index lets the user choose how many assisted people to show per page', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    AssistedPerson::factory()->for($team)->count(26)->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    $component = Livewire::test('pages::assisted-people.index')
+        ->call('nextPage')
+        ->set('perPage', 25)
+        ->assertSet('paginators.page', 1);
+
+    expect($component->get('assistedPeople')->perPage())->toBe(25)
+        ->and($component->get('assistedPeople')->count())->toBe(25);
+});
+
+test('an unsupported per page value falls back to the default', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    $component = Livewire::test('pages::assisted-people.index')
+        ->set('perPage', 10000);
+
+    expect($component->get('assistedPeople')->perPage())->toBe(5);
+});
+
+test('the chosen per page value is remembered across visits', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::assisted-people.index')
+        ->set('perPage', 25);
+
+    Livewire::test('pages::assisted-people.index')
+        ->assertSet('perPage', 25);
 });
 
 test('the index can be filtered by partial, case-insensitive name', function () {
