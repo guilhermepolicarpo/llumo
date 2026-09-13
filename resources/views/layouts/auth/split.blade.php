@@ -20,7 +20,7 @@
 
             <div class="flex flex-1 p-4 max-lg:hidden">
                 @php
-                    [$message, $author] = str(Illuminate\Foundation\Inspiring::quotes()->random())->explode('-');
+                    ['message' => $message, 'author' => $author] = collect(config('quotes'))->random();
                 @endphp
 
                 <div
@@ -28,8 +28,8 @@
                     style="background-image: url('{{ \Illuminate\Support\Facades\Vite::asset('resources/images/auth_aurora_2x.webp') }}')"
                 >
                     <blockquote class="relative z-10">
-                        <p class="mb-6 text-3xl italic xl:text-4xl">&ldquo;{{ trim($message) }}&rdquo;</p>
-                        <footer class="font-medium">{{ trim($author) }}</footer>
+                        <p class="mb-6 text-3xl italic xl:text-4xl">&ldquo;{{ $message }}&rdquo;</p>
+                        <footer class="font-medium">{{ $author }}</footer>
                     </blockquote>
                 </div>
             </div>

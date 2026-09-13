@@ -28,7 +28,7 @@
 
             <!-- Password -->
             <flux:field>
-                <div class="mb-3 flex justify-between">
+                <div class="flex justify-between">
                     <flux:label>{{ __('Password') }}</flux:label>
 
                     @if (Route::has('password.request'))
