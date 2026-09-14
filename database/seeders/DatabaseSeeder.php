@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Appointment;
+use App\Models\AppointmentType;
 use App\Models\AssistedPerson;
 use App\Models\Membership;
 use App\Models\Team;
@@ -42,12 +44,32 @@ class DatabaseSeeder extends Seeder
         }
 
         $teams->each(function (Team $team) {
-            AssistedPerson::factory()
+            $assistedPeople = AssistedPerson::factory()
                 ->count(100)
                 ->for($team)
                 ->withAddress()
                 ->withPhone()
                 ->withBirthDate()
+                ->create();
+
+            $appointmentTypes = AppointmentType::factory()
+                ->for($team)
+                ->createMany([
+                    ['name' => 'Atendimento fraterno'],
+                    ['name' => 'Passe'],
+                    ['name' => 'Fluidoterapia'],
+                    ['name' => 'Evangelho no lar'],
+                ])
+                ->push(AppointmentType::factory()->for($team)->trashed()->create(['name' => 'Palestra pública']));
+
+            Appointment::factory()
+                ->count(150)
+                ->for($team)
+                ->state(fn () => [
+                    'appointment_type_id' => $appointmentTypes->random()->id,
+                    'assisted_person_id' => $assistedPeople->random()->id,
+                    'notes' => fake()->optional(0.4)->sentence(),
+                ])
                 ->create();
         });
     }
