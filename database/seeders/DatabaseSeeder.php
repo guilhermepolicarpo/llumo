@@ -63,12 +63,13 @@ class DatabaseSeeder extends Seeder
                 ->push(AppointmentType::factory()->for($team)->trashed()->create(['name' => 'Palestra pública']));
 
             Appointment::factory()
-                ->count(150)
+                ->count(20)
                 ->for($team)
                 ->state(fn () => [
                     'appointment_type_id' => $appointmentTypes->random()->id,
                     'assisted_person_id' => $assistedPeople->random()->id,
                     'notes' => fake()->optional(0.4)->sentence(),
+                    'scheduled_on' => today()->toDateString(),
                 ])
                 ->create();
         });

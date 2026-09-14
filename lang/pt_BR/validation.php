@@ -244,6 +244,11 @@ return [
         'category' => 'categoria',
         'blood_type' => 'tipo sanguíneo',
         'birth_date' => 'data de nascimento',
+        'appointmentTypeId' => 'tipo de atendimento',
+        'assistedPersonId' => 'assistido',
+        'scheduledOn' => 'data',
+        'mode' => 'modo',
+        'notes' => 'observações',
     ],
 
 ];

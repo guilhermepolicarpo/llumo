@@ -18,6 +18,10 @@
                         {{ __('Dashboard') }}
                     </flux:sidebar.item>
 
+                    <flux:sidebar.item icon="calendar-days" :href="route('appointments.index')" :current="request()->routeIs('appointments.*')" wire:navigate>
+                        {{ __('Appointments') }}
+                    </flux:sidebar.item>
+
                     <flux:sidebar.item icon="users" :href="route('assisted-people.index')" :current="request()->routeIs('assisted-people.*')" wire:navigate>
                         {{ __('Assisted people') }}
                     </flux:sidebar.item>

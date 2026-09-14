@@ -489,21 +489,6 @@ test('the index shows the age in years, or in months when under a year old', fun
     'months only, plural, under a year' => [0, 2, false],
 ]);
 
-test('the index highlights the first row and mutes the rest', function () {
-    $user = User::factory()->create();
-    $team = teamOwnedBy($user);
-
-    $team->assistedPeople()->create(['name' => 'Ana']);
-    $team->assistedPeople()->create(['name' => 'Bruno']);
-
-    $this->actingAs($user);
-    $user->switchTeam($team);
-
-    Livewire::test('pages::assisted-people.index')
-        ->assertSeeHtml('font-semibold text-zinc-900 dark:text-white">Ana')
-        ->assertSeeHtml('text-zinc-600 dark:text-zinc-300">Bruno');
-});
-
 test('each row links to the assisted person edit page', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);

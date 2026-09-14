@@ -181,7 +181,7 @@ test('logo must be an image within the size limit', function (UploadedFile $file
 })->with([
     'pdf' => fn () => UploadedFile::fake()->create('logo.pdf', 100, 'application/pdf'),
     'oversized image' => fn () => UploadedFile::fake()->image('logo.png', 400, 400)->size(3000),
-    'oversized dimensions' => fn () => UploadedFile::fake()->image('logo.png', 2400, 2400),
+    'oversized dimensions' => fn () => UploadedFile::fake()->image('logo.png', 2001, 10),
 ]);
 
 test('postal code must be a valid brazilian postal code', function () {

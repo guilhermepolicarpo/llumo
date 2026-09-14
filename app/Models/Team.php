@@ -41,6 +41,8 @@ use Illuminate\Support\Facades\Storage;
  * @property-read Collection<int, Membership> $memberships
  * @property-read Collection<int, User> $members
  * @property-read Collection<int, AssistedPerson> $assistedPeople
+ * @property-read Collection<int, AppointmentType> $appointmentTypes
+ * @property-read Collection<int, Appointment> $appointments
  */
 #[Fillable([
     'name',
@@ -132,6 +134,26 @@ class Team extends Model
     public function assistedPeople(): HasMany
     {
         return $this->hasMany(AssistedPerson::class);
+    }
+
+    /**
+     * Get all appointment types belonging to this team.
+     *
+     * @return HasMany<AppointmentType, $this>
+     */
+    public function appointmentTypes(): HasMany
+    {
+        return $this->hasMany(AppointmentType::class);
+    }
+
+    /**
+     * Get all appointments belonging to this team.
+     *
+     * @return HasMany<Appointment, $this>
+     */
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(Appointment::class);
     }
 
     /**

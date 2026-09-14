@@ -8,9 +8,11 @@ use App\Rules\Phone;
 use Database\Factories\AssistedPersonFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -34,10 +36,12 @@ use Illuminate\Support\Carbon;
  * @property-read string|null $formatted_address
  * @property-read string|null $address_line
  * @property-read string|null $address_city_line
+ * @property-read string|null $address_summary
  * @property-read int|null $age
  * @property-read string|null $formatted_age
  * @property-read string|null $contact
  * @property-read Team $team
+ * @property-read Collection<int, Appointment> $appointments
  */
 #[Fillable([
     'team_id',
@@ -66,6 +70,16 @@ class AssistedPerson extends Model
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
+    }
+
+    /**
+     * Get the appointments scheduled for this assisted person.
+     *
+     * @return HasMany<Appointment, $this>
+     */
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(Appointment::class);
     }
 
     /**

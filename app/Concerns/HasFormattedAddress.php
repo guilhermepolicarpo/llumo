@@ -54,6 +54,20 @@ trait HasFormattedAddress
     }
 
     /**
+     * Get the model's address line and city line joined as a single short display string.
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function addressSummary(): Attribute
+    {
+        return Attribute::make(get: function (): ?string {
+            $summary = collect([$this->address_line, $this->address_city_line])->filter()->implode(', ');
+
+            return $summary === '' ? null : $summary;
+        });
+    }
+
+    /**
      * Get the model's city and abbreviated state as a display line.
      *
      * @return Attribute<string|null, never>

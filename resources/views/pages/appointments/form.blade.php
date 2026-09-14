@@ -1,25 +1,50 @@
-@props(['appointmentTypes', 'modes', 'selectedAssistedPerson', 'assistedPersonSearch', 'assistedPersonSuggestions', 'searchMinLength'])
+@props(['appointmentTypes', 'modes', 'selectedAssistedPerson', 'assistedPersonSearch', 'assistedPersonSuggestions'])
 
 <flux:fieldset>
     <div class="grid gap-6 sm:grid-cols-2">
         <flux:field>
             <flux:label>{{ __('Appointment type') }}</flux:label>
 
-            <div class="flex items-start gap-2">
-                <flux:select wire:model="appointmentTypeId" :placeholder="__('Select a type...')" class="flex-1" data-test="appointment-type-select" required>
-                    @foreach ($appointmentTypes as $appointmentType)
-                        <flux:select.option :value="$appointmentType->id" wire:key="appointment-type-{{ $appointmentType->id }}">{{ $appointmentType->name }}</flux:select.option>
-                    @endforeach
-                </flux:select>
+            <div x-data="{ names: @js($appointmentTypes->mapWithKeys(fn ($appointmentType) => [(string) $appointmentType->id => $appointmentType->name])) }">
+                <flux:dropdown position="bottom" align="start" class="w-full">
+                    <button
+                        type="button"
+                        @class([
+                            'flex h-10 w-full items-center rounded-lg border bg-white ps-3 pe-3 text-start text-base shadow-xs sm:text-sm dark:bg-white/10',
+                            'border-red-500' => $errors->has('appointmentTypeId'),
+                            'border-zinc-200 border-b-zinc-300/80 dark:border-white/10' => ! $errors->has('appointmentTypeId'),
+                        ])
+                        data-test="appointment-type-select"
+                    >
+                        <span
+                            class="truncate"
+                            x-bind:class="names[$wire.appointmentTypeId] ? 'text-zinc-700 dark:text-zinc-300' : 'text-zinc-400'"
+                            x-text="names[$wire.appointmentTypeId] ?? @js(__('Select a type...'))"
+                        ></span>
+                        <flux:icon name="chevron-up-down" variant="mini" class="ms-auto size-4 text-zinc-400" />
+                    </button>
 
-                <flux:tooltip :content="__('New appointment type')">
-                    <flux:button
-                        icon="plus"
-                        x-on:click="$flux.modal('create-appointment-type').show()"
-                        :aria-label="__('New appointment type')"
-                        data-test="appointment-new-type-button"
-                    />
-                </flux:tooltip>
+                    <flux:menu class="min-w-(--button-width) sm:min-w-64">
+                        <flux:menu.radio.group wire:model="appointmentTypeId">
+                            @foreach ($appointmentTypes as $appointmentType)
+                                <flux:menu.radio :value="(string) $appointmentType->id" wire:key="appointment-type-{{ $appointmentType->id }}">{{ $appointmentType->name }}</flux:menu.radio>
+                            @endforeach
+                        </flux:menu.radio.group>
+
+                        @if ($appointmentTypes->isNotEmpty())
+                            <flux:menu.separator />
+                        @endif
+
+                        <flux:menu.item
+                            icon="plus"
+                            class="cursor-pointer"
+                            x-on:click="$flux.modal('create-appointment-type').show()"
+                            data-test="appointment-new-type-button"
+                        >
+                            {{ __('New appointment type') }}
+                        </flux:menu.item>
+                    </flux:menu>
+                </flux:dropdown>
             </div>
 
             <flux:error name="appointmentTypeId" />
@@ -110,7 +135,7 @@
                     data-test="appointment-assisted-person-search-input"
                 />
 
-                @if (mb_strlen(trim($assistedPersonSearch)) >= $searchMinLength)
+                @if ($assistedPersonSuggestions !== null)
                     <div
                         id="appointment-assisted-person-suggestions"
                         role="listbox"
