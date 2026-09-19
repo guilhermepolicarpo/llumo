@@ -189,11 +189,11 @@ new class extends Component
 
                             <flux:table.cell>
                                 <div class="text-zinc-900 dark:text-white">{{ $appointment->assistedPerson->name }}</div>
-                                @if ($appointment->assistedPerson->address_summary)
-                                    <div class="text-sm">{{ $appointment->assistedPerson->address_summary }}</div>
-                                @endif
                                 @if ($appointment->assistedPerson->formatted_age)
                                     <div class="text-sm">{{ $appointment->assistedPerson->formatted_age }}</div>
+                                @endif
+                                @if ($appointment->assistedPerson->address_summary)
+                                    <div class="text-sm">{{ $appointment->assistedPerson->address_summary }}</div>
                                 @endif
                             </flux:table.cell>
 
@@ -235,7 +235,6 @@ new class extends Component
                                                             :icon="$action->icon()"
                                                             wire:click="$dispatch('confirm-appointment-action', { appointmentId: {{ $appointment->id }}, action: '{{ $action->value }}', appointmentDescription: {{ Js::from($appointment->description) }} })"
                                                             data-test="appointment-action-{{ $action->value }}"
-                                                            class="cursor-pointer"
                                                             >
                                                             {{ $action->label() }}
                                                         </flux:menu.item>
@@ -244,7 +243,6 @@ new class extends Component
                                                             :icon="$action->icon()"
                                                             wire:click="perform({{ $appointment->id }}, '{{ $action->value }}')"
                                                             data-test="appointment-action-{{ $action->value }}"
-                                                            class="cursor-pointer"
                                                             >
                                                             {{ $action->label() }}
                                                         </flux:menu.item>
@@ -264,7 +262,6 @@ new class extends Component
                                                         icon="trash"
                                                         wire:click="$dispatch('confirm-delete-appointment', { appointmentId: {{ $appointment->id }}, appointmentDescription: @js($appointment->description) })"
                                                         data-test="appointment-delete-menu-item"
-                                                        class="cursor-pointer"
                                                         >
                                                         {{ __('Delete') }}
                                                     </flux:menu.item>

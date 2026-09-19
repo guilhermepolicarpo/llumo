@@ -139,7 +139,6 @@ new class extends Component
                                             icon="trash"
                                             wire:click="$dispatch('confirm-delete-assisted-person', { assistedPersonId: {{ $person->id }}, assistedPersonName: @js($person->name) })"
                                             data-test="assisted-person-delete-menu-item"
-                                            class="cursor-pointer"
                                             >
                                             {{ __('Delete') }}
                                         </flux:menu.item>

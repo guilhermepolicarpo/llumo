@@ -88,7 +88,7 @@
                             as="button"
                             type="submit"
                             icon="arrow-right-start-on-rectangle"
-                            class="w-full cursor-pointer"
+                            class="w-full"
                             data-test="logout-button"
                         >
                             {{ __('Log out') }}

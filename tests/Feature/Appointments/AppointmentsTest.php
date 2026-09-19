@@ -2,6 +2,7 @@
 
 use App\Enums\AppointmentMode;
 use App\Enums\AppointmentStatus;
+use App\Enums\BrazilianState;
 use App\Models\Appointment;
 use App\Models\AppointmentType;
 use App\Models\AssistedPerson;
@@ -157,6 +158,39 @@ test('the form selects records created from the quick-create modals', function (
         ->assertSet('assistedPersonId', $assistedPerson->id)
         ->assertSee('Passe')
         ->assertSee('Maria Silva');
+});
+
+test('the assisted person suggestions and selection show their contact, age, and address', function () {
+    $this->travelTo('2026-09-19 10:00:00');
+
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $assistedPerson = AssistedPerson::factory()->for($team)->create([
+        'name' => 'Maria Silva',
+        'phone' => '11987654321',
+        'birth_date' => '1980-05-20',
+        'street' => 'Rua das Flores',
+        'number' => '12',
+        'district' => 'Centro',
+        'city' => 'Campinas',
+        'state' => BrazilianState::SaoPaulo,
+    ]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    $expectedDetails = [
+        'Maria Silva',
+        $assistedPerson->formatted_age,
+        $assistedPerson->contact,
+        'Rua das Flores, 12 - Centro, Campinas - SP',
+    ];
+
+    Livewire::test('pages::appointments.create')
+        ->set('assistedPersonSearch', 'Maria')
+        ->assertSeeInOrder($expectedDetails)
+        ->call('selectAssistedPerson', $assistedPerson->id)
+        ->assertSeeInOrder($expectedDetails);
 });
 
 test('members can update an appointment', function () {

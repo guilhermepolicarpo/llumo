@@ -37,7 +37,6 @@
 
                         <flux:menu.item
                             icon="plus"
-                            class="cursor-pointer"
                             x-on:click="$flux.modal('create-appointment-type').show()"
                             data-test="appointment-new-type-button"
                         >
@@ -68,9 +67,9 @@
             <div class="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-3 py-2 dark:border-white/10" data-test="appointment-selected-assisted-person">
                 <div class="min-w-0">
                     <div class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $selectedAssistedPerson->name }}</div>
-                    @if ($selectedAssistedPerson->contact)
-                        <div class="truncate text-sm text-zinc-500 dark:text-zinc-400">{{ $selectedAssistedPerson->contact }}</div>
-                    @endif
+                    @foreach (array_filter([$selectedAssistedPerson->formatted_age, $selectedAssistedPerson->contact, $selectedAssistedPerson->address_summary]) as $detail)
+                        <div class="truncate text-sm text-zinc-500 dark:text-zinc-400">{{ $detail }}</div>
+                    @endforeach
                 </div>
 
                 <flux:button
@@ -154,12 +153,16 @@
                                 x-on:mouseenter="highlighted = {{ $loop->index }}"
                                 x-bind:aria-selected="highlighted === {{ $loop->index }}"
                                 x-bind:class="{ 'bg-zinc-50 dark:bg-zinc-700/50': highlighted === {{ $loop->index }} }"
-                                class="flex w-full cursor-pointer flex-col items-start px-3 py-2 text-start not-last:border-b not-last:border-zinc-100 dark:not-last:border-white/5"
+                                class="flex w-full flex-col items-start px-3 py-2 text-start not-last:border-b not-last:border-zinc-100 dark:not-last:border-white/5"
                                 data-test="appointment-assisted-person-suggestion"
                             >
                                 <span class="text-sm font-medium text-zinc-900 dark:text-white">{{ $suggestion->name }}</span>
-                                @if ($suggestion->contact)
-                                    <span class="text-sm text-zinc-500 dark:text-zinc-400">{{ $suggestion->contact }}</span>
+                                @php($suggestionDetails = collect([$suggestion->formatted_age, $suggestion->contact])->filter()->implode(' · '))
+                                @if ($suggestionDetails !== '')
+                                    <span class="text-sm text-zinc-500 dark:text-zinc-400">{{ $suggestionDetails }}</span>
+                                @endif
+                                @if ($suggestion->address_summary)
+                                    <span class="w-full truncate text-sm text-zinc-500 dark:text-zinc-400">{{ $suggestion->address_summary }}</span>
                                 @endif
                             </button>
                         @empty
