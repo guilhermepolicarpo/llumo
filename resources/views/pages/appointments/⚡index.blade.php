@@ -2,10 +2,14 @@
 
 use App\Actions\Appointments\PerformAppointmentAction;
 use App\Enums\AppointmentAction;
+use App\Enums\AppointmentMode;
 use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
+use App\Models\AppointmentType;
+use App\Models\User;
 use Carbon\CarbonInterface;
 use Flux\Flux;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
@@ -26,11 +30,41 @@ new class extends Component
      */
     public const array PER_PAGE_OPTIONS = [5, 10, 25, 50, 100];
 
+    /**
+     * The filter properties the flyout panel controls, mapped to the column each one narrows.
+     *
+     * @var array<string, string>
+     */
+    public const array FILTER_GROUPS = [
+        'statuses' => 'status',
+        'modes' => 'mode',
+        'appointmentTypeIds' => 'appointment_type_id',
+        'attendantIds' => 'attendant_id',
+    ];
+
     public string $search = '';
 
     public string $date = '';
 
-    public string $status = '';
+    /**
+     * @var list<string>
+     */
+    public array $statuses = [];
+
+    /**
+     * @var list<string>
+     */
+    public array $modes = [];
+
+    /**
+     * @var list<string>
+     */
+    public array $appointmentTypeIds = [];
+
+    /**
+     * @var list<string>
+     */
+    public array $attendantIds = [];
 
     #[Session('appointments-per-page')]
     public int $perPage = 5;
@@ -42,23 +76,31 @@ new class extends Component
         $this->date = today()->toDateString();
     }
 
-    public function updatedSearch(): void
+    public function updated(): void
     {
         $this->resetPage();
     }
 
-    public function updatedDate(): void
+    /**
+     * Clear every filter controlled by the flyout panel.
+     */
+    public function clearFilters(): void
     {
+        $this->reset(array_keys(self::FILTER_GROUPS));
         $this->resetPage();
     }
 
-    public function updatedStatus(): void
+    /**
+     * Remove a single selected value from one of the flyout filter groups.
+     */
+    public function removeFilter(string $group, string|int $value): void
     {
-        $this->resetPage();
-    }
+        if (! array_key_exists($group, self::FILTER_GROUPS)) {
+            return;
+        }
 
-    public function updatedPerPage(): void
-    {
+        $this->{$group} = array_values(array_diff($this->{$group}, [$value]));
+
         $this->resetPage();
     }
 
@@ -91,6 +133,87 @@ new class extends Component
     }
 
     /**
+     * Get the appointment types available to filter on.
+     *
+     * @return Collection<int, AppointmentType>
+     */
+    #[Computed]
+    public function appointmentTypes(): Collection
+    {
+        return Auth::user()->currentTeam->appointmentTypes()->orderBy('name')->get(['id', 'name']);
+    }
+
+    /**
+     * Get the team members available to filter on as attendants.
+     *
+     * @return Collection<int, User>
+     */
+    #[Computed]
+    public function attendants(): Collection
+    {
+        return Auth::user()->currentTeam->members()->orderBy('name')->get(['users.id', 'users.name']);
+    }
+
+    /**
+     * Summarize the attendant selection for the collapsed dropdown trigger.
+     */
+    #[Computed]
+    public function attendantFilterLabel(): string
+    {
+        return match (count($this->attendantIds)) {
+            0 => __('All attendants'),
+            1 => $this->filterLabel('attendantIds', (string) $this->attendantIds[0]) ?? __('All attendants'),
+            default => __(':count selected', ['count' => count($this->attendantIds)]),
+        };
+    }
+
+    /**
+     * Count how many filter values are currently selected in the flyout panel.
+     */
+    #[Computed]
+    public function activeFilterCount(): int
+    {
+        return array_sum(array_map(
+            fn (string $group): int => count($this->{$group}),
+            array_keys(self::FILTER_GROUPS),
+        ));
+    }
+
+    /**
+     * Describe each selected filter value so it can be shown as a removable chip.
+     *
+     * @return list<array{group: string, value: string, label: string}>
+     */
+    #[Computed]
+    public function activeFilterChips(): array
+    {
+        $chips = [];
+
+        foreach (array_keys(self::FILTER_GROUPS) as $group) {
+            foreach ($this->{$group} as $value) {
+                if ($label = $this->filterLabel($group, (string) $value)) {
+                    $chips[] = ['group' => $group, 'value' => (string) $value, 'label' => $label];
+                }
+            }
+        }
+
+        return $chips;
+    }
+
+    /**
+     * Resolve the display label for a selected filter value, or null when it no longer exists.
+     */
+    private function filterLabel(string $group, string $value): ?string
+    {
+        return match ($group) {
+            'statuses' => AppointmentStatus::tryFrom($value)?->label(),
+            'modes' => AppointmentMode::tryFrom($value)?->label(),
+            'appointmentTypeIds' => $this->appointmentTypes->firstWhere('id', $value)?->name,
+            'attendantIds' => $this->attendants->firstWhere('id', $value)?->name,
+        };
+    }
+
+    /**
      * @return LengthAwarePaginator<int, Appointment>
      */
     #[Computed]
@@ -105,8 +228,12 @@ new class extends Component
             ->when($this->filteredDate, fn ($query, CarbonInterface $date) => $query
                 ->where('scheduled_on', '>=', $date->toDateString())
                 ->where('scheduled_on', '<', $date->copy()->addDay()->toDateString()))
-            ->when(AppointmentStatus::tryFrom($this->status), fn ($query, AppointmentStatus $status) => $query->where('status', $status))
-            ->when($this->status === AppointmentStatus::Waiting->value, fn ($query) => $query->orderBy('received_at'))
+            ->tap(function ($query) {
+                foreach (self::FILTER_GROUPS as $group => $column) {
+                    $query->when($this->{$group} !== [], fn ($query) => $query->whereIn($column, $this->{$group}));
+                }
+            })
+            ->when($this->statuses === [AppointmentStatus::Waiting->value], fn ($query) => $query->orderBy('received_at'))
             ->orderBy('scheduled_on', 'desc')
             ->orderBy('id', 'desc')
             ->paginate(in_array($this->perPage, self::PER_PAGE_OPTIONS, true) ? $this->perPage : self::PER_PAGE_OPTIONS[0]);
@@ -152,17 +279,14 @@ new class extends Component
                 data-test="appointments-date-input"
             />
 
-            <flux:select
-                wire:model.live="status"
-                class="max-w-52"
-                :aria-label="__('Status')"
-                data-test="appointments-status-select"
-            >
-                <flux:select.option value="">{{ __('All statuses') }}</flux:select.option>
-                @foreach (AppointmentStatus::options() as $option)
-                    <flux:select.option :value="$option['value']">{{ $option['label'] }}</flux:select.option>
-                @endforeach
-            </flux:select>
+            <flux:modal.trigger name="appointments-filters">
+                <flux:button icon="funnel" icon-variant="outline" data-test="appointments-filters-button">
+                    {{ __('Filters') }}
+                    @if ($this->activeFilterCount > 0)
+                        <flux:badge size="sm" color="blue" inset="top bottom" data-test="appointments-filters-count">{{ $this->activeFilterCount }}</flux:badge>
+                    @endif
+                </flux:button>
+            </flux:modal.trigger>
 
             <flux:button
                 variant="primary"
@@ -176,7 +300,32 @@ new class extends Component
         </div>
     </div>
 
-    <flux:card class="mt-6 px-4 pt-0 pb-4 [--flux-bleed:1rem]">
+    @if ($this->activeFilterChips !== [])
+        <div class="mt-4 flex flex-wrap items-center gap-2" data-test="appointments-active-filters">
+            @foreach ($this->activeFilterChips as $chip)
+                <flux:badge size="sm" color="zinc">
+                    {{ $chip['label'] }}
+                    <flux:badge.close
+                        wire:click="removeFilter('{{ $chip['group'] }}', {{ Js::from($chip['value']) }})"
+                        :aria-label="__('Remove filter :filter', ['filter' => $chip['label']])"
+                        data-test="appointments-filter-chip-remove"
+                    />
+                </flux:badge>
+            @endforeach
+
+            <flux:link
+                as="button"
+                variant="subtle"
+                class="cursor-pointer text-sm"
+                wire:click="clearFilters"
+                data-test="appointments-clear-filters"
+                >
+                {{ __('Clear filters') }}
+            </flux:link>
+        </div>
+    @endif
+
+    <flux:card class="mt-6 px-4 pt-0 pb-4 [--flux-bleed:1rem]" id="appointments-table">
         @if ($this->appointments->isNotEmpty())
             <flux:table bleed>
                 <flux:table.columns>
@@ -301,7 +450,7 @@ new class extends Component
             </flux:table>
 
             <div class="@container flex flex-wrap items-center justify-center gap-3 border-t border-zinc-100 pt-3 dark:border-zinc-700">
-                <flux:pagination :paginator="$this->appointments" scroll-to class="contents! @container-normal! *:order-2 [&>:first-child]:order-none [&>:first-child]:font-normal @max-[40rem]:[&>:first-child]:w-full @max-[40rem]:[&>:first-child]:text-center" />
+                <flux:pagination :paginator="$this->appointments" scroll-to="appointments-table" class="contents! @container-normal! *:order-2 [&>:first-child]:order-none [&>:first-child]:font-normal @max-[40rem]:[&>:first-child]:w-full @max-[40rem]:[&>:first-child]:text-center" />
 
                 <div class="order-1 flex items-center gap-2 @[40rem]:ms-auto">
                     <flux:text class="whitespace-nowrap text-xs">{{ __('Per page') }}</flux:text>
@@ -313,15 +462,98 @@ new class extends Component
                 </div>
             </div>
         @else
-            <flux:text class="pt-8 pb-4 text-center text-zinc-500 dark:text-zinc-400">
-                @if ($this->search !== '' || $this->date !== '' || $this->status !== '')
-                    {{ __('No appointments match your filters.') }}
-                @else
-                    {{ __('No appointments have been scheduled yet.') }}
+            <div class="flex flex-col items-center gap-3 pt-8 pb-4">
+                <flux:text class="text-center text-zinc-500 dark:text-zinc-400">
+                    @if ($this->search !== '' || $this->date !== '' || $this->activeFilterCount > 0)
+                        {{ __('No appointments match your filters.') }}
+                    @else
+                        {{ __('No appointments have been scheduled yet.') }}
+                    @endif
+                </flux:text>
+
+                @if ($this->activeFilterCount > 0)
+                    <flux:button size="sm" wire:click="clearFilters" data-test="appointments-empty-clear-filters">
+                        {{ __('Clear filters') }}
+                    </flux:button>
                 @endif
-            </flux:text>
+            </div>
         @endif
     </flux:card>
+
+    <flux:modal name="appointments-filters" flyout >
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">{{ __('Filters') }}</flux:heading>
+                <flux:subheading>{{ __('Refine the appointments shown in the list.') }}</flux:subheading>
+            </div>
+
+            <flux:checkbox.group wire:model.live.debounce.250ms="statuses" :label="__('Status')" data-test="appointments-status-filter">
+                @foreach (AppointmentStatus::options() as $option)
+                    <flux:checkbox :value="$option['value']" :label="$option['label']" />
+                @endforeach
+            </flux:checkbox.group>
+
+            <flux:separator variant="subtle" />
+
+            <flux:checkbox.group wire:model.live.debounce.250ms="modes" :label="__('Mode')" data-test="appointments-mode-filter">
+                @foreach (AppointmentMode::options() as $option)
+                    <flux:checkbox :value="$option['value']" :label="$option['label']" />
+                @endforeach
+            </flux:checkbox.group>
+
+            @if ($this->appointmentTypes->isNotEmpty())
+                <flux:separator variant="subtle" />
+
+                <flux:checkbox.group wire:model.live.debounce.250ms="appointmentTypeIds" :label="__('Appointment type')" data-test="appointments-type-filter">
+                    @foreach ($this->appointmentTypes as $appointmentType)
+                        <flux:checkbox :value="(string) $appointmentType->id" :label="$appointmentType->name" />
+                    @endforeach
+                </flux:checkbox.group>
+            @endif
+
+            @if ($this->attendants->isNotEmpty())
+                <flux:separator variant="subtle" />
+
+                <flux:field>
+                    <flux:label>{{ __('Attendant') }}</flux:label>
+
+                    <flux:dropdown position="bottom" align="start" class="w-full">
+                        <button
+                            type="button"
+                            class="flex h-10 w-full items-center rounded-lg border border-zinc-200 border-b-zinc-300/80 bg-white ps-3 pe-3 text-start text-base shadow-xs sm:text-sm dark:border-white/10 dark:bg-white/10"
+                            data-test="appointments-attendant-filter"
+                        >
+                            <span class="truncate {{ $this->attendantIds === [] ? 'text-zinc-400' : 'text-zinc-700 dark:text-zinc-300' }}">{{ $this->attendantFilterLabel }}</span>
+                            <flux:icon name="chevron-up-down" variant="mini" class="ms-auto size-4 text-zinc-400" />
+                        </button>
+
+                        <flux:menu class="max-h-72 min-w-(--button-width) overflow-y-auto">
+                            <flux:menu.checkbox.group wire:model.live.debounce.250ms="attendantIds">
+                                @foreach ($this->attendants as $attendant)
+                                    <flux:menu.checkbox :value="(string) $attendant->id" wire:key="attendant-{{ $attendant->id }}">{{ $attendant->name }}</flux:menu.checkbox>
+                                @endforeach
+                            </flux:menu.checkbox.group>
+                        </flux:menu>
+                    </flux:dropdown>
+                </flux:field>
+            @endif
+
+            <div class="flex justify-end gap-2 pt-2">
+                <flux:button
+                    variant="subtle"
+                    wire:click="clearFilters"
+                    :disabled="$this->activeFilterCount === 0"
+                    data-test="appointments-flyout-clear-filters"
+                    >
+                    {{ __('Clear filters') }}
+                </flux:button>
+
+                <flux:modal.close>
+                    <flux:button variant="primary" data-test="appointments-flyout-done">{{ __('Done') }}</flux:button>
+                </flux:modal.close>
+            </div>
+        </div>
+    </flux:modal>
 
     <livewire:appointments.delete-appointment-modal @appointment-deleted="$refresh" />
     <livewire:appointments.confirm-appointment-action-modal />

@@ -3,6 +3,7 @@
 use App\Enums\AppointmentMode;
 use App\Enums\AppointmentStatus;
 use App\Enums\BrazilianState;
+use App\Enums\TeamRole;
 use App\Models\Appointment;
 use App\Models\AppointmentType;
 use App\Models\AssistedPerson;
@@ -326,4 +327,131 @@ test('members cannot delete another team appointment', function () {
     Livewire::test('appointments.delete-appointment-modal')
         ->call('confirmDeleteAppointment', $appointment->id, 'Someone')
         ->call('deleteAppointment');
+});
+
+test('the index lists the waiting queue by arrival only when waiting is the sole status', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $person = fn (string $name) => AssistedPerson::factory()->for($team)->create(['name' => $name]);
+
+    Appointment::factory()->for($team)->waiting()->create(['received_at' => now()->subMinutes(40), 'assisted_person_id' => $person('Ana Oliveira')]);
+    Appointment::factory()->for($team)->waiting()->create(['received_at' => now()->subMinutes(5), 'assisted_person_id' => $person('Carlos Souza')]);
+    Appointment::factory()->for($team)->completed()->create(['assisted_person_id' => $person('Bruno Lima')]);
+    Appointment::factory()->for($team)->create(['scheduled_on' => today(), 'assisted_person_id' => $person('Maria Silva')]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->set('statuses', [AppointmentStatus::Waiting->value])
+        ->assertSeeInOrder(['Ana Oliveira', 'Carlos Souza'])
+        ->assertDontSee('Maria Silva')
+        ->set('statuses', [AppointmentStatus::Waiting->value, AppointmentStatus::Completed->value])
+        ->assertSeeInOrder(['Bruno Lima', 'Carlos Souza', 'Ana Oliveira'])
+        ->assertDontSee('Maria Silva');
+});
+
+test('the index filters appointments by mode and appointment type', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $passe = AppointmentType::factory()->for($team)->create(['name' => 'Passe']);
+    $palestra = AppointmentType::factory()->for($team)->create(['name' => 'Palestra']);
+    $person = fn (string $name) => AssistedPerson::factory()->for($team)->create(['name' => $name]);
+
+    $appointment = fn (AppointmentType $type, string $state, string $name) => Appointment::factory()
+        ->for($team)
+        ->{$state}()
+        ->create([
+            'scheduled_on' => today(),
+            'appointment_type_id' => $type->id,
+            'assisted_person_id' => $person($name),
+        ]);
+
+    $appointment($passe, 'inPerson', 'Ana Oliveira');
+    $appointment($passe, 'remote', 'Bruno Lima');
+    $appointment($palestra, 'inPerson', 'Carlos Souza');
+    $appointment($palestra, 'remote', 'Diana Rocha');
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->set('modes', [AppointmentMode::InPerson->value])
+        ->assertSee(['Ana Oliveira', 'Carlos Souza'])
+        ->assertDontSee('Bruno Lima')
+        ->assertDontSee('Diana Rocha')
+        ->set('modes', [])
+        ->set('appointmentTypeIds', [(string) $passe->id])
+        ->assertSee(['Ana Oliveira', 'Bruno Lima'])
+        ->assertDontSee('Carlos Souza')
+        ->assertDontSee('Diana Rocha')
+        ->set('modes', [AppointmentMode::InPerson->value])
+        ->assertSee('Ana Oliveira')
+        ->assertDontSee('Bruno Lima')
+        ->assertDontSee('Carlos Souza')
+        ->assertDontSee('Diana Rocha');
+});
+
+test('the index filters appointments by attendant', function () {
+    $user = User::factory()->create(['name' => 'Joana Attendant']);
+    $team = teamOwnedBy($user);
+    $colleague = User::factory()->create(['name' => 'Pedro Attendant']);
+    $team->members()->attach($colleague, ['role' => TeamRole::Member->value]);
+    $person = fn (string $name) => AssistedPerson::factory()->for($team)->create(['name' => $name]);
+
+    Appointment::factory()->for($team)->completed()->create(['attendant_id' => $user->id, 'assisted_person_id' => $person('Ana Oliveira')]);
+    Appointment::factory()->for($team)->completed()->create(['attendant_id' => $colleague->id, 'assisted_person_id' => $person('Bruno Lima')]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->assertSee(__('All attendants'))
+        ->set('attendantIds', [(string) $user->id])
+        ->assertSee('Ana Oliveira')
+        ->assertDontSee('Bruno Lima')
+        ->assertSee('Joana Attendant')
+        ->set('attendantIds', [(string) $user->id, (string) $colleague->id])
+        ->assertSee(__(':count selected', ['count' => 2]))
+        ->assertSee(['Ana Oliveira', 'Bruno Lima']);
+});
+
+test('the index shows removable chips for the active filters', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    Appointment::factory()->for($team)->waiting()->create([
+        'assisted_person_id' => AssistedPerson::factory()->for($team)->create(['name' => 'Maria Silva']),
+    ]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->assertDontSeeHtml('appointments-active-filters')
+        ->set('statuses', [AppointmentStatus::Waiting->value, AppointmentStatus::Completed->value])
+        ->set('modes', [AppointmentMode::InPerson->value])
+        ->assertSeeHtml('appointments-active-filters')
+        ->assertSeeHtml('appointments-filters-count')
+        ->call('removeFilter', 'statuses', AppointmentStatus::Completed->value)
+        ->assertSet('statuses', [AppointmentStatus::Waiting->value])
+        ->assertSet('modes', [AppointmentMode::InPerson->value])
+        ->call('clearFilters')
+        ->assertSet('statuses', [])
+        ->assertSet('modes', [])
+        ->assertDontSeeHtml('appointments-active-filters')
+        ->assertSee('Maria Silva');
+});
+
+test('the index ignores a filter removal for an unknown group', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->set('statuses', [AppointmentStatus::Waiting->value])
+        ->call('removeFilter', 'perPage', AppointmentStatus::Waiting->value)
+        ->assertSet('statuses', [AppointmentStatus::Waiting->value])
+        ->assertSet('perPage', 5);
 });

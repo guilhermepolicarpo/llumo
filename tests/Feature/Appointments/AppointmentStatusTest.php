@@ -181,7 +181,7 @@ test('the index filters appointments by status and lists the waiting queue by ar
 
     Livewire::test('pages::appointments.index')
         ->assertSee(['Maria Silva', 'Carlos Souza', 'Ana Oliveira'])
-        ->set('status', AppointmentStatus::Waiting->value)
+        ->set('statuses', [AppointmentStatus::Waiting->value])
         ->assertDontSee('Maria Silva')
         ->assertSeeInOrder(['Ana Oliveira', 'Carlos Souza']);
 });
