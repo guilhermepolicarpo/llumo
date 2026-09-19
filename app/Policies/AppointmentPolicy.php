@@ -29,13 +29,21 @@ class AppointmentPolicy
      */
     public function update(User $user, Appointment $appointment): bool
     {
-        return $this->belongsToAppointmentsTeam($user, $appointment);
+        return $this->belongsToAppointmentsTeam($user, $appointment) && $appointment->status->isEditable();
     }
 
     /**
      * Determine whether the user can delete the model.
      */
     public function delete(User $user, Appointment $appointment): bool
+    {
+        return $this->update($user, $appointment);
+    }
+
+    /**
+     * Determine whether the user can move the model through its attendance flow.
+     */
+    public function perform(User $user, Appointment $appointment): bool
     {
         return $this->belongsToAppointmentsTeam($user, $appointment);
     }

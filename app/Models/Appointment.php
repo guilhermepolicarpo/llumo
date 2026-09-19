@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Enums\AppointmentMode;
+use App\Enums\AppointmentStatus;
 use Database\Factories\AppointmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +20,11 @@ use Illuminate\Support\Carbon;
  * @property int $assisted_person_id
  * @property AppointmentMode $mode
  * @property Carbon $scheduled_on
+ * @property AppointmentStatus $status
+ * @property Carbon|null $received_at
+ * @property Carbon|null $started_at
+ * @property Carbon|null $finished_at
+ * @property int|null $attendant_id
  * @property string|null $notes
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -25,6 +32,8 @@ use Illuminate\Support\Carbon;
  * @property-read Team $team
  * @property-read AppointmentType $appointmentType
  * @property-read AssistedPerson $assistedPerson
+ * @property-read User|null $attendant
+ * @property-read string $description
  */
 #[Fillable([
     'team_id',
@@ -32,12 +41,26 @@ use Illuminate\Support\Carbon;
     'assisted_person_id',
     'mode',
     'scheduled_on',
+    'status',
+    'received_at',
+    'started_at',
+    'finished_at',
+    'attendant_id',
     'notes',
 ])]
 class Appointment extends Model
 {
     /** @use HasFactory<AppointmentFactory> */
     use HasFactory, SoftDeletes;
+
+    /**
+     * The model's default values for attributes.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'status' => 'scheduled',
+    ];
 
     /**
      * Get the team this appointment belongs to.
@@ -70,6 +93,26 @@ class Appointment extends Model
     }
 
     /**
+     * Get the user attending this appointment.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function attendant(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'attendant_id');
+    }
+
+    /**
+     * Get the assisted person's name and scheduled date, used to identify the appointment in confirmations.
+     *
+     * @return Attribute<string, never>
+     */
+    protected function description(): Attribute
+    {
+        return Attribute::make(get: fn (): string => $this->assistedPerson->name.' ('.$this->scheduled_on->format('d/m/Y').')');
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -79,6 +122,10 @@ class Appointment extends Model
         return [
             'mode' => AppointmentMode::class,
             'scheduled_on' => 'date',
+            'status' => AppointmentStatus::class,
+            'received_at' => 'datetime',
+            'started_at' => 'datetime',
+            'finished_at' => 'datetime',
         ];
     }
 }

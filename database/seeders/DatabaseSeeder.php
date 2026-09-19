@@ -45,7 +45,7 @@ class DatabaseSeeder extends Seeder
 
         $teams->filter()->each(function (Team $team) {
             $assistedPeople = AssistedPerson::factory()
-                ->count(100)
+                ->count(20)
                 ->for($team)
                 ->withAddress()
                 ->withPhone()
@@ -62,16 +62,19 @@ class DatabaseSeeder extends Seeder
                 ])
                 ->push(AppointmentType::factory()->for($team)->trashed()->create(['name' => 'Palestra pública']));
 
-            Appointment::factory()
-                ->count(20)
-                ->for($team)
-                ->state(fn () => [
-                    'appointment_type_id' => $appointmentTypes->random()->id,
-                    'assisted_person_id' => $assistedPeople->random()->id,
-                    'notes' => fake()->optional(0.4)->sentence(),
-                    'scheduled_on' => today()->toDateString(),
-                ])
-                ->create();
+            $todaysAppointment = fn () => [
+                'appointment_type_id' => $appointmentTypes->random()->id,
+                'assisted_person_id' => $assistedPeople->random()->id,
+                'notes' => fake()->optional(0.4)->sentence(),
+                'scheduled_on' => today()->toDateString(),
+            ];
+
+            $ownerId = $team->owner()?->getKey();
+
+            Appointment::factory()->count(12)->for($team)->state($todaysAppointment)->create();
+            Appointment::factory()->count(4)->for($team)->state($todaysAppointment)->waiting()->create();
+            Appointment::factory()->count(2)->for($team)->state($todaysAppointment)->inProgress()->create(['attendant_id' => $ownerId]);
+            Appointment::factory()->count(2)->for($team)->state($todaysAppointment)->completed()->create(['attendant_id' => $ownerId]);
         });
     }
 }

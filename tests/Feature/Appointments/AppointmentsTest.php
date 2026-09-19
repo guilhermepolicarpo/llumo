@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\AppointmentMode;
+use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
 use App\Models\AppointmentType;
 use App\Models\AssistedPerson;
@@ -47,7 +48,8 @@ test('members can schedule an appointment', function () {
         ->and($appointment->assisted_person_id)->toBe($assistedPerson->id)
         ->and($appointment->mode)->toBe(AppointmentMode::Remote)
         ->and($appointment->scheduled_on->toDateString())->toBe('2026-10-01')
-        ->and($appointment->notes)->toBe('Trazer exames');
+        ->and($appointment->notes)->toBe('Trazer exames')
+        ->and($appointment->fresh()->status)->toBe(AppointmentStatus::Scheduled);
 });
 
 test('the appointment fields are validated', function () {

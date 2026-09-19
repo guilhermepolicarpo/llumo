@@ -1,11 +1,17 @@
 <?php
 
+use App\Actions\Appointments\PerformAppointmentAction;
+use App\Enums\AppointmentAction;
+use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
+use Flux\Flux;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Js;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Session;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -22,6 +28,8 @@ new class extends Component
     public string $search = '';
 
     public string $date = '';
+
+    public string $status = '';
 
     #[Session('appointments-per-page')]
     public int $perPage = 5;
@@ -43,9 +51,32 @@ new class extends Component
         $this->resetPage();
     }
 
+    public function updatedStatus(): void
+    {
+        $this->resetPage();
+    }
+
     public function updatedPerPage(): void
     {
         $this->resetPage();
+    }
+
+    #[On('appointment-action-confirmed')]
+    public function perform(PerformAppointmentAction $performAppointmentAction, int $appointmentId, ?AppointmentAction $action): void
+    {
+        $appointment = Auth::user()->currentTeam->appointments()->findOrFail($appointmentId);
+
+        abort_if($action === null, 404);
+
+        Gate::authorize('perform', $appointment);
+
+        if (! $performAppointmentAction->handle($appointment, $action, Auth::user())) {
+            Flux::toast(variant: 'danger', text: __('This action is no longer available for the appointment.'));
+
+            return;
+        }
+
+        Flux::toast(variant: 'success', text: __('Appointment moved to :status.', ['status' => $action->toStatus()->label()]));
     }
 
     /**
@@ -55,7 +86,7 @@ new class extends Component
     public function appointments(): LengthAwarePaginator
     {
         return Auth::user()->currentTeam->appointments()
-            ->with(['appointmentType', 'assistedPerson'])
+            ->with(['appointmentType', 'assistedPerson', 'attendant'])
             ->when($this->search !== '', fn ($query) => $query->whereHas(
                 'assistedPerson',
                 fn ($query) => $query->withTrashed()->whereLike('name', "%{$this->search}%"),
@@ -63,6 +94,8 @@ new class extends Component
             ->when($this->date !== '' && strtotime($this->date) !== false, fn ($query) => $query
                 ->where('scheduled_on', '>=', Date::parse($this->date)->toDateString())
                 ->where('scheduled_on', '<', Date::parse($this->date)->addDay()->toDateString()))
+            ->when(AppointmentStatus::tryFrom($this->status), fn ($query, AppointmentStatus $status) => $query->where('status', $status))
+            ->when($this->status === AppointmentStatus::Waiting->value, fn ($query) => $query->orderBy('received_at'))
             ->orderBy('scheduled_on', 'desc')
             ->orderBy('id', 'desc')
             ->paginate(in_array($this->perPage, self::PER_PAGE_OPTIONS, true) ? $this->perPage : self::PER_PAGE_OPTIONS[0]);
@@ -99,6 +132,18 @@ new class extends Component
                 data-test="appointments-date-input"
             />
 
+            <flux:select
+                wire:model.live="status"
+                class="max-w-52"
+                :aria-label="__('Status')"
+                data-test="appointments-status-select"
+            >
+                <flux:select.option value="">{{ __('All statuses') }}</flux:select.option>
+                @foreach (AppointmentStatus::options() as $option)
+                    <flux:select.option :value="$option['value']">{{ $option['label'] }}</flux:select.option>
+                @endforeach
+            </flux:select>
+
             <flux:button
                 variant="primary"
                 icon="plus"
@@ -118,20 +163,25 @@ new class extends Component
                     <flux:table.column>{{ __('Date') }}</flux:table.column>
                     <flux:table.column>{{ __('Assisted person') }}</flux:table.column>
                     <flux:table.column>{{ __('Appointment') }}</flux:table.column>
+                    <flux:table.column>{{ __('Status') }}</flux:table.column>
                     <flux:table.column></flux:table.column>
                 </flux:table.columns>
 
                 <flux:table.rows>
                     @foreach ($this->appointments as $appointment)
-                        <flux:table.row :key="$appointment->id" class="relative cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800" data-test="appointment-row">
+                        @php([$primaryActions, $secondaryActions] = collect(AppointmentAction::availableFor($appointment))->partition(fn (AppointmentAction $action) => $action->isPrimary()))
+                        @php($isEditable = $appointment->status->isEditable())
+                        <flux:table.row :key="$appointment->id" @class(['relative', 'cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800' => $isEditable]) data-test="appointment-row">
                             <flux:table.cell>
-                                <a
-                                    href="{{ route('appointments.edit', ['appointment' => $appointment]) }}"
-                                    wire:navigate
-                                    class="absolute inset-0"
-                                    aria-label="{{ __('Edit appointment') }}"
-                                    data-test="appointment-edit-link"
-                                ></a>
+                                @if ($isEditable)
+                                    <a
+                                        href="{{ route('appointments.edit', ['appointment' => $appointment]) }}"
+                                        wire:navigate
+                                        class="absolute inset-0"
+                                        aria-label="{{ __('Edit appointment') }}"
+                                        data-test="appointment-edit-link"
+                                    ></a>
+                                @endif
 
                                 <div class="text-zinc-900 dark:text-white">{{ $appointment->scheduled_on->format('d/m/Y') }}</div>
                                 <div class="text-sm">{{ $appointment->scheduled_on->translatedFormat('l') }}</div>
@@ -152,24 +202,77 @@ new class extends Component
                                 <div class="text-sm">{{ $appointment->mode->label() }}</div>
                             </flux:table.cell>
 
+                            <flux:table.cell>
+                                <flux:badge size="sm" :color="$appointment->status->color()" data-test="appointment-status-badge">{{ $appointment->status->label() }}</flux:badge>
+                                @if ($appointment->status === AppointmentStatus::Waiting && $appointment->received_at)
+                                    <div class="mt-1 text-sm">{{ __('Arrived at :time', ['time' => $appointment->received_at->format('H:i')]) }}</div>
+                                @elseif ($appointment->attendant)
+                                    <div class="mt-1 text-sm">{{ $appointment->attendant->name }}</div>
+                                @endif
+                            </flux:table.cell>
+
                             <flux:table.cell align="end" class="relative z-10">
-                                <flux:dropdown position="bottom" align="end">
-                                    <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" data-test="appointment-actions-trigger" />
-                                    <flux:menu>
-                                        <flux:menu.item as="a" href="{{ route('appointments.edit', ['appointment' => $appointment]) }}" wire:navigate icon="pencil" data-test="appointment-edit-menu-item">
-                                            {{ __('Edit') }}
-                                        </flux:menu.item>
-                                        <flux:menu.item
-                                            variant="danger"
-                                            icon="trash"
-                                            wire:click="$dispatch('confirm-delete-appointment', { appointmentId: {{ $appointment->id }}, appointmentDescription: @js($appointment->assistedPerson->name.' ('.$appointment->scheduled_on->format('d/m/Y').')') })"
-                                            data-test="appointment-delete-menu-item"
-                                            class="cursor-pointer"
+                                <div class="flex items-center justify-end gap-2">
+                                    @foreach ($primaryActions as $action)
+                                        <flux:button
+                                            size="sm"
+                                            :icon="$action->icon()"
+                                            wire:click="perform({{ $appointment->id }}, '{{ $action->value }}')"
+                                            wire:loading.attr="disabled"
+                                            data-test="appointment-action-{{ $action->value }}"
                                             >
-                                            {{ __('Delete') }}
-                                        </flux:menu.item>
-                                    </flux:menu>
-                                </flux:dropdown>
+                                            {{ $action->label() }}
+                                        </flux:button>
+                                    @endforeach
+
+                                    @if ($secondaryActions->isNotEmpty() || $isEditable)
+                                        <flux:dropdown position="bottom" align="end">
+                                            <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" data-test="appointment-actions-trigger" />
+                                            <flux:menu>
+                                                @foreach ($secondaryActions as $action)
+                                                    @if ($action->needsConfirmation())
+                                                        <flux:menu.item
+                                                            :icon="$action->icon()"
+                                                            wire:click="$dispatch('confirm-appointment-action', { appointmentId: {{ $appointment->id }}, action: '{{ $action->value }}', appointmentDescription: {{ Js::from($appointment->description) }} })"
+                                                            data-test="appointment-action-{{ $action->value }}"
+                                                            class="cursor-pointer"
+                                                            >
+                                                            {{ $action->label() }}
+                                                        </flux:menu.item>
+                                                    @else
+                                                        <flux:menu.item
+                                                            :icon="$action->icon()"
+                                                            wire:click="perform({{ $appointment->id }}, '{{ $action->value }}')"
+                                                            data-test="appointment-action-{{ $action->value }}"
+                                                            class="cursor-pointer"
+                                                            >
+                                                            {{ $action->label() }}
+                                                        </flux:menu.item>
+                                                    @endif
+                                                @endforeach
+
+                                                @if ($isEditable)
+                                                    @if ($secondaryActions->isNotEmpty())
+                                                        <flux:menu.separator />
+                                                    @endif
+
+                                                    <flux:menu.item as="a" href="{{ route('appointments.edit', ['appointment' => $appointment]) }}" wire:navigate icon="pencil" data-test="appointment-edit-menu-item">
+                                                        {{ __('Edit') }}
+                                                    </flux:menu.item>
+                                                    <flux:menu.item
+                                                        variant="danger"
+                                                        icon="trash"
+                                                        wire:click="$dispatch('confirm-delete-appointment', { appointmentId: {{ $appointment->id }}, appointmentDescription: @js($appointment->description) })"
+                                                        data-test="appointment-delete-menu-item"
+                                                        class="cursor-pointer"
+                                                        >
+                                                        {{ __('Delete') }}
+                                                    </flux:menu.item>
+                                                @endif
+                                            </flux:menu>
+                                        </flux:dropdown>
+                                    @endif
+                                </div>
                             </flux:table.cell>
                         </flux:table.row>
                     @endforeach
@@ -190,7 +293,7 @@ new class extends Component
             </div>
         @else
             <flux:text class="pt-8 pb-4 text-center text-zinc-500 dark:text-zinc-400">
-                @if ($this->search !== '' || $this->date !== '')
+                @if ($this->search !== '' || $this->date !== '' || $this->status !== '')
                     {{ __('No appointments match your filters.') }}
                 @else
                     {{ __('No appointments have been scheduled yet.') }}
@@ -200,4 +303,5 @@ new class extends Component
     </flux:card>
 
     <livewire:appointments.delete-appointment-modal @appointment-deleted="$refresh" />
+    <livewire:appointments.confirm-appointment-action-modal />
 </section>
