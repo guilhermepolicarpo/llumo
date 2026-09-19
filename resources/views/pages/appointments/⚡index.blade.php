@@ -4,6 +4,7 @@ use App\Actions\Appointments\PerformAppointmentAction;
 use App\Enums\AppointmentAction;
 use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
+use Carbon\CarbonInterface;
 use Flux\Flux;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
@@ -79,6 +80,16 @@ new class extends Component
         Flux::toast(variant: 'success', text: __('Appointment moved to :status.', ['status' => $action->toStatus()->label()]));
     }
 
+    #[Computed]
+    public function filteredDate(): ?CarbonInterface
+    {
+        if ($this->date === '' || strtotime($this->date) === false) {
+            return null;
+        }
+
+        return Date::parse($this->date)->startOfDay();
+    }
+
     /**
      * @return LengthAwarePaginator<int, Appointment>
      */
@@ -91,9 +102,9 @@ new class extends Component
                 'assistedPerson',
                 fn ($query) => $query->withTrashed()->whereLike('name', "%{$this->search}%"),
             ))
-            ->when($this->date !== '' && strtotime($this->date) !== false, fn ($query) => $query
-                ->where('scheduled_on', '>=', Date::parse($this->date)->toDateString())
-                ->where('scheduled_on', '<', Date::parse($this->date)->addDay()->toDateString()))
+            ->when($this->filteredDate, fn ($query, CarbonInterface $date) => $query
+                ->where('scheduled_on', '>=', $date->toDateString())
+                ->where('scheduled_on', '<', $date->copy()->addDay()->toDateString()))
             ->when(AppointmentStatus::tryFrom($this->status), fn ($query, AppointmentStatus $status) => $query->where('status', $status))
             ->when($this->status === AppointmentStatus::Waiting->value, fn ($query) => $query->orderBy('received_at'))
             ->orderBy('scheduled_on', 'desc')
@@ -111,7 +122,16 @@ new class extends Component
     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
             <flux:heading size="xl">{{ __('Appointments') }}</flux:heading>
-            <flux:subheading>{{ __('Appointments scheduled at this Spiritist Center') }}</flux:subheading>
+            <flux:subheading>
+                @if ($this->filteredDate)
+                    {{ __('Appointments on :weekday, :date', [
+                        'weekday' => $this->filteredDate->translatedFormat('l'),
+                        'date' => $this->filteredDate->format('d/m/Y'),
+                    ]) }}
+                @else
+                    {{ __('Appointments scheduled at this Spiritist Center') }}
+                @endif
+            </flux:subheading>
         </div>
 
         <div class="flex flex-wrap md:flex-nowrap items-center gap-3">
@@ -160,7 +180,9 @@ new class extends Component
         @if ($this->appointments->isNotEmpty())
             <flux:table bleed>
                 <flux:table.columns>
-                    <flux:table.column>{{ __('Date') }}</flux:table.column>
+                    @unless ($this->filteredDate)
+                        <flux:table.column data-test="appointments-date-column">{{ __('Date') }}</flux:table.column>
+                    @endunless
                     <flux:table.column>{{ __('Assisted person') }}</flux:table.column>
                     <flux:table.column>{{ __('Appointment') }}</flux:table.column>
                     <flux:table.column>{{ __('Status') }}</flux:table.column>
@@ -172,6 +194,13 @@ new class extends Component
                         @php([$primaryActions, $secondaryActions] = collect(AppointmentAction::availableFor($appointment))->partition(fn (AppointmentAction $action) => $action->isPrimary()))
                         @php($isEditable = $appointment->status->isEditable())
                         <flux:table.row :key="$appointment->id" @class(['relative', 'cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800' => $isEditable]) data-test="appointment-row">
+                            @unless ($this->filteredDate)
+                                <flux:table.cell>
+                                    <div class="text-zinc-900 dark:text-white">{{ $appointment->scheduled_on->format('d/m/Y') }}</div>
+                                    <div class="text-sm">{{ $appointment->scheduled_on->translatedFormat('l') }}</div>
+                                </flux:table.cell>
+                            @endunless
+
                             <flux:table.cell>
                                 @if ($isEditable)
                                     <a
@@ -183,11 +212,6 @@ new class extends Component
                                     ></a>
                                 @endif
 
-                                <div class="text-zinc-900 dark:text-white">{{ $appointment->scheduled_on->format('d/m/Y') }}</div>
-                                <div class="text-sm">{{ $appointment->scheduled_on->translatedFormat('l') }}</div>
-                            </flux:table.cell>
-
-                            <flux:table.cell>
                                 <div class="text-zinc-900 dark:text-white">{{ $appointment->assistedPerson->name }}</div>
                                 @if ($appointment->assistedPerson->formatted_age)
                                     <div class="text-sm">{{ $appointment->assistedPerson->formatted_age }}</div>

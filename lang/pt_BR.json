@@ -381,6 +381,7 @@
   "Welcome": "Bem-vindo",
   "Appointments": "Agendamentos",
   "Appointments scheduled at this Spiritist Center": "Agendamentos deste Centro Espírita",
+  "Appointments on :weekday, :date": "Agendamentos de :weekday, :date",
   "New appointment": "Novo agendamento",
   "Edit appointment": "Editar agendamento",
   "Schedule an assisted person for an appointment": "Agende um assistido para um atendimento",

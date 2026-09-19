@@ -270,6 +270,28 @@ test('the index lists the current team appointments filtered by name and date', 
         ->assertDontSee('Maria Silva');
 });
 
+test('the index hides the date column while a date filter is applied', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    Appointment::factory()->for($team)->create([
+        'assisted_person_id' => AssistedPerson::factory()->for($team)->create(['name' => 'Maria Silva']),
+        'scheduled_on' => today(),
+        'status' => AppointmentStatus::Scheduled,
+    ]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->assertDontSeeHtml('appointments-date-column')
+        ->assertSeeHtml('appointment-edit-link')
+        ->assertSee(today()->translatedFormat('l'))
+        ->set('date', '')
+        ->assertSeeHtml('appointments-date-column')
+        ->assertSeeHtml('appointment-edit-link');
+});
+
 test('deleting an appointment removes it from the index', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
