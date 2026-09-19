@@ -43,7 +43,7 @@ class DatabaseSeeder extends Seeder
             $teams->push($member->currentTeam);
         }
 
-        $teams->each(function (Team $team) {
+        $teams->filter()->each(function (Team $team) {
             $assistedPeople = AssistedPerson::factory()
                 ->count(100)
                 ->for($team)

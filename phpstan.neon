@@ -11,3 +11,16 @@ parameters:
         - routes/
 
     level: 7
+
+    # These traits are only used by Volt single-file components in resources/views,
+    # which fall outside the analysed paths above, so Larastan can't see their usage.
+    ignoreErrors:
+        -
+            identifier: trait.unused
+            path: app/Concerns/InteractsWithAddressForm.php
+        -
+            identifier: trait.unused
+            path: app/Concerns/InteractsWithAppointmentForm.php
+        -
+            identifier: trait.unused
+            path: app/Concerns/InteractsWithAssistedPersonForm.php

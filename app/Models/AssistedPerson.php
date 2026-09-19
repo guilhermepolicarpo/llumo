@@ -89,7 +89,7 @@ class AssistedPerson extends Model
      */
     protected function age(): Attribute
     {
-        return Attribute::make(get: fn (): ?int => $this->birth_date?->diffInYears(today()));
+        return Attribute::make(get: fn (): ?int => $this->birth_date === null ? null : (int) $this->birth_date->diffInYears(today()));
     }
 
     /**
