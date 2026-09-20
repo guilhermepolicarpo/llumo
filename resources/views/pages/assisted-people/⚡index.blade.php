@@ -85,7 +85,7 @@ new class extends Component
         </div>
     </div>
 
-    <flux:card class="mt-6 px-4 pt-0 pb-4 [--flux-bleed:1rem]">
+    <flux:card class="mt-6 scroll-mt-6 px-4 pt-0 pb-4 [--flux-bleed:1rem]" id="assisted-people-table">
         @if ($this->assistedPeople->isNotEmpty())
             <flux:table bleed>
                 <flux:table.columns>
@@ -151,7 +151,7 @@ new class extends Component
             </flux:table>
 
             <div class="@container flex flex-wrap items-center justify-center gap-3 border-t border-zinc-100 pt-3 dark:border-zinc-700">
-                <flux:pagination :paginator="$this->assistedPeople" scroll-to class="contents! @container-normal! *:order-2 [&>:first-child]:order-none [&>:first-child]:font-normal @max-[40rem]:[&>:first-child]:w-full @max-[40rem]:[&>:first-child]:text-center" />
+                <flux:pagination :paginator="$this->assistedPeople" scroll-to="#assisted-people-table" class="contents! @container-normal! *:order-2 [&>:first-child]:order-none [&>:first-child]:font-normal @max-[40rem]:[&>:first-child]:w-full @max-[40rem]:[&>:first-child]:text-center" />
 
                 <div class="order-1 flex items-center gap-2 @[40rem]:ms-auto">
                     <flux:text class="whitespace-nowrap text-xs">{{ __('Per page') }}</flux:text>
