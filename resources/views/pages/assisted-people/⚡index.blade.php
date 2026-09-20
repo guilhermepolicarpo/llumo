@@ -107,22 +107,22 @@ new class extends Component
                                     data-test="assisted-person-edit-link"
                                 ></a>
 
-                                <div class="text-zinc-900 dark:text-white">{{ $person->name }}</div>
+                                <div class="text-[15px] text-zinc-900 dark:text-white">{{ $person->name }}</div>
                                 @if ($person->contact)
-                                    <div class="text-sm">{{ $person->contact }}</div>
+                                    <div>{{ $person->contact }}</div>
                                 @endif
                             </flux:table.cell>
 
                             <flux:table.cell>
-                                <div class="text-zinc-900 dark:text-white">{{ $person->address_line ?? '—' }}</div>
-                                <div class="text-sm">
+                                <div class="text-[15px] text-zinc-900 dark:text-white">{{ $person->address_line ?? '—' }}</div>
+                                <div>
                                     {{ $person->address_city_line ?? '—' }}
                                 </div>
                             </flux:table.cell>
 
                             <flux:table.cell>
-                                <div class="text-zinc-900 dark:text-white">{{ $person->formatted_age ?? '—' }}</div>
-                                <div class="text-sm">
+                                <div class="text-[15px] text-zinc-900 dark:text-white">{{ $person->formatted_age ?? '—' }}</div>
+                                <div>
                                     {{ $person->birth_date?->format('d/m/Y') ?? '—' }}
                                 </div>
                             </flux:table.cell>

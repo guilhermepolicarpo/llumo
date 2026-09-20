@@ -345,8 +345,8 @@ new class extends Component
                         <flux:table.row :key="$appointment->id" @class(['relative', 'cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800' => $isEditable]) data-test="appointment-row">
                             @unless ($this->filteredDate)
                                 <flux:table.cell>
-                                    <div class="text-zinc-900 dark:text-white">{{ $appointment->scheduled_on->format('d/m/Y') }}</div>
-                                    <div class="text-sm">{{ $appointment->scheduled_on->translatedFormat('l') }}</div>
+                                    <div class="text-[15px] text-zinc-900 dark:text-white">{{ $appointment->scheduled_on->format('d/m/Y') }}</div>
+                                    <div>{{ $appointment->scheduled_on->translatedFormat('l') }}</div>
                                 </flux:table.cell>
                             @endunless
 
@@ -361,18 +361,18 @@ new class extends Component
                                     ></a>
                                 @endif
 
-                                <div class="text-zinc-900 dark:text-white">{{ $appointment->assistedPerson->name }}</div>
+                                <div class="text-[15px] text-zinc-900 dark:text-white">{{ $appointment->assistedPerson->name }}</div>
                                 @if ($appointment->assistedPerson->formatted_age)
-                                    <div class="text-sm">{{ $appointment->assistedPerson->formatted_age }}</div>
+                                    <div>{{ $appointment->assistedPerson->formatted_age }}</div>
                                 @endif
                                 @if ($appointment->assistedPerson->address_summary)
-                                    <div class="text-sm">{{ $appointment->assistedPerson->address_summary }}</div>
+                                    <div>{{ $appointment->assistedPerson->address_summary }}</div>
                                 @endif
                             </flux:table.cell>
 
                             <flux:table.cell>
-                                <div class="text-zinc-900 dark:text-white">{{ $appointment->appointmentType->name }}</div>
-                                <div class="text-sm">{{ $appointment->mode->label() }}</div>
+                                <div class="text-[15px] text-zinc-900 dark:text-white">{{ $appointment->appointmentType->name }}</div>
+                                <div>{{ $appointment->mode->label() }}</div>
                             </flux:table.cell>
 
                             <flux:table.cell>
