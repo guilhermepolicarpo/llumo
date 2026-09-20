@@ -450,7 +450,7 @@ new class extends Component
             </flux:table>
 
             <div class="@container flex flex-wrap items-center justify-center gap-3 border-t border-zinc-100 pt-3 dark:border-zinc-700">
-                <flux:pagination :paginator="$this->appointments" scroll-to="appointments-table" class="contents! @container-normal! *:order-2 [&>:first-child]:order-none [&>:first-child]:font-normal @max-[40rem]:[&>:first-child]:w-full @max-[40rem]:[&>:first-child]:text-center" />
+                <flux:pagination :paginator="$this->appointments" scroll-to class="contents! @container-normal! *:order-2 [&>:first-child]:order-none [&>:first-child]:font-normal @max-[40rem]:[&>:first-child]:w-full @max-[40rem]:[&>:first-child]:text-center" />
 
                 <div class="order-1 flex items-center gap-2 @[40rem]:ms-auto">
                     <flux:text class="whitespace-nowrap text-xs">{{ __('Per page') }}</flux:text>
