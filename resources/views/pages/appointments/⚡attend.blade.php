@@ -435,7 +435,7 @@ new class extends Component
                 @endif
 
                 <flux:button type="submit" data-test="appointment-record-save-button">
-                    {{ __('Save') }}
+                    {{ __('Save record') }}
                 </flux:button>
 
                 @if ($this->isInProgress)

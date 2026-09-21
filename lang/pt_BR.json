@@ -492,5 +492,11 @@
   "Draft saved at :time": "Rascunho salvo às :time",
   "We restored an unsaved draft from :time (:name).": "Restauramos um rascunho não salvo de :time (:name).",
   "We restored an unsaved draft from :time.": "Restauramos um rascunho não salvo de :time.",
-  "Discard draft": "Descartar rascunho"
+  "Discard draft": "Descartar rascunho",
+  "Register assisted person": "Cadastrar assistido",
+  "Register appointment": "Cadastrar agendamento",
+  "Register appointment type": "Cadastrar tipo de atendimento",
+  "Save changes": "Salvar alterações",
+  "Save record": "Salvar ficha",
+  "Save profile": "Salvar perfil"
 }

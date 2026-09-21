@@ -62,7 +62,7 @@ new class extends Component
             </flux:button>
 
             <flux:button variant="primary" type="submit" data-test="assisted-person-save-button">
-                {{ __('Save') }}
+                {{ __('Register assisted person') }}
             </flux:button>
         </div>
     </form>

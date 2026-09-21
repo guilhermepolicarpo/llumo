@@ -74,7 +74,7 @@ new class extends Component {
             <flux:modal.close>
                 <flux:button variant="ghost">{{ __('Cancel') }}</flux:button>
             </flux:modal.close>
-            <flux:button variant="primary" type="submit" wire:loading.attr="disabled" data-test="quick-assisted-person-save-button">{{ __('Save') }}</flux:button>
+            <flux:button variant="primary" type="submit" wire:loading.attr="disabled" data-test="quick-assisted-person-save-button">{{ __('Register assisted person') }}</flux:button>
         </div>
     </form>
 </flux:modal>

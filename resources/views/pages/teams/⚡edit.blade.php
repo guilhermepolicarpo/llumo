@@ -234,7 +234,7 @@ new class extends Component
                             <x-pages::address-form :states="$this->states" test-prefix="team" />
 
                             <flux:button variant="primary" type="submit" data-test="team-save-button">
-                                {{ __('Save') }}
+                                {{ __('Save changes') }}
                             </flux:button>
                         </form>
                     </div>
