@@ -11,6 +11,8 @@ use Livewire\Component;
 new class extends Component {
     public string $name = '';
 
+    public bool $requiresRecord = false;
+
     public function createAppointmentType(CreateAppointmentType $createAppointmentType): void
     {
         $team = Auth::user()->currentTeam;
@@ -21,11 +23,15 @@ new class extends Component {
 
         $validated = $this->validate([
             'name' => AppointmentTypeRules::name($team),
+            'requiresRecord' => AppointmentTypeRules::requiresRecord(),
         ]);
 
-        $appointmentType = $createAppointmentType->handle($team, ['name' => $validated['name']]);
+        $appointmentType = $createAppointmentType->handle($team, [
+            'name' => $validated['name'],
+            'requires_record' => $validated['requiresRecord'],
+        ]);
 
-        $this->reset('name');
+        $this->reset('name', 'requiresRecord');
 
         Flux::modal('create-appointment-type')->close();
 
@@ -43,6 +49,14 @@ new class extends Component {
         </div>
 
         <flux:input wire:model="name" :label="__('Name')" :placeholder="__('Fraternal assistance')" required autofocus data-test="appointment-type-name-input" />
+
+        <flux:switch
+            wire:model="requiresRecord"
+            :label="__('Fill in a record during the appointment')"
+            :description="__('Opens the appointment record screen when the assisted person is attended.')"
+            align="left"
+            data-test="appointment-type-requires-record-switch"
+        />
 
         <div class="flex justify-end space-x-2 rtl:space-x-reverse">
             <flux:modal.close>

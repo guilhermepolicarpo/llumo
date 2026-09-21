@@ -43,6 +43,10 @@ use Illuminate\Support\Facades\Storage;
  * @property-read Collection<int, AssistedPerson> $assistedPeople
  * @property-read Collection<int, AppointmentType> $appointmentTypes
  * @property-read Collection<int, Appointment> $appointments
+ * @property-read Collection<int, Mentor> $mentors
+ * @property-read Collection<int, FluidicRemedy> $fluidicRemedies
+ * @property-read Collection<int, Guidance> $guidances
+ * @property-read Collection<int, PassType> $passTypes
  */
 #[Fillable([
     'name',
@@ -154,6 +158,46 @@ class Team extends Model
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);
+    }
+
+    /**
+     * Get all mentors belonging to this team.
+     *
+     * @return HasMany<Mentor, $this>
+     */
+    public function mentors(): HasMany
+    {
+        return $this->hasMany(Mentor::class);
+    }
+
+    /**
+     * Get all fluidic remedies belonging to this team.
+     *
+     * @return HasMany<FluidicRemedy, $this>
+     */
+    public function fluidicRemedies(): HasMany
+    {
+        return $this->hasMany(FluidicRemedy::class);
+    }
+
+    /**
+     * Get all guidances belonging to this team.
+     *
+     * @return HasMany<Guidance, $this>
+     */
+    public function guidances(): HasMany
+    {
+        return $this->hasMany(Guidance::class);
+    }
+
+    /**
+     * Get all pass types belonging to this team.
+     *
+     * @return HasMany<PassType, $this>
+     */
+    public function passTypes(): HasMany
+    {
+        return $this->hasMany(PassType::class);
     }
 
     /**

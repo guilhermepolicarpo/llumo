@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -33,6 +34,8 @@ use Illuminate\Support\Carbon;
  * @property-read AppointmentType $appointmentType
  * @property-read AssistedPerson $assistedPerson
  * @property-read User|null $attendant
+ * @property-read AppointmentRecord|null $record
+ * @property-read AppointmentRecordDraft|null $recordDraft
  * @property-read string $description
  */
 #[Fillable([
@@ -100,6 +103,34 @@ class Appointment extends Model
     public function attendant(): BelongsTo
     {
         return $this->belongsTo(User::class, 'attendant_id');
+    }
+
+    /**
+     * Get the record filled while the assisted person was attended.
+     *
+     * @return HasOne<AppointmentRecord, $this>
+     */
+    public function record(): HasOne
+    {
+        return $this->hasOne(AppointmentRecord::class);
+    }
+
+    /**
+     * Get the unsaved draft of the record, kept while the record form is being filled.
+     *
+     * @return HasOne<AppointmentRecordDraft, $this>
+     */
+    public function recordDraft(): HasOne
+    {
+        return $this->hasOne(AppointmentRecordDraft::class);
+    }
+
+    /**
+     * Determine whether this appointment's type is attended by filling a record.
+     */
+    public function usesRecord(): bool
+    {
+        return $this->appointmentType->requires_record;
     }
 
     /**

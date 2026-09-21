@@ -2,14 +2,14 @@
 
 namespace Database\Factories;
 
-use App\Models\AppointmentType;
+use App\Models\Mentor;
 use App\Models\Team;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<AppointmentType>
+ * @extends Factory<Mentor>
  */
-class AppointmentTypeFactory extends Factory
+class MentorFactory extends Factory
 {
     /**
      * Define the model's default state.
@@ -20,22 +20,12 @@ class AppointmentTypeFactory extends Factory
     {
         return [
             'team_id' => Team::factory(),
-            'name' => ucfirst(fake()->unique()->word()).' '.fake()->word(),
+            'name' => fake()->unique()->name(),
         ];
     }
 
     /**
-     * Indicate that appointments of this type are attended by filling a record.
-     */
-    public function withRecord(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'requires_record' => true,
-        ]);
-    }
-
-    /**
-     * Indicate that the appointment type has been deleted.
+     * Indicate that the mentor has been deleted.
      */
     public function trashed(): static
     {

@@ -22,4 +22,14 @@ class AppointmentTypeRules
             Rule::unique('appointment_types', 'name')->where('team_id', $team->id)->withoutTrashed(),
         ];
     }
+
+    /**
+     * Get the validation rules used to validate whether an appointment type is attended by filling a record.
+     *
+     * @return array<int, ValidationRule|array<mixed>|string|object>
+     */
+    public static function requiresRecord(): array
+    {
+        return ['boolean'];
+    }
 }

@@ -342,7 +342,12 @@ new class extends Component
                     @foreach ($this->appointments as $appointment)
                         @php([$primaryActions, $secondaryActions] = collect(AppointmentAction::availableFor($appointment))->partition(fn (AppointmentAction $action) => $action->isPrimary()))
                         @php($isEditable = $appointment->status->isEditable())
-                        <flux:table.row :key="$appointment->id" @class(['relative', 'cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800' => $isEditable]) data-test="appointment-row">
+                        @php($usesRecord = $appointment->usesRecord())
+                        @if ($usesRecord)
+                            @php($primaryActions = $primaryActions->reject(fn (AppointmentAction $action) => in_array($action, [AppointmentAction::Start, AppointmentAction::Complete], true)))
+                        @endif
+                        @php($opensRecord = $usesRecord && $appointment->status->allowsRecordEditing())
+                        <flux:table.row :key="$appointment->id" @class(['relative', 'cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800' => $isEditable || $opensRecord]) data-test="appointment-row">
                             @unless ($this->filteredDate)
                                 <flux:table.cell>
                                     <div class="text-[15px] text-zinc-900 dark:text-white">{{ $appointment->scheduled_on->format('d/m/Y') }}</div>
@@ -358,6 +363,14 @@ new class extends Component
                                         class="absolute inset-0"
                                         aria-label="{{ __('Edit appointment') }}"
                                         data-test="appointment-edit-link"
+                                    ></a>
+                                @elseif ($opensRecord)
+                                    <a
+                                        href="{{ route('appointments.attend', ['appointment' => $appointment]) }}"
+                                        wire:navigate
+                                        class="absolute inset-0"
+                                        aria-label="{{ __('Open appointment record') }}"
+                                        data-test="appointment-record-link"
                                     ></a>
                                 @endif
 
@@ -386,6 +399,19 @@ new class extends Component
 
                             <flux:table.cell align="end" class="relative z-10">
                                 <div class="flex items-center justify-end gap-2">
+                                    @if ($usesRecord && $appointment->status->isAttendable())
+                                        @php($isWaiting = $appointment->status === AppointmentStatus::Waiting)
+                                        <flux:button
+                                            size="sm"
+                                            :icon="$isWaiting ? 'play' : 'clipboard-document-list'"
+                                            :href="route('appointments.attend', ['appointment' => $appointment])"
+                                            wire:navigate
+                                            data-test="appointment-attend-button"
+                                            >
+                                            {{ $isWaiting ? AppointmentAction::Start->label() : __('Continue attending') }}
+                                        </flux:button>
+                                    @endif
+
                                     @foreach ($primaryActions as $action)
                                         <flux:button
                                             size="sm"

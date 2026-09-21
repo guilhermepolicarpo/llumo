@@ -79,3 +79,23 @@ test('the quick-create assisted person modal requires a name', function () {
 
     expect($team->assistedPeople()->count())->toBe(0);
 });
+
+test('an appointment type can be created to be attended with a record', function (bool $requiresRecord) {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('appointments.create-appointment-type-modal')
+        ->set('name', 'Tratamento')
+        ->set('requiresRecord', $requiresRecord)
+        ->call('createAppointmentType')
+        ->assertHasNoErrors()
+        ->assertSet('requiresRecord', false);
+
+    expect($team->appointmentTypes()->sole()->requires_record)->toBe($requiresRecord);
+})->with([
+    'with a record' => [true],
+    'without a record' => [false],
+]);

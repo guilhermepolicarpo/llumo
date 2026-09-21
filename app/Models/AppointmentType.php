@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $team_id
  * @property string $name
+ * @property bool $requires_record
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -25,6 +26,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'team_id',
     'name',
+    'requires_record',
 ])]
 class AppointmentType extends Model
 {
@@ -49,5 +51,17 @@ class AppointmentType extends Model
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);
+    }
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'requires_record' => 'boolean',
+        ];
     }
 }
