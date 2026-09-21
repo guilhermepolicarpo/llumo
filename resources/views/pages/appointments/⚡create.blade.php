@@ -42,9 +42,7 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <flux:heading size="xl">{{ __('New appointment') }}</flux:heading>
-    <flux:subheading>{{ __('Schedule an assisted person for an appointment') }}</flux:subheading>
-    <flux:separator variant="subtle" class="my-4" />
+    <x-page-header :heading="__('New appointment')" :subheading="__('Schedule an assisted person for an appointment')" :back-href="route('appointments.index')" :back-label="__('Back to appointments')" />
 
     <form wire:submit="createAppointment" class="max-w-xl space-y-6">
         <x-pages::appointments.form

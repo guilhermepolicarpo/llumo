@@ -39,9 +39,7 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <flux:heading size="xl">{{ __('New assisted person') }}</flux:heading>
-    <flux:subheading>{{ __('Register a new assisted person for this Spiritist Center') }}</flux:subheading>
-    <flux:separator variant="subtle" class="my-4" />
+    <x-page-header :heading="__('New assisted person')" :subheading="__('Register a new assisted person for this Spiritist Center')" :back-href="route('assisted-people.index')" :back-label="__('Back to assisted people')" />
 
     <form wire:submit="createAssistedPerson" class="max-w-xl space-y-6">
         <flux:fieldset>

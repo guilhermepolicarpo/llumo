@@ -70,15 +70,9 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <flux:heading size="xl">{{ __('Edit appointment') }}</flux:heading>
-            <flux:subheading>{{ __('Update the details of this appointment') }}</flux:subheading>
-        </div>
-
+    <x-page-header :heading="__('Edit appointment')" :subheading="__('Update the details of this appointment')" :back-href="route('appointments.index')" :back-label="__('Back to appointments')">
         <x-pages::appointments.action-buttons :appointment="$appointment" :edit-as="null" />
-    </div>
-    <flux:separator variant="subtle" class="my-4" />
+    </x-page-header>
 
     <form wire:submit="updateAppointment" class="max-w-xl space-y-6">
         <x-pages::appointments.form

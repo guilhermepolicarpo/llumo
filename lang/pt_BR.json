@@ -506,5 +506,15 @@
   "View registration": "Ver cadastro",
   "Arrival": "Chegada",
   "Attendance start": "Início do atendimento",
-  "Attendance end": "Fim do atendimento"
+  "Attendance end": "Fim do atendimento",
+  "Appointment mentor": "Mentor do atendimento",
+  "Fluidic remedy": "Fluídico",
+  "Medications": "Medicamentos",
+  "How to take": "Como tomar",
+  "Recommended guidances": "Orientações recomendadas",
+  "Pass type": "Tipo de passe",
+  "Appointment notes": "Anotações do atendimento",
+  "Record what was done in this appointment": "Registre o que foi feito neste atendimento",
+  "See what was recorded in this appointment": "Veja o que foi registrado neste atendimento",
+  "Back to assisted people": "Voltar para os assistidos"
 }
