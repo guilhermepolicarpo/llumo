@@ -14,7 +14,9 @@
                         <span class="text-xl font-semibold">{{ config('app.name', 'Laravel') }}</span>
                     </a>
 
-                    {{ $slot }}
+                    <div wire:transition.navigate>
+                        {{ $slot }}
+                    </div>
                 </div>
             </div>
 
