@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Concerns\HasFormattedAddress;
+use App\Enums\AppointmentStatus;
 use App\Enums\BrazilianState;
 use App\Rules\Phone;
+use Carbon\CarbonInterface;
 use Database\Factories\AssistedPersonFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -83,6 +85,19 @@ class AssistedPerson extends Model
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);
+    }
+
+    /**
+     * Get the date of this assisted person's last completed appointment before the given date.
+     */
+    public function lastVisitBefore(CarbonInterface $date): ?Carbon
+    {
+        $lastVisitOn = $this->appointments()
+            ->where('status', AppointmentStatus::Completed)
+            ->where('scheduled_on', '<', $date->toDateString())
+            ->max('scheduled_on');
+
+        return $lastVisitOn ? Carbon::parse($lastVisitOn) : null;
     }
 
     /**

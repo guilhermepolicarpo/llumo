@@ -297,11 +297,11 @@ test('the index hides the date column while a date filter is applied', function 
 
     Livewire::test('pages::appointments.index')
         ->assertDontSeeHtml('appointments-date-column')
-        ->assertSeeHtml('appointment-edit-link')
+        ->assertSeeHtml('appointment-details-trigger')
         ->assertSee(today()->translatedFormat('l'))
         ->set('date', '')
         ->assertSeeHtml('appointments-date-column')
-        ->assertSeeHtml('appointment-edit-link');
+        ->assertSeeHtml('appointment-details-trigger');
 });
 
 test('deleting an appointment removes it from the index', function () {
@@ -465,4 +465,93 @@ test('the index ignores a filter removal for an unknown group', function () {
         ->call('removeFilter', 'perPage', AppointmentStatus::Waiting->value)
         ->assertSet('statuses', [AppointmentStatus::Waiting->value])
         ->assertSet('perPage', 5);
+});
+
+test('the details flyout shows the assisted person, their last visit, and the appointment', function () {
+    $this->travelTo('2026-09-21 10:00:00');
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $assistedPerson = AssistedPerson::factory()->for($team)->create(['name' => 'Maria Silva', 'phone' => '16999998888']);
+    $appointment = Appointment::factory()->for($team)->for($assistedPerson)->create([
+        'scheduled_on' => '2026-09-21',
+        'notes' => 'Trazer exames',
+    ]);
+    Appointment::factory()->for($team)->for($assistedPerson)->completed()->create(['scheduled_on' => '2026-09-10']);
+    Appointment::factory()->for($team)->for($assistedPerson)->canceled()->create(['scheduled_on' => '2026-09-15']);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->assertDontSeeHtml('data-test="appointment-details"')
+        ->call('showAppointment', $appointment->id)
+        ->assertSet('selectedAppointmentId', $appointment->id)
+        ->assertDispatched('modal-show', name: 'appointment-details')
+        ->assertSeeHtml('data-test="appointment-details"')
+        ->assertSee($assistedPerson->formatted_phone)
+        ->assertSee('Trazer exames')
+        ->assertSeeHtml('data-test="appointment-edit-button"')
+        ->assertSee('10/09/2026')
+        ->assertDontSee('15/09/2026');
+});
+
+test('the details flyout says when it is the assisted person first visit', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->call('showAppointment', $appointment->id)
+        ->assertSee(__('First visit'));
+});
+
+test('the details flyout cannot open another team appointment', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for(teamOwnedBy(User::factory()->create()))->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->call('showAppointment', $appointment->id)
+        ->assertNotFound();
+});
+
+test('the details flyout opens the record only for completed appointments that use one', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $withRecord = Appointment::factory()->for($team)->completed()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+    $withoutRecord = Appointment::factory()->for($team)->completed()->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->call('showAppointment', $withRecord->id)
+        ->assertSeeHtml('data-test="appointment-details-record-button"')
+        ->assertDontSeeHtml('data-test="appointment-edit-button"')
+        ->call('showAppointment', $withoutRecord->id)
+        ->assertDontSeeHtml('data-test="appointment-details-record-button"');
+});
+
+test('deleting the appointment closes the details flyout', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->call('showAppointment', $appointment->id)
+        ->call('appointmentDeleted')
+        ->assertSet('selectedAppointmentId', null)
+        ->assertDispatched('modal-close', name: 'appointment-details')
+        ->assertDontSeeHtml('data-test="appointment-details"');
 });

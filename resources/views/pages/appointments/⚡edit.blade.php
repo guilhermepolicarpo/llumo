@@ -70,45 +70,13 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    @php([$primaryActions, $secondaryActions] = collect(AppointmentAction::availableFor($appointment))->partition(fn (AppointmentAction $action) => $action->isPrimary()))
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <flux:heading size="xl">{{ __('Edit appointment') }}</flux:heading>
             <flux:subheading>{{ __('Update the details of this appointment') }}</flux:subheading>
         </div>
 
-        <div class="flex items-center gap-2">
-            @foreach ($primaryActions as $action)
-                <flux:button
-                    :icon="$action->icon()"
-                    wire:click="perform({{ $appointment->id }}, '{{ $action->value }}')"
-                    wire:loading.attr="disabled"
-                    data-test="appointment-action-{{ $action->value }}"
-                    >
-                    {{ $action->label() }}
-                </flux:button>
-            @endforeach
-
-            <flux:dropdown position="bottom" align="end">
-                <flux:button variant="ghost" icon="ellipsis-horizontal" :aria-label="__('More actions')" data-test="appointment-actions-trigger" />
-                <flux:menu>
-                    <x-pages::appointments.action-menu-items :appointment="$appointment" :actions="$secondaryActions" />
-
-                    @if ($secondaryActions->isNotEmpty())
-                        <flux:menu.separator />
-                    @endif
-
-                    <flux:menu.item
-                        variant="danger"
-                        icon="trash"
-                        wire:click="$dispatch('confirm-delete-appointment', { appointmentId: {{ $appointment->id }}, appointmentDescription: @js($appointment->description) })"
-                        data-test="appointment-delete-menu-item"
-                        >
-                        {{ __('Delete') }}
-                    </flux:menu.item>
-                </flux:menu>
-            </flux:dropdown>
-        </div>
+        <x-pages::appointments.action-buttons :appointment="$appointment" :edit-as="null" />
     </div>
     <flux:separator variant="subtle" class="my-4" />
 

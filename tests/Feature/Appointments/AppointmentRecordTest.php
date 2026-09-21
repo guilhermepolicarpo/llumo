@@ -215,7 +215,9 @@ test('completed records stay editable and the index opens them', function () {
     $user->switchTeam($team);
 
     Livewire::test('pages::appointments.index')
-        ->assertSeeHtml('data-test="appointment-record-link"');
+        ->call('showAppointment', $appointment->id)
+        ->assertSeeHtml('data-test="appointment-details-record-button"')
+        ->assertSeeHtml(route('appointments.attend', ['current_team' => $team, 'appointment' => $appointment]));
 
     Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
         ->assertSet('observations', 'Anotação')

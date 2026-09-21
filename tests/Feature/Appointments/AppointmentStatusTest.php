@@ -197,7 +197,7 @@ test('the index offers only the actions available for each appointment', functio
     Livewire::test('pages::appointments.index')
         ->assertSeeHtml('data-test="appointment-status-badge"')
         ->assertDontSeeHtml('data-test="appointment-actions-trigger"')
-        ->assertDontSeeHtml('data-test="appointment-edit-link"');
+        ->assertDontSeeHtml('data-test="appointment-edit-menu-item"');
 });
 
 test('the edit page offers the actions available for the appointment', function () {

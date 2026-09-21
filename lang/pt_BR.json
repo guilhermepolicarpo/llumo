@@ -499,5 +499,12 @@
   "Save changes": "Salvar alterações",
   "Save record": "Salvar ficha",
   "Save profile": "Salvar perfil",
-  "More actions": "Mais ações"
+  "More actions": "Mais ações",
+  "View appointment details": "Ver detalhes do agendamento",
+  "Last visit": "Última visita",
+  "First visit": "Primeira visita",
+  "View registration": "Ver cadastro",
+  "Arrival": "Chegada",
+  "Attendance start": "Início do atendimento",
+  "Attendance end": "Fim do atendimento"
 }
