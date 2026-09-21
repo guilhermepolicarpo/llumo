@@ -108,8 +108,11 @@ new class extends Component
                                 ></a>
 
                                 <div class="text-[15px] text-zinc-900 dark:text-white">{{ $person->name }}</div>
-                                @if ($person->contact)
-                                    <div>{{ $person->contact }}</div>
+                                @if ($person->email)
+                                    <div>{{ $person->email }}</div>
+                                @endif
+                                @if ($person->formatted_phone)
+                                    <div>{{ $person->formatted_phone }}</div>
                                 @endif
                             </flux:table.cell>
 

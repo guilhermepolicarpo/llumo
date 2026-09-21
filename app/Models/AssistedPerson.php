@@ -39,6 +39,7 @@ use Illuminate\Support\Carbon;
  * @property-read string|null $address_summary
  * @property-read int|null $age
  * @property-read string|null $formatted_age
+ * @property-read string|null $formatted_phone
  * @property-read string|null $contact
  * @property-read Team $team
  * @property-read Collection<int, Appointment> $appointments
@@ -117,13 +118,23 @@ class AssistedPerson extends Model
     }
 
     /**
+     * Get the assisted person's phone formatted for display.
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function formattedPhone(): Attribute
+    {
+        return Attribute::make(get: fn (): ?string => Phone::format($this->phone) ?: null);
+    }
+
+    /**
      * Get the assisted person's formatted phone, or their email as a fallback.
      *
      * @return Attribute<string|null, never>
      */
     protected function contact(): Attribute
     {
-        return Attribute::make(get: fn (): ?string => $this->phone ? Phone::format($this->phone) : $this->email);
+        return Attribute::make(get: fn (): ?string => $this->formatted_phone ?? $this->email);
     }
 
     /**

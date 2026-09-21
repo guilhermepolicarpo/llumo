@@ -423,21 +423,21 @@ test('the index shows a distinct empty state when the search has no matches', fu
         ->assertDontSee(__('No assisted people have been registered yet.'));
 });
 
-test('the index shows the phone or the email, whichever is registered', function () {
+test('the index shows the email above the phone, each only when registered', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
 
     $team->assistedPeople()->create(['name' => 'Ana', 'phone' => '11987654321', 'email' => 'ana@example.com']);
     $team->assistedPeople()->create(['name' => 'Bruno', 'email' => 'bruno@example.com']);
-    $team->assistedPeople()->create(['name' => 'Carla']);
+    $team->assistedPeople()->create(['name' => 'Carla', 'phone' => '11912345678']);
 
     $this->actingAs($user);
     $user->switchTeam($team);
 
     Livewire::test('pages::assisted-people.index')
-        ->assertSee('(11) 98765-4321')
-        ->assertDontSee('ana@example.com')
-        ->assertSee('bruno@example.com');
+        ->assertSeeInOrder(['Ana', 'ana@example.com', '(11) 98765-4321'])
+        ->assertSee('bruno@example.com')
+        ->assertSee('(11) 91234-5678');
 });
 
 test('the index splits the address into a street line and a city line', function () {
