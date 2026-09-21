@@ -2,8 +2,12 @@
 
 use App\Data\UserTeam;
 use App\Models\Team;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -61,7 +65,27 @@ new class extends Component {
             $team->slug,
         );
 
-        $this->redirect($redirectTo ?? request()->header('Referer'), navigate: true);
+        $this->redirect($this->withoutTeamRecord($redirectTo ?? request()->header('Referer'), $team), navigate: true);
+    }
+
+    /**
+     * Point URLs of a single team record (edit, attend...) to the section index, since records belong to one team only.
+     */
+    protected function withoutTeamRecord(string $url, Team $team): string
+    {
+        try {
+            $route = Route::getRoutes()->match(Request::create($url));
+        } catch (HttpException) {
+            return $url;
+        }
+
+        if (! $route->hasParameter('current_team') || count($route->parameters()) < 2) {
+            return $url;
+        }
+
+        $indexRoute = Str::beforeLast($route->getName(), '.').'.index';
+
+        return route(Route::has($indexRoute) ? $indexRoute : 'dashboard', ['current_team' => $team->slug]);
     }
 
     protected function replaceCurrentTeamInReferer(string $referer, string $currentTeamSlug, string $newTeamSlug): ?string

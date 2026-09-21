@@ -234,6 +234,17 @@ test('members cannot edit another team appointment', function () {
         ->assertForbidden();
 });
 
+test('an appointment cannot be edited under another team the user belongs to', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $otherTeam = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->create();
+
+    $this->actingAs($user)
+        ->get(route('appointments.edit', ['current_team' => $otherTeam, 'appointment' => $appointment]))
+        ->assertNotFound();
+});
+
 test('the index lists the current team appointments filtered by name and date', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);

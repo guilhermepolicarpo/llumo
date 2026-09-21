@@ -7,6 +7,7 @@ Route::view('/', 'welcome')->name('home');
 
 Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])
+    ->scopeBindings()
     ->group(function () {
         Route::view('dashboard', 'dashboard')->name('dashboard');
 

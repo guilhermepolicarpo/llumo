@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\Team;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Livewire\Blaze\Blaze;
@@ -25,8 +27,17 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureRouteBindings();
 
         Blaze::optimize()->in(resource_path('views/components'));
+    }
+
+    /**
+     * Bind the {current_team} segment to its Team so scoped bindings resolve records through that team.
+     */
+    protected function configureRouteBindings(): void
+    {
+        Route::model('current_team', Team::class);
     }
 
     /**

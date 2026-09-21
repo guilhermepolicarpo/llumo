@@ -174,6 +174,21 @@ test('members cannot open the record of another team appointment', function () {
     expect($appointment->fresh()->status)->toBe(AppointmentStatus::Waiting);
 });
 
+test('an appointment record cannot be opened under another team the user belongs to', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $otherTeam = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->waiting()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('appointments.attend', ['current_team' => $otherTeam, 'appointment' => $appointment]))
+        ->assertNotFound();
+
+    expect($appointment->fresh()->status)->toBe(AppointmentStatus::Waiting);
+});
+
 test('appointment types without a record have no record screen', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);

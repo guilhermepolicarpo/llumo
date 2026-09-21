@@ -278,6 +278,18 @@ test('non members cannot view or update another team assisted person', function 
         ->assertForbidden();
 });
 
+test('an assisted person cannot be opened under another team the user belongs to', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $otherTeam = teamOwnedBy($user);
+
+    $assistedPerson = $team->assistedPeople()->create(['name' => 'Maria Silva']);
+
+    $this->actingAs($user)
+        ->get(route('assisted-people.edit', ['current_team' => $otherTeam, 'assistedPerson' => $assistedPerson]))
+        ->assertNotFound();
+});
+
 test('the index lists the team assisted people ordered by name', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
