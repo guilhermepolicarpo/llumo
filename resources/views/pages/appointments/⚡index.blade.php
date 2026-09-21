@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Appointments\PerformAppointmentAction;
+use App\Concerns\InteractsWithAppointmentActions;
 use App\Enums\AppointmentAction;
 use App\Enums\AppointmentMode;
 use App\Enums\AppointmentStatus;
@@ -8,7 +9,6 @@ use App\Models\Appointment;
 use App\Models\AppointmentType;
 use App\Models\User;
 use Carbon\CarbonInterface;
-use Flux\Flux;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
@@ -23,6 +23,7 @@ use Livewire\WithPagination;
 
 new class extends Component
 {
+    use InteractsWithAppointmentActions;
     use WithPagination;
 
     /**
@@ -109,17 +110,7 @@ new class extends Component
     {
         $appointment = Auth::user()->currentTeam->appointments()->findOrFail($appointmentId);
 
-        abort_if($action === null, 404);
-
-        Gate::authorize('perform', $appointment);
-
-        if (! $performAppointmentAction->handle($appointment, $action, Auth::user())) {
-            Flux::toast(variant: 'danger', text: __('This action is no longer available for the appointment.'));
-
-            return;
-        }
-
-        Flux::toast(variant: 'success', text: __('Appointment moved to :status.', ['status' => $action->toStatus()->label()]));
+        $this->performAppointmentAction($performAppointmentAction, $appointment, $action);
     }
 
     #[Computed]
@@ -428,25 +419,7 @@ new class extends Component
                                         <flux:dropdown position="bottom" align="end">
                                             <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" data-test="appointment-actions-trigger" />
                                             <flux:menu>
-                                                @foreach ($secondaryActions as $action)
-                                                    @if ($action->needsConfirmation())
-                                                        <flux:menu.item
-                                                            :icon="$action->icon()"
-                                                            wire:click="$dispatch('confirm-appointment-action', { appointmentId: {{ $appointment->id }}, action: '{{ $action->value }}', appointmentDescription: {{ Js::from($appointment->description) }} })"
-                                                            data-test="appointment-action-{{ $action->value }}"
-                                                            >
-                                                            {{ $action->label() }}
-                                                        </flux:menu.item>
-                                                    @else
-                                                        <flux:menu.item
-                                                            :icon="$action->icon()"
-                                                            wire:click="perform({{ $appointment->id }}, '{{ $action->value }}')"
-                                                            data-test="appointment-action-{{ $action->value }}"
-                                                            >
-                                                            {{ $action->label() }}
-                                                        </flux:menu.item>
-                                                    @endif
-                                                @endforeach
+                                                <x-pages::appointments.action-menu-items :appointment="$appointment" :actions="$secondaryActions" />
 
                                                 @if ($isEditable)
                                                     @if ($secondaryActions->isNotEmpty())

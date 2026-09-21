@@ -200,6 +200,64 @@ test('the index offers only the actions available for each appointment', functio
         ->assertDontSeeHtml('data-test="appointment-edit-link"');
 });
 
+test('the edit page offers the actions available for the appointment', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $today = Appointment::factory()->for($team)->create(['scheduled_on' => today()]);
+    $tomorrow = Appointment::factory()->for($team)->create(['scheduled_on' => today()->addDay()]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.edit', ['appointment' => $today])
+        ->assertSeeHtml('data-test="appointment-action-receive"')
+        ->assertSeeHtml('data-test="appointment-action-mark_as_no_show"')
+        ->assertSeeHtml('data-test="appointment-action-cancel"')
+        ->assertSeeHtml('data-test="appointment-delete-menu-item"');
+
+    Livewire::test('pages::appointments.edit', ['appointment' => $tomorrow])
+        ->assertDontSeeHtml('data-test="appointment-action-receive"')
+        ->assertSeeHtml('data-test="appointment-action-cancel"');
+});
+
+test('performing an action from the edit page moves the appointment and returns to the index', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $received = Appointment::factory()->for($team)->create(['scheduled_on' => today()]);
+    $canceled = Appointment::factory()->for($team)->create(['scheduled_on' => today()]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.edit', ['appointment' => $received])
+        ->call('perform', $received->id, 'receive')
+        ->assertRedirect(route('appointments.index'));
+
+    Livewire::test('pages::appointments.edit', ['appointment' => $canceled])
+        ->dispatch('appointment-action-confirmed', appointmentId: $received->id, action: 'cancel')
+        ->assertNotFound();
+
+    Livewire::test('pages::appointments.edit', ['appointment' => $canceled])
+        ->dispatch('appointment-action-confirmed', appointmentId: $canceled->id, action: 'cancel')
+        ->assertRedirect(route('appointments.index'));
+
+    expect($received->fresh()->status)->toBe(AppointmentStatus::Waiting)
+        ->and($canceled->fresh()->status)->toBe(AppointmentStatus::Canceled);
+});
+
+test('deleting from the edit page returns to the index', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.edit', ['appointment' => $appointment])
+        ->call('appointmentDeleted')
+        ->assertRedirect(route('appointments.index'));
+});
+
 test('appointments never received are marked as no-show after their day', function () {
     $this->travelTo('2026-09-20 00:05:00');
     $team = teamOwnedBy(User::factory()->create());
