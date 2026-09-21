@@ -69,7 +69,7 @@ new class extends Component
                 icon="magnifying-glass"
                 :placeholder="__('Search by name...')"
                 clearable
-                class="max-sm:flex-1"
+                class="max-sm:flex-1 sm:w-64"
                 data-test="assisted-people-search-input"
             />
 

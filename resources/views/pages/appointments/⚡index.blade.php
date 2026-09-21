@@ -267,7 +267,7 @@ new class extends Component
                 icon="magnifying-glass"
                 :placeholder="__('Search by name...')"
                 clearable
-                class="max-w-ms"
+                class="w-full md:w-64"
                 data-test="appointments-search-input"
             />
 
