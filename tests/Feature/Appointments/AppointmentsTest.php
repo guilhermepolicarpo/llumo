@@ -5,8 +5,10 @@ use App\Enums\AppointmentStatus;
 use App\Enums\BrazilianState;
 use App\Enums\TeamRole;
 use App\Models\Appointment;
+use App\Models\AppointmentRecord;
 use App\Models\AppointmentType;
 use App\Models\AssistedPerson;
+use App\Models\Mentor;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Livewire\Livewire;
@@ -538,6 +540,72 @@ test('the details flyout opens the record only for completed appointments that u
         ->assertDontSeeHtml('data-test="appointment-edit-button"')
         ->call('showAppointment', $withoutRecord->id)
         ->assertDontSeeHtml('data-test="appointment-details-record-button"');
+});
+
+test('the details flyout hides its footer when the appointment has no action left', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $completed = Appointment::factory()->for($team)->completed()->create();
+    $scheduled = Appointment::factory()->for($team)->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->call('showAppointment', $completed->id)
+        ->assertDontSeeHtml('data-test="appointment-details-actions"')
+        ->call('showAppointment', $scheduled->id)
+        ->assertSeeHtml('data-test="appointment-details-actions"');
+});
+
+test('the details flyout shows the arrival and how long a person who is still here has been waiting', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $waiting = Appointment::factory()->for($team)->waiting()->create();
+    $completed = Appointment::factory()->for($team)->completed()->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->call('showAppointment', $waiting->id)
+        ->assertSee(__('Arrived at :time', ['time' => $waiting->received_at->format('H:i')]))
+        ->assertSeeHtml('data-test="appointment-details-waiting-for"')
+        ->call('showAppointment', $completed->id)
+        ->assertSee(__('Arrived at :time', ['time' => $completed->received_at->format('H:i')]))
+        ->assertDontSeeHtml('data-test="appointment-details-waiting-for"');
+});
+
+test('the details flyout credits the record mentor and presents the other times as a system entry', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $withMentor = Appointment::factory()->for($team)->completed()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+    AppointmentRecord::factory()->for($withMentor)->create([
+        'mentor_id' => Mentor::factory()->for($team)->create(['name' => 'Dona Ana']),
+    ]);
+    $withoutRecord = Appointment::factory()->for($team)->completed()->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->call('showAppointment', $withMentor->id)
+        ->assertSeeHtml('data-test="appointment-details-mentor"')
+        ->assertSee('Dona Ana')
+        ->assertSee(__('Entered in the system by :user, from :start to :end.', [
+            'user' => $withMentor->attendant->name,
+            'start' => $withMentor->started_at->format('H:i'),
+            'end' => $withMentor->finished_at->format('H:i'),
+        ]))
+        ->call('showAppointment', $withoutRecord->id)
+        ->assertDontSeeHtml('data-test="appointment-details-mentor"')
+        ->assertSee($withoutRecord->attendant->name)
+        ->assertSee(__('Entered in the system from :start to :end.', [
+            'start' => $withoutRecord->started_at->format('H:i'),
+            'end' => $withoutRecord->finished_at->format('H:i'),
+        ]));
 });
 
 test('deleting the appointment closes the details flyout', function () {
