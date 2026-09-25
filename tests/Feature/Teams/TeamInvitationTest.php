@@ -4,7 +4,6 @@ use App\Enums\TeamRole;
 use App\Models\Team;
 use App\Models\TeamInvitation;
 use App\Models\User;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
@@ -138,10 +137,11 @@ test('accepted team invitations cannot be accepted again', function () {
 
     $this->actingAs($invitedUser);
 
-    $this->expectException(ModelNotFoundException::class);
-
     Livewire::test('pages::teams.pending-invitations-modal')
-        ->call('acceptInvitation', $invitation->code);
+        ->call('acceptInvitation', $invitation->code)
+        ->assertNotFound();
+
+    expect($team->fresh()->members()->whereKey($invitedUser)->exists())->toBeFalse();
 });
 
 test('accepted invitation toast is shown on the dashboard', function () {

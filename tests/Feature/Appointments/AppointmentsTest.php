@@ -10,7 +10,6 @@ use App\Models\AppointmentType;
 use App\Models\AssistedPerson;
 use App\Models\Mentor;
 use App\Models\User;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Livewire\Livewire;
 
 test('members can open the appointment pages', function () {
@@ -158,10 +157,10 @@ test('an assisted person from another team cannot be selected', function () {
     $this->actingAs($user);
     $user->switchTeam($team);
 
-    $this->expectException(ModelNotFoundException::class);
-
     Livewire::test('pages::appointments.create')
-        ->call('selectAssistedPerson', $otherPerson->id);
+        ->call('selectAssistedPerson', $otherPerson->id)
+        ->assertNotFound()
+        ->assertSet('assistedPersonId', null);
 });
 
 test('the form selects records created from the quick-create modals', function () {
@@ -354,11 +353,12 @@ test('members cannot delete another team appointment', function () {
     $this->actingAs($user);
     $user->switchTeam($team);
 
-    $this->expectException(ModelNotFoundException::class);
-
     Livewire::test('appointments.delete-appointment-modal')
         ->call('confirmDeleteAppointment', $appointment->id, 'Someone')
-        ->call('deleteAppointment');
+        ->call('deleteAppointment')
+        ->assertNotFound();
+
+    expect($appointment->fresh())->not->toBeNull();
 });
 
 test('the index lists the waiting queue by arrival only when waiting is the sole status', function () {

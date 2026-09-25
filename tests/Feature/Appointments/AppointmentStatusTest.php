@@ -5,7 +5,6 @@ use App\Models\Appointment;
 use App\Models\AssistedPerson;
 use App\Models\User;
 use Database\Factories\AppointmentFactory;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Livewire\Livewire;
 
 test('members move an appointment through the attendance flow', function () {
@@ -142,8 +141,9 @@ test('members cannot move another team appointment', function () {
     $this->actingAs($user);
     $user->switchTeam($team);
 
-    expect(fn () => Livewire::test('pages::appointments.index')->call('perform', $appointment->id, 'receive'))
-        ->toThrow(ModelNotFoundException::class);
+    Livewire::test('pages::appointments.index')
+        ->call('perform', $appointment->id, 'receive')
+        ->assertNotFound();
 
     expect($appointment->fresh()->status)->toBe(AppointmentStatus::Scheduled);
 });

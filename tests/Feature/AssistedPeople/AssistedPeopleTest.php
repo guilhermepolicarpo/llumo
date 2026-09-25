@@ -2,7 +2,6 @@
 
 use App\Models\AssistedPerson;
 use App\Models\User;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 
@@ -559,11 +558,12 @@ test('members cannot delete another team assisted person', function () {
     $this->actingAs($outsider);
     $outsider->switchTeam($outsiderTeam);
 
-    $this->expectException(ModelNotFoundException::class);
-
     Livewire::test('pages::assisted-people.delete-assisted-person-modal')
         ->call('confirmDeleteAssistedPerson', $assistedPerson->id, $assistedPerson->name)
-        ->call('deleteAssistedPerson');
+        ->call('deleteAssistedPerson')
+        ->assertNotFound();
+
+    expect($assistedPerson->fresh()->trashed())->toBeFalse();
 });
 
 test('the postal code lookup fills the blank address fields', function () {
