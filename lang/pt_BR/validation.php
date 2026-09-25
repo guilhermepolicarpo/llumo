@@ -251,4 +251,10 @@ return [
         'notes' => 'observações',
     ],
 
+    'values' => [
+        'scheduledOn' => [
+            'today' => 'hoje',
+        ],
+    ],
+
 ];

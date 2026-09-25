@@ -64,13 +64,13 @@ class AppointmentRules
     }
 
     /**
-     * Get the validation rules used to validate an appointment's date.
+     * Get the validation rules used to validate an appointment's date, which cannot be in the past.
      *
      * @return array<int, ValidationRule|array<mixed>|string|object>
      */
     public static function scheduledOn(): array
     {
-        return ['required', 'date'];
+        return ['required', Rule::date()->todayOrAfter()];
     }
 
     /**

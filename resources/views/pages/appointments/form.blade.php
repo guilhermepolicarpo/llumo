@@ -49,7 +49,7 @@
             <flux:error name="appointmentTypeId" />
         </flux:field>
 
-        <flux:input type="date" wire:model="scheduledOn" :label="__('Date')" required data-test="appointment-scheduled-on-input" />
+        <flux:input type="date" wire:model="scheduledOn" :label="__('Date')" :min="today()->toDateString()" required data-test="appointment-scheduled-on-input" />
     </div>
 
     <div class="mt-6">
