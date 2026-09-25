@@ -563,10 +563,11 @@ new class extends Component
         </div>
     </flux:modal>
 
-    <flux:modal name="appointment-details" flyout variant="floating" class="md:w-lg" @close="closeAppointment">
+    {{-- The flyout panel is a flex column so the actions below can be pushed to its bottom edge. --}}
+    <flux:modal name="appointment-details" flyout variant="floating" class="flex flex-col md:w-lg" @close="closeAppointment">
         @if ($selectedAppointment = $this->selectedAppointment)
             @php($assistedPerson = $selectedAppointment->assistedPerson)
-            <div class="flex min-h-full flex-col gap-6" data-test="appointment-details">
+            <div class="flex flex-1 flex-col gap-6" data-test="appointment-details">
                 <div class="flex items-start gap-4 pe-8">
                     <flux:avatar size="lg" :name="$assistedPerson->name" class="shrink-0" />
 
@@ -581,6 +582,7 @@ new class extends Component
                                 variant="ghost"
                                 size="xs"
                                 icon="arrow-top-right-on-square"
+                                icon:variant="outline"
                                 class="-ms-2 mt-1"
                                 :href="route('assisted-people.edit', ['assistedPerson' => $assistedPerson])"
                                 wire:navigate
@@ -595,13 +597,13 @@ new class extends Component
                 <div class="space-y-2">
                     @foreach (array_filter(['phone' => $assistedPerson->formatted_phone, 'envelope' => $assistedPerson->email, 'map-pin' => $assistedPerson->formatted_address]) as $icon => $detail)
                         <div class="flex items-start gap-2">
-                            <flux:icon :name="$icon" variant="micro" class="mt-0.5 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                            <flux:icon :name="$icon" class="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
                             <flux:text class="min-w-0 break-words">{{ $detail }}</flux:text>
                         </div>
                     @endforeach
 
                     <div class="flex items-start gap-2">
-                        <flux:icon.clock variant="micro" class="mt-0.5 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                        <flux:icon.clock class="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
                         <flux:text class="min-w-0" data-test="appointment-details-last-visit">
                             @if ($this->lastVisitOn)
                                 {{ __('Last visit') }}: {{ $this->lastVisitOn->format('d/m/Y') }}
@@ -616,7 +618,7 @@ new class extends Component
                 <flux:card class="space-y-4">
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <flux:heading class="flex items-center gap-2">
-                            <flux:icon.calendar-days variant="micro" class="shrink-0 text-zinc-400 dark:text-zinc-500" />
+                            <flux:icon.calendar-days class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
                             {{ Str::ucfirst($selectedAppointment->scheduled_on->translatedFormat('l')) }}, {{ $selectedAppointment->scheduled_on->format('d/m/Y') }}
                         </flux:heading>
                         <flux:badge size="sm" :color="$selectedAppointment->status->color()">{{ $selectedAppointment->status->label() }}</flux:badge>
@@ -624,7 +626,7 @@ new class extends Component
 
                     @if ($selectedAppointment->received_at)
                         <div class="flex items-center gap-2 rounded-lg bg-zinc-50 px-3 py-2 dark:bg-white/5" data-test="appointment-details-arrival">
-                            <flux:icon.clock variant="micro" class="shrink-0 text-zinc-400 dark:text-zinc-500" />
+                            <flux:icon.clock class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
                             <flux:text class="text-zinc-800 dark:text-white">
                                 {{ __('Arrived at :time', ['time' => $selectedAppointment->received_at->format('H:i')]) }}
                             </flux:text>
@@ -657,7 +659,7 @@ new class extends Component
 
                     @if ($selectedAppointment->started_at && $selectedAppointment->finished_at)
                         <div class="flex items-start gap-2 border-t border-zinc-200 pt-4 dark:border-white/10">
-                            <flux:icon.pencil-square variant="micro" class="mt-0.5 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                            <flux:icon.pencil-square class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
                             <flux:text size="sm" class="min-w-0" data-test="appointment-details-system-entry">
                                 @php($entry = ['start' => $selectedAppointment->started_at->format('H:i'), 'end' => $selectedAppointment->finished_at->format('H:i')])
                                 @if ($mentor && $selectedAppointment->attendant)
@@ -682,6 +684,7 @@ new class extends Component
                                 <flux:button
                                     variant="primary"
                                     icon="clipboard-document-list"
+                                    icon:variant="outline"
                                     :href="route('appointments.attend', ['appointment' => $selectedAppointment])"
                                     wire:navigate
                                     data-test="appointment-details-record-button"
@@ -690,7 +693,7 @@ new class extends Component
                                 </flux:button>
                             @endif
 
-                            <x-pages::appointments.action-buttons :appointment="$selectedAppointment" edit-as="button" class="flex-wrap" />
+                            <x-pages::appointments.action-buttons :appointment="$selectedAppointment" edit-as="button" menu-first emphasize-main class="flex-wrap" />
                         </div>
                     </div>
                 @endif

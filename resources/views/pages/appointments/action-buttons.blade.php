@@ -1,5 +1,7 @@
 {{-- editAs places the Edit entry: 'menu' (dropdown item), 'button' (visible button), or null (hidden). --}}
-@props(['appointment', 'size' => 'base', 'editAs' => 'menu'])
+{{-- menuFirst moves the dropdown to the start of the row, pushing the buttons to the opposite edge. --}}
+{{-- emphasizeMain paints the next-step button (attend, receive, start, complete) as primary. --}}
+@props(['appointment', 'size' => 'base', 'editAs' => 'menu', 'menuFirst' => false, 'emphasizeMain' => false])
 
 @use('App\Enums\AppointmentAction')
 @use('App\Enums\AppointmentStatus')
@@ -14,6 +16,7 @@
     }
 
     $isAttendable = $usesRecord && $appointment->status->isAttendable();
+    $mainVariant = $emphasizeMain ? 'primary' : 'outline';
 @endphp
 
 @if ($isAttendable || $primaryActions->isNotEmpty() || $secondaryActions->isNotEmpty() || $isEditable)
@@ -22,6 +25,7 @@
         <flux:button
             :size="$size"
             icon="pencil"
+            icon:variant="outline"
             :href="route('appointments.edit', ['appointment' => $appointment])"
             wire:navigate
             data-test="appointment-edit-button"
@@ -33,8 +37,10 @@
     @if ($isAttendable)
         @php($isWaiting = $appointment->status === AppointmentStatus::Waiting)
         <flux:button
+            :variant="$mainVariant"
             :size="$size"
             :icon="$isWaiting ? 'play' : 'clipboard-document-list'"
+            icon:variant="outline"
             :href="route('appointments.attend', ['appointment' => $appointment])"
             wire:navigate
             data-test="appointment-attend-button"
@@ -45,8 +51,10 @@
 
     @foreach ($primaryActions as $action)
         <flux:button
+            :variant="$mainVariant"
             :size="$size"
             :icon="$action->icon()"
+            icon:variant="outline"
             wire:click="perform({{ $appointment->id }}, '{{ $action->value }}')"
             wire:loading.attr="disabled"
             data-test="appointment-action-{{ $action->value }}"
@@ -56,8 +64,8 @@
     @endforeach
 
     @if ($secondaryActions->isNotEmpty() || $isEditable)
-        <flux:dropdown position="bottom" align="end">
-            <flux:button variant="ghost" :size="$size" icon="ellipsis-horizontal" :aria-label="__('More actions')" data-test="appointment-actions-trigger" />
+        <flux:dropdown position="bottom" align="end" :class="$menuFirst ? 'order-first me-auto' : null">
+            <flux:button variant="ghost" :size="$size" icon="ellipsis-horizontal" icon:variant="outline" :aria-label="__('More actions')" data-test="appointment-actions-trigger" />
             <flux:menu>
                 <x-pages::appointments.action-menu-items :appointment="$appointment" :actions="$secondaryActions" />
 
@@ -67,7 +75,7 @@
                     @endif
 
                     @if ($editAs === 'menu')
-                        <flux:menu.item as="a" href="{{ route('appointments.edit', ['appointment' => $appointment]) }}" wire:navigate icon="pencil" data-test="appointment-edit-menu-item">
+                        <flux:menu.item as="a" href="{{ route('appointments.edit', ['appointment' => $appointment]) }}" wire:navigate icon="pencil" icon:variant="outline" data-test="appointment-edit-menu-item">
                             {{ __('Edit') }}
                         </flux:menu.item>
                     @endif
@@ -75,6 +83,7 @@
                     <flux:menu.item
                         variant="danger"
                         icon="trash"
+                        icon:variant="outline"
                         wire:click="$dispatch('confirm-delete-appointment', { appointmentId: {{ $appointment->id }}, appointmentDescription: @js($appointment->description) })"
                         data-test="appointment-delete-menu-item"
                         >
