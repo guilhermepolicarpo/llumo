@@ -441,6 +441,7 @@
   "This action is no longer available for the appointment.": "Esta ação não está mais disponível para este agendamento.",
   "Appointment moved to :status.": "Agendamento alterado para :status.",
   "Arrived at :time": "Chegou às :time",
+  "More details": "Mais detalhes",
   "Are you sure you want to mark the appointment of :description as a no-show?": "Tem certeza que deseja marcar falta no agendamento de :description?",
   "Are you sure you want to cancel the appointment of :description?": "Tem certeza que deseja cancelar o agendamento de :description?",
   "3 times a day, every 3 hours": "3x ao dia, de 3 em 3 horas",
