@@ -488,9 +488,9 @@ new class extends Component
         @endif
     </flux:card>
 
-    <flux:modal name="appointments-filters" flyout >
-        <div class="space-y-6">
-            <div>
+    <flux:modal name="appointments-filters" flyout variant="floating" class="flex flex-col">
+        <x-flyout-layout :more-label="__('More filters')">
+            <div class="pe-8">
                 <flux:heading size="lg">{{ __('Filters') }}</flux:heading>
                 <flux:subheading>{{ __('Refine the appointments shown in the list.') }}</flux:subheading>
             </div>
@@ -532,7 +532,7 @@ new class extends Component
                             data-test="appointments-attendant-filter"
                         >
                             <span class="truncate {{ $this->attendantIds === [] ? 'text-zinc-400' : 'text-zinc-700 dark:text-zinc-300' }}">{{ $this->attendantFilterLabel }}</span>
-                            <flux:icon name="chevron-up-down" variant="mini" class="ms-auto size-4 text-zinc-400" />
+                            <flux:icon name="chevron-up-down" class="ms-auto size-4 text-zinc-400" />
                         </button>
 
                         <flux:menu class="max-h-72 min-w-(--button-width) overflow-y-auto">
@@ -546,177 +546,138 @@ new class extends Component
                 </flux:field>
             @endif
 
-            <div class="flex justify-end gap-2 pt-2">
-                <flux:button
-                    variant="subtle"
-                    wire:click="clearFilters"
-                    :disabled="$this->activeFilterCount === 0"
-                    data-test="appointments-flyout-clear-filters"
-                    >
-                    {{ __('Clear filters') }}
-                </flux:button>
+            <x-slot:footer>
+                <div class="flex justify-end gap-2">
+                    <flux:button
+                        variant="subtle"
+                        wire:click="clearFilters"
+                        :disabled="$this->activeFilterCount === 0"
+                        data-test="appointments-flyout-clear-filters"
+                        >
+                        {{ __('Clear filters') }}
+                    </flux:button>
 
-                <flux:modal.close>
-                    <flux:button variant="primary" data-test="appointments-flyout-done">{{ __('Done') }}</flux:button>
-                </flux:modal.close>
-            </div>
-        </div>
+                    <flux:modal.close>
+                        <flux:button variant="primary" data-test="appointments-flyout-done">{{ __('Done') }}</flux:button>
+                    </flux:modal.close>
+                </div>
+            </x-slot:footer>
+        </x-flyout-layout>
     </flux:modal>
 
-    {{-- The flyout panel is a flex column so its details can scroll while the actions stay at its bottom edge. --}}
     <flux:modal name="appointment-details" flyout variant="floating" class="flex flex-col md:w-lg" @close="closeAppointment">
         @if ($selectedAppointment = $this->selectedAppointment)
             @php($assistedPerson = $selectedAppointment->assistedPerson)
-            {{-- Only the details scroll; the actions stay pinned, and a fade with a shortcut shows while more content sits below. --}}
-            <div
-                x-data="{
-                    hasMoreBelow: false,
-                    measure() {
-                        const scroller = this.$refs.scroller;
-                        this.hasMoreBelow = scroller.scrollTop + scroller.clientHeight < scroller.scrollHeight - 1;
-                    },
-                }"
-                x-init="const observer = new ResizeObserver(() => measure()); observer.observe($refs.scroller); observer.observe($refs.scrollerContent)"
-                wire:key="appointment-details-{{ $selectedAppointment->id }}"
-                class="flex min-h-0 flex-1 flex-col"
-                data-test="appointment-details"
-                >
-                <div class="relative -mx-8 flex min-h-0 flex-1 flex-col">
-                    <div x-ref="scroller" x-on:scroll.passive="measure()" class="min-h-0 flex-1 overflow-y-auto px-8">
-                        <div x-ref="scrollerContent" class="space-y-6 pb-6">
-                            <div class="flex items-start gap-4 pe-8">
-                                <flux:avatar size="lg" :name="$assistedPerson->name" class="shrink-0" />
+            <x-flyout-layout wire:key="appointment-details-{{ $selectedAppointment->id }}" data-test="appointment-details">
+                <div class="flex items-start gap-4 pe-8">
+                    <flux:avatar size="lg" :name="$assistedPerson->name" class="shrink-0" />
 
-                                <div class="min-w-0">
-                                    <flux:heading size="lg" class="truncate">{{ $assistedPerson->name }}</flux:heading>
-                                    @if ($assistedPerson->formatted_age)
-                                        <flux:text>{{ $assistedPerson->formatted_age }}</flux:text>
-                                    @endif
+                    <div class="min-w-0">
+                        <flux:heading size="lg" class="truncate">{{ $assistedPerson->name }}</flux:heading>
+                        @if ($assistedPerson->formatted_age)
+                            <flux:text>{{ $assistedPerson->formatted_age }}</flux:text>
+                        @endif
 
-                                    @if (! $assistedPerson->trashed() && Auth::user()->can('update', $assistedPerson))
-                                        <flux:button
-                                            variant="ghost"
-                                            size="xs"
-                                            icon="arrow-top-right-on-square"
-                                            icon:variant="outline"
-                                            class="-ms-2 mt-1"
-                                            :href="route('assisted-people.edit', ['assistedPerson' => $assistedPerson])"
-                                            wire:navigate
-                                            data-test="appointment-details-assisted-person-link"
-                                            >
-                                            {{ __('View registration') }}
-                                        </flux:button>
-                                    @endif
-                                </div>
-                            </div>
-
-                            <div class="space-y-2">
-                                @foreach (array_filter(['phone' => $assistedPerson->formatted_phone, 'envelope' => $assistedPerson->email, 'map-pin' => $assistedPerson->formatted_address]) as $icon => $detail)
-                                    <div class="flex items-start gap-2">
-                                        <flux:icon :name="$icon" class="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-                                        <flux:text class="min-w-0 break-words">{{ $detail }}</flux:text>
-                                    </div>
-                                @endforeach
-
-                                <div class="flex items-start gap-2">
-                                    <flux:icon.clock class="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-                                    <flux:text class="min-w-0" data-test="appointment-details-last-visit">
-                                        @if ($this->lastVisitOn)
-                                            {{ __('Last visit') }}: {{ $this->lastVisitOn->format('d/m/Y') }}
-                                            <span class="text-zinc-400 dark:text-zinc-500">({{ $this->lastVisitOn->diffForHumans() }})</span>
-                                        @else
-                                            {{ __('First visit') }}
-                                        @endif
-                                    </flux:text>
-                                </div>
-                            </div>
-
-                            <flux:card class="space-y-4">
-                                <div class="flex flex-wrap items-center justify-between gap-2">
-                                    <flux:heading class="flex items-center gap-2">
-                                        <flux:icon.calendar-days class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-                                        {{ Str::ucfirst($selectedAppointment->scheduled_on->translatedFormat('l')) }}, {{ $selectedAppointment->scheduled_on->format('d/m/Y') }}
-                                    </flux:heading>
-                                    <flux:badge size="sm" :color="$selectedAppointment->status->color()">{{ $selectedAppointment->status->label() }}</flux:badge>
-                                </div>
-
-                                @if ($selectedAppointment->received_at)
-                                    <div class="flex items-center gap-2 rounded-lg bg-zinc-50 px-3 py-2 dark:bg-white/5" data-test="appointment-details-arrival">
-                                        <flux:icon.clock class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-                                        <flux:text class="text-zinc-800 dark:text-white">
-                                            {{ __('Arrived at :time', ['time' => $selectedAppointment->received_at->format('H:i')]) }}
-                                        </flux:text>
-                                        @if ($this->waitingFor)
-                                            <flux:badge size="sm" color="amber" class="ms-auto" data-test="appointment-details-waiting-for">{{ $this->waitingFor }}</flux:badge>
-                                        @endif
-                                    </div>
-                                @endif
-
-                                <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm [&>dt]:text-zinc-500 dark:[&>dt]:text-zinc-400 [&>dd]:text-zinc-800 dark:[&>dd]:text-white">
-                                    <dt>{{ __('Appointment type') }}</dt>
-                                    <dd>{{ $selectedAppointment->appointmentType->name }}</dd>
-                                    <dt>{{ __('Mode') }}</dt>
-                                    <dd>{{ $selectedAppointment->mode->label() }}</dd>
-                                    @if ($mentor = $selectedAppointment->record?->mentor)
-                                        <dt>{{ __('Mentor') }}</dt>
-                                        <dd data-test="appointment-details-mentor">{{ $mentor->name }}</dd>
-                                    @elseif ($selectedAppointment->attendant)
-                                        <dt>{{ __('Attendant') }}</dt>
-                                        <dd>{{ $selectedAppointment->attendant->name }}</dd>
-                                    @endif
-                                </dl>
-
-                                @if ($selectedAppointment->notes)
-                                    <div class="space-y-1">
-                                        <flux:text size="sm">{{ __('Notes') }}</flux:text>
-                                        <flux:text class="rounded-lg bg-zinc-50 px-3 py-2 whitespace-pre-line dark:bg-white/5">{{ $selectedAppointment->notes }}</flux:text>
-                                    </div>
-                                @endif
-
-                                @if ($selectedAppointment->started_at && $selectedAppointment->finished_at)
-                                    <div class="flex items-start gap-2 border-t border-zinc-200 pt-4 dark:border-white/10">
-                                        <flux:icon.pencil-square class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-                                        <flux:text size="sm" class="min-w-0" data-test="appointment-details-system-entry">
-                                            @php($entry = ['start' => $selectedAppointment->started_at->format('H:i'), 'end' => $selectedAppointment->finished_at->format('H:i')])
-                                            @if ($mentor && $selectedAppointment->attendant)
-                                                {{ __('Entered in the system by :user, from :start to :end.', ['user' => $selectedAppointment->attendant->name] + $entry) }}
-                                            @else
-                                                {{ __('Entered in the system from :start to :end.', $entry) }}
-                                            @endif
-                                        </flux:text>
-                                    </div>
-                                @endif
-                            </flux:card>
-                        </div>
-                    </div>
-
-                    <div
-                        x-show="hasMoreBelow"
-                        x-transition.opacity
-                        style="display: none"
-                        class="pointer-events-none absolute inset-x-0 bottom-0 flex h-18 items-end justify-center bg-linear-to-b from-white/0 to-white pb-2.5 dark:from-zinc-800/0 dark:to-zinc-800"
-                        >
-                        <flux:button
-                            size="xs"
-                            icon:trailing="chevron-down"
-                            icon:variant="outline"
-                            class="pointer-events-auto rounded-full! shadow-sm"
-                            x-on:click="$refs.scroller.scrollTo({ top: $refs.scroller.scrollHeight, behavior: 'smooth' })"
-                            data-test="appointment-details-more-button"
-                            >
-                            {{ __('More details') }}
-                        </flux:button>
+                        @if (! $assistedPerson->trashed() && Auth::user()->can('update', $assistedPerson))
+                            <flux:button
+                                variant="ghost"
+                                size="xs"
+                                icon="arrow-top-right-on-square"
+                                icon:variant="outline"
+                                class="-ms-2 mt-1"
+                                :href="route('assisted-people.edit', ['assistedPerson' => $assistedPerson])"
+                                wire:navigate
+                                data-test="appointment-details-assisted-person-link"
+                                >
+                                {{ __('View registration') }}
+                            </flux:button>
+                        @endif
                     </div>
                 </div>
+
+                <div class="space-y-2">
+                    @foreach (array_filter(['phone' => $assistedPerson->formatted_phone, 'envelope' => $assistedPerson->email, 'map-pin' => $assistedPerson->formatted_address]) as $icon => $detail)
+                        <div class="flex items-start gap-2">
+                            <flux:icon :name="$icon" class="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                            <flux:text class="min-w-0 break-words">{{ $detail }}</flux:text>
+                        </div>
+                    @endforeach
+
+                    <div class="flex items-start gap-2">
+                        <flux:icon.clock class="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                        <flux:text class="min-w-0" data-test="appointment-details-last-visit">
+                            @if ($this->lastVisitOn)
+                                {{ __('Last visit') }}: {{ $this->lastVisitOn->format('d/m/Y') }}
+                                <span class="text-zinc-400 dark:text-zinc-500">({{ $this->lastVisitOn->diffForHumans() }})</span>
+                            @else
+                                {{ __('First visit') }}
+                            @endif
+                        </flux:text>
+                    </div>
+                </div>
+
+                <flux:card class="space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <flux:heading class="flex items-center gap-2">
+                            <flux:icon.calendar-days class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                            {{ Str::ucfirst($selectedAppointment->scheduled_on->translatedFormat('l')) }}, {{ $selectedAppointment->scheduled_on->format('d/m/Y') }}
+                        </flux:heading>
+                        <flux:badge size="sm" :color="$selectedAppointment->status->color()">{{ $selectedAppointment->status->label() }}</flux:badge>
+                    </div>
+
+                    @if ($selectedAppointment->received_at)
+                        <div class="flex items-center gap-2 rounded-lg bg-zinc-50 px-3 py-2 dark:bg-white/5" data-test="appointment-details-arrival">
+                            <flux:icon.clock class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                            <flux:text class="text-zinc-800 dark:text-white">
+                                {{ __('Arrived at :time', ['time' => $selectedAppointment->received_at->format('H:i')]) }}
+                            </flux:text>
+                            @if ($this->waitingFor)
+                                <flux:badge size="sm" color="amber" class="ms-auto" data-test="appointment-details-waiting-for">{{ $this->waitingFor }}</flux:badge>
+                            @endif
+                        </div>
+                    @endif
+
+                    <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm [&>dt]:text-zinc-500 dark:[&>dt]:text-zinc-400 [&>dd]:text-zinc-800 dark:[&>dd]:text-white">
+                        <dt>{{ __('Appointment type') }}</dt>
+                        <dd>{{ $selectedAppointment->appointmentType->name }}</dd>
+                        <dt>{{ __('Mode') }}</dt>
+                        <dd>{{ $selectedAppointment->mode->label() }}</dd>
+                        @if ($mentor = $selectedAppointment->record?->mentor)
+                            <dt>{{ __('Mentor') }}</dt>
+                            <dd data-test="appointment-details-mentor">{{ $mentor->name }}</dd>
+                        @elseif ($selectedAppointment->attendant)
+                            <dt>{{ __('Attendant') }}</dt>
+                            <dd>{{ $selectedAppointment->attendant->name }}</dd>
+                        @endif
+                    </dl>
+
+                    @if ($selectedAppointment->notes)
+                        <div class="space-y-1">
+                            <flux:text size="sm">{{ __('Notes') }}</flux:text>
+                            <flux:text class="rounded-lg bg-zinc-50 px-3 py-2 whitespace-pre-line dark:bg-white/5">{{ $selectedAppointment->notes }}</flux:text>
+                        </div>
+                    @endif
+
+                    @if ($selectedAppointment->started_at && $selectedAppointment->finished_at)
+                        <div class="flex items-start gap-2 border-t border-zinc-200 pt-4 dark:border-white/10">
+                            <flux:icon.pencil-square class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                            <flux:text size="sm" class="min-w-0" data-test="appointment-details-system-entry">
+                                @php($entry = ['start' => $selectedAppointment->started_at->format('H:i'), 'end' => $selectedAppointment->finished_at->format('H:i')])
+                                @if ($mentor && $selectedAppointment->attendant)
+                                    {{ __('Entered in the system by :user, from :start to :end.', ['user' => $selectedAppointment->attendant->name] + $entry) }}
+                                @else
+                                    {{ __('Entered in the system from :start to :end.', $entry) }}
+                                @endif
+                            </flux:text>
+                        </div>
+                    @endif
+                </flux:card>
 
                 @php($opensRecord = $selectedAppointment->usesRecord() && $selectedAppointment->status === AppointmentStatus::Completed)
 
                 {{-- The footer only earns its place once it has a button to show. --}}
                 @if ($opensRecord || AppointmentAction::availableFor($selectedAppointment) !== [])
-                    <div
-                        class="shrink-0 pt-5"
-                        data-test="appointment-details-actions"
-                        >
+                    <x-slot:footer data-test="appointment-details-actions">
                         <div class="flex flex-wrap items-center justify-end gap-2">
                             @if ($opensRecord)
                                 <flux:button
@@ -733,9 +694,9 @@ new class extends Component
 
                             <x-pages::appointments.action-buttons :appointment="$selectedAppointment" edit-as="button" menu-first emphasize-main class="flex-wrap" />
                         </div>
-                    </div>
+                    </x-slot:footer>
                 @endif
-            </div>
+            </x-flyout-layout>
         @endif
     </flux:modal>
 
