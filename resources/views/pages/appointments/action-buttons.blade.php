@@ -45,7 +45,7 @@
             wire:navigate
             data-test="appointment-attend-button"
             >
-            {{ $isWaiting ? AppointmentAction::Start->label() : __('Continue attending') }}
+            {{ $isWaiting ? AppointmentAction::Start->label() : __('Continue') }}
         </flux:button>
     @endif
 
