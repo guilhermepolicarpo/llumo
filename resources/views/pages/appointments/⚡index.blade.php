@@ -439,7 +439,9 @@ new class extends Component
                             </flux:table.cell>
 
                             <flux:table.cell>
-                                <flux:badge size="sm" :color="$appointment->status->color()" data-test="appointment-status-badge">{{ $appointment->status->label() }}</flux:badge>
+                                <flux:tooltip :content="$appointment->status->description()" class="relative z-10 inline-flex">
+                                    <flux:badge size="sm" :color="$appointment->status->color()" data-test="appointment-status-badge">{{ $appointment->status->label() }}</flux:badge>
+                                </flux:tooltip>
                                 @if ($appointment->status === AppointmentStatus::Waiting && $appointment->received_at)
                                     <div class="mt-1 text-sm">{{ __('Arrived at :time', ['time' => $appointment->received_at->format('H:i')]) }}</div>
                                 @elseif ($appointment->attendant)
