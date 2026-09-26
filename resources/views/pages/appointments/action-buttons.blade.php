@@ -7,7 +7,9 @@
 @use('App\Enums\AppointmentStatus')
 
 @php
-    [$primaryActions, $secondaryActions] = collect(AppointmentAction::availableFor($appointment))->partition(fn (AppointmentAction $action) => $action->isPrimary());
+    $availableActions = collect(AppointmentAction::availableFor($appointment));
+    [$primaryActions, $secondaryActions] = $availableActions->partition(fn (AppointmentAction $action) => $action->isPrimary());
+    $startsAttendance = $availableActions->contains(AppointmentAction::Start);
     $isEditable = $appointment->status->isEditable();
     $usesRecord = $appointment->usesRecord();
 
@@ -15,7 +17,7 @@
         $primaryActions = $primaryActions->reject(fn (AppointmentAction $action) => in_array($action, [AppointmentAction::Start, AppointmentAction::Complete], true));
     }
 
-    $isAttendable = $usesRecord && $appointment->status->isAttendable();
+    $isAttendable = $usesRecord && ($startsAttendance || $appointment->status === AppointmentStatus::InProgress);
     $mainVariant = $emphasizeMain ? 'primary' : 'outline';
 @endphp
 
@@ -35,17 +37,16 @@
     @endif
 
     @if ($isAttendable)
-        @php($isWaiting = $appointment->status === AppointmentStatus::Waiting)
         <flux:button
-            :variant="$isWaiting ? 'primary' : $mainVariant"
+            :variant="$startsAttendance ? 'primary' : $mainVariant"
             :size="$size"
-            :icon="$isWaiting ? 'play' : 'clipboard-document-list'"
+            :icon="$startsAttendance ? 'play' : 'clipboard-document-list'"
             icon:variant="outline"
             :href="route('appointments.attend', ['appointment' => $appointment])"
             wire:navigate
             data-test="appointment-attend-button"
             >
-            {{ $isWaiting ? AppointmentAction::Start->label() : __('Continue') }}
+            {{ $startsAttendance ? AppointmentAction::Start->label() : __('Continue') }}
         </flux:button>
     @endif
 

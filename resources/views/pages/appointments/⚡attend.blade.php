@@ -3,6 +3,7 @@
 use App\Actions\Appointments\PerformAppointmentAction;
 use App\Actions\Appointments\SaveAppointmentRecord;
 use App\Actions\Appointments\SaveAppointmentRecordDraft;
+use App\Concerns\InteractsWithAppointmentActions;
 use App\Concerns\InteractsWithAppointmentRecordForm;
 use App\Enums\AppointmentAction;
 use App\Enums\AppointmentStatus;
@@ -21,6 +22,7 @@ use Livewire\Component;
 
 new class extends Component
 {
+    use InteractsWithAppointmentActions;
     use InteractsWithAppointmentRecordForm;
 
     /**
@@ -87,13 +89,9 @@ new class extends Component
 
         $saveAppointmentRecordDraft->handle($this->appointment, Auth::user(), $this->only($this->draftProperties()));
 
-        if (! $performAppointmentAction->handle($this->appointment, AppointmentAction::ReturnToQueue, Auth::user())) {
-            Flux::toast(variant: 'danger', text: __('This action is no longer available for the appointment.'));
-
+        if (! $this->performAppointmentAction($performAppointmentAction, $this->appointment, AppointmentAction::ReturnToQueue)) {
             return;
         }
-
-        Flux::toast(variant: 'success', text: __('Appointment moved to :status.', ['status' => AppointmentStatus::Waiting->label()]));
 
         $this->redirectRoute('appointments.index', navigate: true);
     }

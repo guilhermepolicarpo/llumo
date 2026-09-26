@@ -50,6 +50,11 @@ new class extends Component
     public string $date = '';
 
     /**
+     * Whether the list shows the appointments from previous days whose attendance was never entered, instead of a date.
+     */
+    public bool $pending = false;
+
+    /**
      * @var list<string>
      */
     #[Session('appointments-statuses')]
@@ -88,6 +93,36 @@ new class extends Component
 
     public function updated(): void
     {
+        $this->resetPage();
+    }
+
+    /**
+     * Leave the pending list once a date is picked.
+     */
+    public function updatedDate(): void
+    {
+        if ($this->date !== '') {
+            $this->pending = false;
+        }
+    }
+
+    /**
+     * List the appointments from previous days whose attendance was never entered in the system.
+     */
+    public function showPending(): void
+    {
+        $this->pending = true;
+        $this->date = '';
+        $this->resetPage();
+    }
+
+    /**
+     * Go back to listing today's appointments.
+     */
+    public function hidePending(): void
+    {
+        $this->pending = false;
+        $this->date = today()->toDateString();
         $this->resetPage();
     }
 
@@ -193,6 +228,15 @@ new class extends Component
         return $appointment->received_at->diffForHumans(short: true);
     }
 
+    /**
+     * Count the appointments from previous days whose attendance was never entered in the system.
+     */
+    #[Computed]
+    public function pendingCount(): int
+    {
+        return Auth::user()->currentTeam->appointments()->pending()->count();
+    }
+
     #[Computed]
     public function filteredDate(): ?CarbonInterface
     {
@@ -296,6 +340,7 @@ new class extends Component
                 'assistedPerson',
                 fn ($query) => $query->withTrashed()->whereLike('name', "%{$this->search}%"),
             ))
+            ->when($this->pending, fn ($query) => $query->pending())
             ->when($this->filteredDate, fn ($query, CarbonInterface $date) => $query
                 ->where('scheduled_on', '>=', $date->toDateString())
                 ->where('scheduled_on', '<', $date->copy()->addDay()->toDateString()))
@@ -305,7 +350,7 @@ new class extends Component
                 }
             })
             ->when($this->statuses === [AppointmentStatus::Waiting->value], fn ($query) => $query->orderBy('received_at'))
-            ->orderBy('scheduled_on', 'desc')
+            ->orderBy('scheduled_on', $this->pending ? 'asc' : 'desc')
             ->orderBy('id', 'desc')
             ->paginate(in_array($this->perPage, self::PER_PAGE_OPTIONS, true) ? $this->perPage : self::PER_PAGE_OPTIONS[0]);
     }
@@ -321,7 +366,9 @@ new class extends Component
         <div>
             <flux:heading size="xl">{{ __('Appointments') }}</flux:heading>
             <flux:subheading>
-                @if ($this->filteredDate)
+                @if ($this->pending)
+                    {{ __('Appointments from previous days awaiting entry') }}
+                @elseif ($this->filteredDate)
                     {{ __('Appointments on :weekday, :date', [
                         'weekday' => $this->filteredDate->translatedFormat('l'),
                         'date' => $this->filteredDate->format('d/m/Y'),
@@ -371,8 +418,27 @@ new class extends Component
         </div>
     </div>
 
-    @if ($this->activeFilterChips !== [])
+    @if (! $this->pending && $this->pendingCount > 0)
+        <flux:callout variant="warning" icon="exclamation-triangle" icon:variant="outline" inline class="mt-4" data-test="appointments-pending-callout">
+            <flux:callout.heading>
+                {{ trans_choice(':count appointment from previous days is still awaiting entry.|:count appointments from previous days are still awaiting entry.', $this->pendingCount) }}
+            </flux:callout.heading>
+
+            <x-slot name="actions">
+                <flux:button size="sm" wire:click="showPending" data-test="appointments-show-pending">{{ __('Show pending') }}</flux:button>
+            </x-slot>
+        </flux:callout>
+    @endif
+
+    @if ($this->pending || $this->activeFilterChips !== [])
         <div class="mt-4 flex flex-wrap items-center gap-2" data-test="appointments-active-filters">
+            @if ($this->pending)
+                <flux:badge size="sm" color="amber" data-test="appointments-pending-chip">
+                    {{ __('Pending') }}
+                    <flux:badge.close wire:click="hidePending" :aria-label="__('Remove filter :filter', ['filter' => __('Pending')])" />
+                </flux:badge>
+            @endif
+
             @foreach ($this->activeFilterChips as $chip)
                 <flux:badge size="sm" color="zinc">
                     {{ $chip['label'] }}
@@ -384,15 +450,17 @@ new class extends Component
                 </flux:badge>
             @endforeach
 
-            <flux:link
-                as="button"
-                variant="subtle"
-                class="cursor-pointer text-sm"
-                wire:click="clearFilters"
-                data-test="appointments-clear-filters"
-                >
-                {{ __('Clear filters') }}
-            </flux:link>
+            @if ($this->activeFilterChips !== [])
+                <flux:link
+                    as="button"
+                    variant="subtle"
+                    class="cursor-pointer text-sm"
+                    wire:click="clearFilters"
+                    data-test="appointments-clear-filters"
+                    >
+                    {{ __('Clear filters') }}
+                </flux:link>
+            @endif
         </div>
     @endif
 
@@ -450,7 +518,11 @@ new class extends Component
                                 <flux:badge size="sm" :color="$appointment->status->color()" data-test="appointment-status-badge">{{ $appointment->status->label() }}</flux:badge>
                                 @php
                                     $statusContext = match ($appointment->status) {
-                                        AppointmentStatus::Scheduled => __('Not arrived yet'),
+                                        AppointmentStatus::Scheduled => match (true) {
+                                            AppointmentAction::Start->isAvailableFor($appointment) => __('Awaiting entry'),
+                                            $appointment->mode->expectsArrival() => __('Not arrived yet'),
+                                            default => null,
+                                        },
                                         AppointmentStatus::Waiting => $appointment->received_at
                                             ? __('Arrived at :time', ['time' => $appointment->received_at->format('H:i')]).' · '.$appointment->received_at->diffForHumans(short: true)
                                             : null,
@@ -492,7 +564,7 @@ new class extends Component
         @else
             <div class="flex flex-col items-center gap-3 pt-8 pb-4">
                 <flux:text class="text-center text-zinc-500 dark:text-zinc-400">
-                    @if ($this->search !== '' || $this->date !== '' || $this->activeFilterCount > 0)
+                    @if ($this->search !== '' || $this->date !== '' || $this->pending || $this->activeFilterCount > 0)
                         {{ __('No appointments match your filters.') }}
                     @else
                         {{ __('No appointments have been scheduled yet.') }}

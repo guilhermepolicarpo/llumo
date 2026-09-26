@@ -68,6 +68,7 @@ class AppointmentFactory extends Factory
     public function waiting(): static
     {
         return $this->state(fn (array $attributes) => [
+            'mode' => AppointmentMode::InPerson,
             'status' => AppointmentStatus::Waiting,
             'scheduled_on' => today()->toDateString(),
             'received_at' => now()->subMinutes(30),
@@ -75,28 +76,28 @@ class AppointmentFactory extends Factory
     }
 
     /**
-     * Indicate that the assisted person is being attended.
+     * Indicate that the assisted person is being attended, received beforehand unless the appointment is remote.
      */
     public function inProgress(): static
     {
         return $this->state(fn (array $attributes) => [
             'status' => AppointmentStatus::InProgress,
             'scheduled_on' => today()->toDateString(),
-            'received_at' => now()->subMinutes(30),
+            'received_at' => $attributes['mode'] === AppointmentMode::Remote ? null : now()->subMinutes(30),
             'started_at' => now()->subMinutes(10),
             'attendant_id' => User::factory(),
         ]);
     }
 
     /**
-     * Indicate that the appointment was completed.
+     * Indicate that the appointment was completed, received beforehand unless the appointment is remote.
      */
     public function completed(): static
     {
         return $this->state(fn (array $attributes) => [
             'status' => AppointmentStatus::Completed,
             'scheduled_on' => today()->toDateString(),
-            'received_at' => now()->subMinutes(60),
+            'received_at' => $attributes['mode'] === AppointmentMode::Remote ? null : now()->subMinutes(60),
             'started_at' => now()->subMinutes(40),
             'finished_at' => now()->subMinutes(20),
             'attendant_id' => User::factory(),
@@ -104,11 +105,12 @@ class AppointmentFactory extends Factory
     }
 
     /**
-     * Indicate that the assisted person did not show up.
+     * Indicate that the assisted person did not show up, which only happens to in-person appointments.
      */
     public function noShow(): static
     {
         return $this->state(fn (array $attributes) => [
+            'mode' => AppointmentMode::InPerson,
             'status' => AppointmentStatus::NoShow,
         ]);
     }

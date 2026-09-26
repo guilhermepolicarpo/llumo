@@ -602,7 +602,7 @@ test('the details flyout shows the arrival and how long a person who is still he
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
     $waiting = Appointment::factory()->for($team)->waiting()->create();
-    $completed = Appointment::factory()->for($team)->completed()->create();
+    $completed = Appointment::factory()->for($team)->inPerson()->completed()->create();
 
     $this->actingAs($user);
     $user->switchTeam($team);

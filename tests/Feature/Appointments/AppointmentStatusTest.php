@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AppointmentAction;
 use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
 use App\Models\AssistedPerson;
@@ -11,7 +12,7 @@ test('members move an appointment through the attendance flow', function () {
     $this->travelTo('2026-09-19 19:30:00');
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
-    $appointment = Appointment::factory()->for($team)->create(['scheduled_on' => '2026-09-19']);
+    $appointment = Appointment::factory()->for($team)->inPerson()->create(['scheduled_on' => '2026-09-19']);
 
     $this->actingAs($user);
     $user->switchTeam($team);
@@ -60,8 +61,8 @@ test('each action moves the appointment to its next status', function (Closure $
         ->and($appointment->only(array_keys($expectedAttributes)))->toBe($expectedAttributes);
 })->with([
     'undo reception' => [fn (AppointmentFactory $factory) => $factory->waiting(), 'undo_reception', AppointmentStatus::Scheduled, ['received_at' => null]],
-    'return to queue' => [fn (AppointmentFactory $factory) => $factory->inProgress(), 'return_to_queue', AppointmentStatus::Waiting, ['started_at' => null, 'attendant_id' => null]],
-    'mark as no-show' => [fn (AppointmentFactory $factory) => $factory, 'mark_as_no_show', AppointmentStatus::NoShow, []],
+    'return to queue' => [fn (AppointmentFactory $factory) => $factory->inPerson()->inProgress(), 'return_to_queue', AppointmentStatus::Waiting, ['started_at' => null, 'attendant_id' => null]],
+    'mark as no-show' => [fn (AppointmentFactory $factory) => $factory->inPerson(), 'mark_as_no_show', AppointmentStatus::NoShow, []],
     'cancel' => [fn (AppointmentFactory $factory) => $factory, 'cancel', AppointmentStatus::Canceled, []],
     'reopen a no-show' => [fn (AppointmentFactory $factory) => $factory->noShow(), 'reopen', AppointmentStatus::Scheduled, []],
     'reopen a canceled appointment' => [fn (AppointmentFactory $factory) => $factory->canceled(), 'reopen', AppointmentStatus::Scheduled, []],
@@ -71,7 +72,7 @@ test('actions that need confirmation open the modal instead of running right awa
     $this->travelTo('2026-09-19 19:30:00');
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
-    $appointment = Appointment::factory()->for($team)->create([
+    $appointment = Appointment::factory()->for($team)->inPerson()->create([
         'assisted_person_id' => AssistedPerson::factory()->for($team)->create(['name' => 'Maria Silva']),
         'scheduled_on' => '2026-09-19',
     ]);
@@ -114,7 +115,7 @@ test('an action that does not apply to the current status is rejected', function
     expect($appointment->fresh()->status)->toBe($originalStatus);
 })->with([
     'complete a scheduled appointment' => [fn (AppointmentFactory $factory) => $factory->state(['scheduled_on' => today()]), 'complete'],
-    'receive on another day' => [fn (AppointmentFactory $factory) => $factory->state(['scheduled_on' => today()->addDay()]), 'receive'],
+    'receive on another day' => [fn (AppointmentFactory $factory) => $factory->inPerson()->state(['scheduled_on' => today()->addDay()]), 'receive'],
     'reopen a completed appointment' => [fn (AppointmentFactory $factory) => $factory->completed(), 'reopen'],
 ]);
 
@@ -204,7 +205,7 @@ test('the index describes where each appointment stands below its status', funct
     $this->travelTo('2026-09-19 10:00:00');
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
-    Appointment::factory()->for($team)->create(['scheduled_on' => today()]);
+    Appointment::factory()->for($team)->inPerson()->create(['scheduled_on' => today()]);
     Appointment::factory()->for($team)->waiting()->create(['received_at' => '2026-09-19 09:42:00']);
     Appointment::factory()->for($team)->inProgress()->create(['attendant_id' => User::factory()->create(['name' => 'Joana Lima'])]);
     Appointment::factory()->for($team)->completed()->create(['attendant_id' => User::factory()->create(['name' => 'Pedro Alves'])]);
@@ -222,7 +223,7 @@ test('the index describes where each appointment stands below its status', funct
 test('the edit page offers the actions available for the appointment', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
-    $today = Appointment::factory()->for($team)->create(['scheduled_on' => today()]);
+    $today = Appointment::factory()->for($team)->inPerson()->create(['scheduled_on' => today()]);
     $tomorrow = Appointment::factory()->for($team)->create(['scheduled_on' => today()->addDay()]);
 
     $this->actingAs($user);
@@ -242,7 +243,7 @@ test('the edit page offers the actions available for the appointment', function 
 test('performing an action from the edit page moves the appointment and returns to the index', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
-    $received = Appointment::factory()->for($team)->create(['scheduled_on' => today()]);
+    $received = Appointment::factory()->for($team)->inPerson()->create(['scheduled_on' => today()]);
     $canceled = Appointment::factory()->for($team)->create(['scheduled_on' => today()]);
 
     $this->actingAs($user);
@@ -281,15 +282,97 @@ test('appointments never received are marked as no-show after their day', functi
     $this->travelTo('2026-09-20 00:05:00');
     $team = teamOwnedBy(User::factory()->create());
 
-    $missed = Appointment::factory()->for($team)->create(['scheduled_on' => '2026-09-19']);
+    $missed = Appointment::factory()->for($team)->inPerson()->create(['scheduled_on' => '2026-09-19']);
     $scheduledForToday = Appointment::factory()->for($team)->create(['scheduled_on' => '2026-09-20']);
     $leftWaiting = Appointment::factory()->for($team)->waiting()->create(['scheduled_on' => '2026-09-19']);
     $canceled = Appointment::factory()->for($team)->canceled()->create(['scheduled_on' => '2026-09-19']);
+    $remote = Appointment::factory()->for($team)->remote()->create(['scheduled_on' => '2026-09-19']);
 
     $this->artisan('schedule:run')->assertSuccessful();
 
-    expect($missed->fresh()->status)->toBe(AppointmentStatus::NoShow)
+    expect($remote->fresh()->status)->toBe(AppointmentStatus::Scheduled)
+        ->and($missed->fresh()->status)->toBe(AppointmentStatus::NoShow)
         ->and($scheduledForToday->fresh()->status)->toBe(AppointmentStatus::Scheduled)
         ->and($leftWaiting->fresh()->status)->toBe(AppointmentStatus::Waiting)
         ->and($canceled->fresh()->status)->toBe(AppointmentStatus::Canceled);
+});
+
+test('remote appointments are attended straight from their schedule, never received nor missed', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $yesterday = Appointment::factory()->for($team)->remote()->create(['scheduled_on' => today()->subDay()]);
+    $tomorrow = Appointment::factory()->for($team)->remote()->create(['scheduled_on' => today()->addDay()]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    expect(AppointmentAction::availableFor($yesterday))->toBe([AppointmentAction::Start, AppointmentAction::Cancel])
+        ->and(AppointmentAction::availableFor($tomorrow))->toBe([AppointmentAction::Cancel]);
+
+    $component = Livewire::test('pages::appointments.index')
+        ->call('perform', $yesterday->id, 'receive')
+        ->call('perform', $yesterday->id, 'mark_as_no_show');
+
+    expect($yesterday->fresh()->status)->toBe(AppointmentStatus::Scheduled);
+
+    $component->call('perform', $yesterday->id, 'start')
+        ->call('perform', $yesterday->id, 'complete');
+
+    expect($yesterday->fresh())
+        ->status->toBe(AppointmentStatus::Completed)
+        ->received_at->toBeNull();
+});
+
+test('in-person appointments from previous days are attended without being received', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $yesterday = Appointment::factory()->for($team)->inPerson()->create(['scheduled_on' => today()->subDay()]);
+    $today = Appointment::factory()->for($team)->inPerson()->create(['scheduled_on' => today()]);
+
+    expect(AppointmentAction::Start->isAvailableFor($yesterday))->toBeTrue()
+        ->and(AppointmentAction::Receive->isAvailableFor($yesterday))->toBeFalse()
+        ->and(AppointmentAction::Start->isAvailableFor($today))->toBeFalse()
+        ->and(AppointmentAction::Receive->isAvailableFor($today))->toBeTrue();
+});
+
+test('an appointment attended without being received returns to its schedule instead of the queue', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->remote()->inProgress()->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->call('perform', $appointment->id, 'return_to_queue');
+
+    expect($appointment->fresh())
+        ->status->toBe(AppointmentStatus::Scheduled)
+        ->started_at->toBeNull();
+});
+
+test('the index lists the appointments from previous days still awaiting their record', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $person = fn (string $name) => AssistedPerson::factory()->for($team)->create(['name' => $name]);
+    Appointment::factory()->for($team)->remote()->create(['scheduled_on' => today()->subDays(2), 'assisted_person_id' => $person('Ana Remota')]);
+    Appointment::factory()->for($team)->waiting()->create(['scheduled_on' => today()->subDay(), 'assisted_person_id' => $person('Bruno Aguardando')]);
+    Appointment::factory()->for($team)->remote()->create(['scheduled_on' => today(), 'assisted_person_id' => $person('Carla Hoje')]);
+    Appointment::factory()->for($team)->completed()->create(['scheduled_on' => today()->subDay(), 'assisted_person_id' => $person('Davi Atendido')]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->assertSeeHtml('data-test="appointments-pending-callout"')
+        ->assertSee(trans_choice(':count appointment from previous days is still awaiting entry.|:count appointments from previous days are still awaiting entry.', 2))
+        ->call('showPending')
+        ->assertDontSeeHtml('data-test="appointments-pending-callout"')
+        ->assertSeeInOrder(['Ana Remota', 'Bruno Aguardando'])
+        ->assertDontSee('Carla Hoje')
+        ->assertDontSee('Davi Atendido')
+        ->call('hidePending')
+        ->assertSet('date', today()->toDateString())
+        ->assertSee('Carla Hoje')
+        ->assertDontSee('Ana Remota');
 });

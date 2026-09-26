@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Enums\AppointmentAction;
 use App\Enums\AppointmentMode;
 use App\Enums\AppointmentStatus;
 use Database\Factories\AppointmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -131,6 +134,26 @@ class Appointment extends Model
     public function usesRecord(): bool
     {
         return $this->appointmentType->requires_record;
+    }
+
+    /**
+     * Determine whether this appointment can be attended, either starting it or continuing it.
+     */
+    public function isAttendable(): bool
+    {
+        return $this->status === AppointmentStatus::InProgress || AppointmentAction::Start->isAvailableFor($this);
+    }
+
+    /**
+     * Scope the query to appointments from previous days whose attendance was never entered in the system.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function pending(Builder $query): void
+    {
+        $query->where('scheduled_on', '<', today()->toDateString())
+            ->whereIn('status', [AppointmentStatus::Scheduled, AppointmentStatus::Waiting, AppointmentStatus::InProgress]);
     }
 
     /**

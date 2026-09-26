@@ -19,6 +19,25 @@ enum AppointmentMode: string
     }
 
     /**
+     * Determine whether the assisted person is expected at the centre, so the appointment is received on
+     * arrival and missed when they never come.
+     */
+    public function expectsArrival(): bool
+    {
+        return $this === self::InPerson;
+    }
+
+    /**
+     * Get the modes whose assisted person is expected at the centre.
+     *
+     * @return array<int, self>
+     */
+    public static function expectingArrival(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $mode): bool => $mode->expectsArrival()));
+    }
+
+    /**
      * Get the Heroicon name for the mode.
      */
     public function icon(): string

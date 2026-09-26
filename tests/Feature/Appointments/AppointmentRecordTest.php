@@ -106,7 +106,7 @@ test('completing the appointment saves the record and finishes it', function () 
 test('returning to the queue keeps the unsaved record as a draft', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
-    $appointment = Appointment::factory()->for($team)->inProgress()->create([
+    $appointment = Appointment::factory()->for($team)->inPerson()->inProgress()->create([
         'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
     ]);
 
@@ -187,6 +187,25 @@ test('an appointment record cannot be opened under another team the user belongs
         ->assertNotFound();
 
     expect($appointment->fresh()->status)->toBe(AppointmentStatus::Waiting);
+});
+
+test('the record of a remote appointment opens straight from its schedule', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->remote()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+        'scheduled_on' => today(),
+    ]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    $this->get(route('appointments.attend', ['current_team' => $team, 'appointment' => $appointment]))
+        ->assertOk();
+
+    expect($appointment->fresh())
+        ->status->toBe(AppointmentStatus::InProgress)
+        ->received_at->toBeNull();
 });
 
 test('appointment types without a record have no record screen', function () {

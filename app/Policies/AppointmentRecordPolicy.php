@@ -14,7 +14,7 @@ class AppointmentRecordPolicy
     {
         return $user->belongsToTeam($appointment->team)
             && $appointment->usesRecord()
-            && ($appointment->status->isAttendable() || $appointment->status->allowsRecordEditing());
+            && ($appointment->isAttendable() || $appointment->status->allowsRecordEditing());
     }
 
     /**

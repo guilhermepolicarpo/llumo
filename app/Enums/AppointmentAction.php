@@ -86,19 +86,24 @@ enum AppointmentAction: string
     {
         return match ($this) {
             self::Receive, self::MarkAsNoShow, self::Cancel => [AppointmentStatus::Scheduled],
-            self::UndoReception, self::Start => [AppointmentStatus::Waiting],
+            self::UndoReception => [AppointmentStatus::Waiting],
+            self::Start => [AppointmentStatus::Waiting, AppointmentStatus::Scheduled],
             self::ReturnToQueue, self::Complete => [AppointmentStatus::InProgress],
             self::Reopen => [AppointmentStatus::NoShow, AppointmentStatus::Canceled],
         };
     }
 
     /**
-     * Get the status an appointment moves to after the action.
+     * Get the status the appointment moves to after the action.
+     *
+     * An appointment returned to the queue goes back to waiting only when its assisted person was received;
+     * one attended straight from its schedule goes back to being scheduled.
      */
-    public function toStatus(): AppointmentStatus
+    public function toStatus(Appointment $appointment): AppointmentStatus
     {
         return match ($this) {
-            self::Receive, self::ReturnToQueue => AppointmentStatus::Waiting,
+            self::Receive => AppointmentStatus::Waiting,
+            self::ReturnToQueue => $appointment->received_at ? AppointmentStatus::Waiting : AppointmentStatus::Scheduled,
             self::UndoReception, self::Reopen => AppointmentStatus::Scheduled,
             self::Start => AppointmentStatus::InProgress,
             self::Complete => AppointmentStatus::Completed,
@@ -112,9 +117,9 @@ enum AppointmentAction: string
      *
      * @return array<string, mixed>
      */
-    public function attributes(User $user): array
+    public function attributes(Appointment $appointment, User $user): array
     {
-        return ['status' => $this->toStatus()] + match ($this) {
+        return ['status' => $this->toStatus($appointment)] + match ($this) {
             self::Receive => ['received_at' => now()],
             self::UndoReception => ['received_at' => null],
             self::Start => ['started_at' => now(), 'attendant_id' => $user->id],
@@ -126,11 +131,21 @@ enum AppointmentAction: string
 
     /**
      * Determine whether the action can be performed on the given appointment.
+     *
+     * Remote appointments are never received nor missed, since the assisted person is not expected at the
+     * centre: they are attended straight from their schedule once their day comes. In-person appointments
+     * are received on their day, and may only be attended straight from their schedule once it has passed,
+     * so a record handed in late can still be entered.
      */
     public function isAvailableFor(Appointment $appointment): bool
     {
+        $expectsArrival = $appointment->mode->expectsArrival();
+
         return in_array($appointment->status, $this->fromStatuses(), true) && match ($this) {
-            self::Receive => $appointment->scheduled_on->isToday(),
+            self::Receive => $expectsArrival && $appointment->scheduled_on->isToday(),
+            self::MarkAsNoShow => $expectsArrival,
+            self::Start => $appointment->status === AppointmentStatus::Waiting
+                || $appointment->scheduled_on->isBefore($expectsArrival ? today() : today()->addDay()),
             default => true,
         };
     }

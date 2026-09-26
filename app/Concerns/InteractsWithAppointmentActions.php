@@ -20,13 +20,15 @@ trait InteractsWithAppointmentActions
 
         Gate::authorize('perform', $appointment);
 
+        $toStatus = $action->toStatus($appointment);
+
         if (! $performAppointmentAction->handle($appointment, $action, Auth::user())) {
             Flux::toast(variant: 'danger', text: __('This action is no longer available for the appointment.'));
 
             return false;
         }
 
-        Flux::toast(variant: 'success', text: __('Appointment moved to :status.', ['status' => $action->toStatus()->label()]));
+        Flux::toast(variant: 'success', text: __('Appointment moved to :status.', ['status' => $toStatus->label()]));
 
         return true;
     }

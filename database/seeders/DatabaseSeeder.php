@@ -75,6 +75,9 @@ class DatabaseSeeder extends Seeder
             Appointment::factory()->count(4)->for($team)->state($todaysAppointment)->waiting()->create();
             Appointment::factory()->count(2)->for($team)->state($todaysAppointment)->inProgress()->create(['attendant_id' => $ownerId]);
             Appointment::factory()->count(2)->for($team)->state($todaysAppointment)->completed()->create(['attendant_id' => $ownerId]);
+            Appointment::factory()->count(3)->for($team)->remote()->state($todaysAppointment)->state(fn () => [
+                'scheduled_on' => today()->subDays(fake()->numberBetween(1, 3))->toDateString(),
+            ])->create();
         });
     }
 }

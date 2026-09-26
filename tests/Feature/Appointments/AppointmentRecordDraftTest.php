@@ -14,7 +14,7 @@ beforeEach(function () {
     $this->travelTo('2026-09-21 19:30:00');
     $this->user = User::factory()->create(['name' => 'Ana Atendente']);
     $this->team = teamOwnedBy($this->user);
-    $this->appointment = Appointment::factory()->for($this->team)->inProgress()->create([
+    $this->appointment = Appointment::factory()->for($this->team)->inPerson()->inProgress()->create([
         'appointment_type_id' => AppointmentType::factory()->for($this->team)->withRecord(),
         'scheduled_on' => '2026-09-21',
         'attendant_id' => $this->user,

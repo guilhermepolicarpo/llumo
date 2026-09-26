@@ -23,7 +23,7 @@ class PerformAppointmentAction
                 return false;
             }
 
-            return $appointment->update($action->attributes($user));
+            return $appointment->update($action->attributes($appointment, $user));
         });
     }
 }

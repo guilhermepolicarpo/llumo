@@ -49,14 +49,6 @@ enum AppointmentStatus: string
     }
 
     /**
-     * Determine whether an appointment in this status can be attended, opening its record.
-     */
-    public function isAttendable(): bool
-    {
-        return in_array($this, [self::Waiting, self::InProgress], true);
-    }
-
-    /**
      * Determine whether the record of an appointment in this status can be filled in or corrected.
      */
     public function allowsRecordEditing(): bool
