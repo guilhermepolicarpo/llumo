@@ -196,9 +196,27 @@ test('the index offers only the actions available for each appointment', functio
 
     Livewire::test('pages::appointments.index')
         ->assertSeeHtml('data-test="appointment-status-badge"')
-        ->assertSee(AppointmentStatus::Completed->description())
         ->assertDontSeeHtml('data-test="appointment-actions-trigger"')
         ->assertDontSeeHtml('data-test="appointment-edit-menu-item"');
+});
+
+test('the index describes where each appointment stands below its status', function () {
+    $this->travelTo('2026-09-19 10:00:00');
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    Appointment::factory()->for($team)->create(['scheduled_on' => today()]);
+    Appointment::factory()->for($team)->waiting()->create(['received_at' => '2026-09-19 09:42:00']);
+    Appointment::factory()->for($team)->inProgress()->create(['attendant_id' => User::factory()->create(['name' => 'Joana Lima'])]);
+    Appointment::factory()->for($team)->completed()->create(['attendant_id' => User::factory()->create(['name' => 'Pedro Alves'])]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->assertSee(__('Not arrived yet'))
+        ->assertSee(__('Arrived at :time', ['time' => '09:42']).' · '.now()->subMinutes(18)->diffForHumans(short: true))
+        ->assertSee(__('with :name', ['name' => 'Joana Lima']))
+        ->assertSee(__('by :name', ['name' => 'Pedro Alves']));
 });
 
 test('the edit page offers the actions available for the appointment', function () {

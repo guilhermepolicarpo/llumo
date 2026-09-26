@@ -474,6 +474,27 @@ test('the index shows removable chips for the active filters', function () {
         ->assertSee('Maria Silva');
 });
 
+test('the index remembers the flyout filters across visits', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->set('search', 'Maria')
+        ->set('statuses', [AppointmentStatus::Waiting->value])
+        ->set('modes', [AppointmentMode::InPerson->value])
+        ->set('attendantIds', [(string) $user->id]);
+
+    Livewire::test('pages::appointments.index')
+        ->assertSet('search', '')
+        ->assertSet('statuses', [AppointmentStatus::Waiting->value])
+        ->assertSet('modes', [AppointmentMode::InPerson->value])
+        ->assertSet('attendantIds', [(string) $user->id])
+        ->assertSet('date', today()->toDateString());
+});
+
 test('the index ignores a filter removal for an unknown group', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);

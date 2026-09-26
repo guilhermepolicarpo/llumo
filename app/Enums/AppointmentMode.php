@@ -19,6 +19,17 @@ enum AppointmentMode: string
     }
 
     /**
+     * Get the Heroicon name for the mode.
+     */
+    public function icon(): string
+    {
+        return match ($this) {
+            self::InPerson => 'map-pin',
+            self::Remote => 'wifi',
+        };
+    }
+
+    /**
      * Get the modes as select options.
      *
      * @return array<int, array{value: string, label: string}>

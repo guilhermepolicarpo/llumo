@@ -27,21 +27,6 @@ enum AppointmentStatus: string
     }
 
     /**
-     * Get the full description of the status, shown as a tooltip.
-     */
-    public function description(): string
-    {
-        return match ($this) {
-            self::Scheduled => __('Appointment scheduled, awaiting arrival'),
-            self::Waiting => __('Arrived and waiting to be attended'),
-            self::InProgress => __('Appointment in progress'),
-            self::Completed => __('Appointment completed'),
-            self::NoShow => __('Did not attend the appointment'),
-            self::Canceled => __('Appointment canceled'),
-        };
-    }
-
-    /**
      * Get the badge color for the status.
      */
     public function color(): string

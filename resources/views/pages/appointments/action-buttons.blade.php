@@ -1,6 +1,6 @@
 {{-- editAs places the Edit entry: 'menu' (dropdown item), 'button' (visible button), or null (hidden). --}}
 {{-- menuFirst moves the dropdown to the start of the row, pushing the buttons to the opposite edge. --}}
-{{-- emphasizeMain paints the next-step button (attend, receive, start, complete) as primary. --}}
+{{-- emphasizeMain paints the next-step button (attend, receive, start, complete) as primary; the attend button is always primary. --}}
 @props(['appointment', 'size' => 'base', 'editAs' => 'menu', 'menuFirst' => false, 'emphasizeMain' => false])
 
 @use('App\Enums\AppointmentAction')
@@ -37,7 +37,7 @@
     @if ($isAttendable)
         @php($isWaiting = $appointment->status === AppointmentStatus::Waiting)
         <flux:button
-            :variant="$mainVariant"
+            :variant="$isWaiting ? 'primary' : $mainVariant"
             :size="$size"
             :icon="$isWaiting ? 'play' : 'clipboard-document-list'"
             icon:variant="outline"
@@ -51,7 +51,7 @@
 
     @foreach ($primaryActions as $action)
         <flux:button
-            :variant="$mainVariant"
+            :variant="$action === AppointmentAction::Start ? 'primary' : $mainVariant"
             :size="$size"
             :icon="$action->icon()"
             icon:variant="outline"

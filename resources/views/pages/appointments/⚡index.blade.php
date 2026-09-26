@@ -52,21 +52,25 @@ new class extends Component
     /**
      * @var list<string>
      */
+    #[Session('appointments-statuses')]
     public array $statuses = [];
 
     /**
      * @var list<string>
      */
+    #[Session('appointments-modes')]
     public array $modes = [];
 
     /**
      * @var list<string>
      */
+    #[Session('appointments-appointment-type-ids')]
     public array $appointmentTypeIds = [];
 
     /**
      * @var list<string>
      */
+    #[Session('appointments-attendant-ids')]
     public array $attendantIds = [];
 
     #[Session('appointments-per-page')]
@@ -410,8 +414,8 @@ new class extends Component
                         <flux:table.row :key="$appointment->id" class="relative cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800" data-test="appointment-row">
                             @unless ($this->filteredDate)
                                 <flux:table.cell>
-                                    <div class="text-[15px] text-zinc-900 dark:text-white">{{ $appointment->scheduled_on->format('d/m/Y') }}</div>
-                                    <div>{{ $appointment->scheduled_on->translatedFormat('l') }}</div>
+                                    <div class="text-sm text-zinc-900 dark:text-white">{{ $appointment->scheduled_on->format('d/m/Y') }}</div>
+                                    <div class="mt-1 text-[13px] text-zinc-600 dark:text-zinc-400">{{ $appointment->scheduled_on->translatedFormat('l') }}</div>
                                 </flux:table.cell>
                             @endunless
 
@@ -424,28 +428,44 @@ new class extends Component
                                     data-test="appointment-details-trigger"
                                 ></button>
 
-                                <div class="text-[15px] text-zinc-900 dark:text-white">{{ $appointment->assistedPerson->name }}</div>
-                                @if ($appointment->assistedPerson->formatted_age)
-                                    <div>{{ $appointment->assistedPerson->formatted_age }}</div>
-                                @endif
-                                @if ($appointment->assistedPerson->address_summary)
-                                    <div>{{ $appointment->assistedPerson->address_summary }}</div>
-                                @endif
+                                <div class="flex items-center gap-3">
+                                    <flux:avatar circle :name="$appointment->assistedPerson->name" class="shrink-0" />
+
+                                    <div class="flex min-w-0 flex-col gap-0.5">
+                                        <div class="text-[15px] font-medium text-zinc-900 dark:text-white">{{ $appointment->assistedPerson->name }}</div>
+                                        <div class="text-[13px] text-zinc-600 dark:text-zinc-400">{{ collect([$appointment->assistedPerson->formatted_age, $appointment->assistedPerson->address_city_line])->filter()->implode(' · ') }}</div>
+                                    </div>
+                                </div>
                             </flux:table.cell>
 
                             <flux:table.cell>
-                                <div class="text-[15px] text-zinc-900 dark:text-white">{{ $appointment->appointmentType->name }}</div>
-                                <div>{{ $appointment->mode->label() }}</div>
+                                <div class="text-sm text-zinc-900 dark:text-white">{{ $appointment->appointmentType->name }}</div>
+                                <div class="mt-1 flex items-center gap-1 text-[13px] text-zinc-600 dark:text-zinc-400">
+                                    <flux:icon :icon="$appointment->mode->icon()" variant="outline" class="size-3.5" />
+                                    {{ $appointment->mode->label() }}
+                                </div>
                             </flux:table.cell>
 
                             <flux:table.cell>
-                                <flux:tooltip :content="$appointment->status->description()" class="relative z-10 inline-flex">
-                                    <flux:badge size="sm" :color="$appointment->status->color()" data-test="appointment-status-badge">{{ $appointment->status->label() }}</flux:badge>
-                                </flux:tooltip>
-                                @if ($appointment->status === AppointmentStatus::Waiting && $appointment->received_at)
-                                    <div class="mt-1 text-sm">{{ __('Arrived at :time', ['time' => $appointment->received_at->format('H:i')]) }}</div>
-                                @elseif ($appointment->attendant)
-                                    <div class="mt-1 text-sm">{{ $appointment->attendant->name }}</div>
+                                <flux:badge size="sm" :color="$appointment->status->color()" data-test="appointment-status-badge">{{ $appointment->status->label() }}</flux:badge>
+                                @php
+                                    $statusContext = match ($appointment->status) {
+                                        AppointmentStatus::Scheduled => __('Not arrived yet'),
+                                        AppointmentStatus::Waiting => $appointment->received_at
+                                            ? __('Arrived at :time', ['time' => $appointment->received_at->format('H:i')]).' · '.$appointment->received_at->diffForHumans(short: true)
+                                            : null,
+                                        AppointmentStatus::InProgress => $appointment->attendant ? __('with :name', ['name' => $appointment->attendant->name]) : null,
+                                        AppointmentStatus::Completed => $appointment->attendant ? __('by :name', ['name' => $appointment->attendant->name]) : null,
+                                        AppointmentStatus::NoShow => __('Did not show up'),
+                                        AppointmentStatus::Canceled => __('Appointment canceled'),
+                                    };
+                                @endphp
+                                @if ($statusContext)
+                                    <div @class([
+                                        'mt-1 text-[13px]',
+                                        'text-amber-800 dark:text-amber-400' => $appointment->status === AppointmentStatus::Waiting,
+                                        'text-zinc-600 dark:text-zinc-400' => $appointment->status !== AppointmentStatus::Waiting,
+                                    ]) data-test="appointment-status-context">{{ $statusContext }}</div>
                                 @endif
                             </flux:table.cell>
 
