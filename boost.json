@@ -8,7 +8,8 @@
     "nightwatch": false,
     "packages": [
         "albertoarena/laravel-truss",
-        "livewire/blaze"
+        "livewire/blaze",
+        "fruitcake/laravel-debugbar"
     ],
     "sail": false,
     "skills": [
@@ -22,6 +23,7 @@
         "tailwindcss-development",
         "blaze-optimize",
         "truss-schema",
+        "debug-using-debugbar",
         "deploying-laravel-cloud"
     ]
 }
