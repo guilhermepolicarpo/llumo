@@ -44,6 +44,97 @@ enum Catalog: string
     }
 
     /**
+     * Get the plural title of the catalog shown on its management page.
+     */
+    public function label(): string
+    {
+        return match ($this) {
+            self::Mentor => __('Mentors'),
+            self::FluidicRemedy => __('Fluidic remedies'),
+            self::Guidance => __('Guidances'),
+            self::PassType => __('Pass types'),
+        };
+    }
+
+    /**
+     * Get the description of the catalog shown on its management page.
+     */
+    public function description(): string
+    {
+        return match ($this) {
+            self::Mentor => __('Spiritual mentors who guide the appointments.'),
+            self::FluidicRemedy => __('Fluidic remedies prescribed during the appointments.'),
+            self::Guidance => __('Guidances given to the assisted people.'),
+            self::PassType => __('Types of pass prescribed during the appointments.'),
+        };
+    }
+
+    /**
+     * Get the title of the button and modal used to create an entry on the management page.
+     */
+    public function newEntryTitle(): string
+    {
+        return match ($this) {
+            self::Mentor => __('New mentor'),
+            self::FluidicRemedy => __('New fluidic remedy'),
+            self::Guidance => __('New guidance'),
+            self::PassType => __('New pass type'),
+        };
+    }
+
+    /**
+     * Get the title of the modal used to edit an entry.
+     */
+    public function editEntryTitle(): string
+    {
+        return match ($this) {
+            self::Mentor => __('Edit mentor'),
+            self::FluidicRemedy => __('Edit fluidic remedy'),
+            self::Guidance => __('Edit guidance'),
+            self::PassType => __('Edit pass type'),
+        };
+    }
+
+    /**
+     * Get the title of the modal used to delete an entry.
+     */
+    public function deleteEntryTitle(): string
+    {
+        return match ($this) {
+            self::Mentor => __('Delete mentor'),
+            self::FluidicRemedy => __('Delete fluidic remedy'),
+            self::Guidance => __('Delete guidance'),
+            self::PassType => __('Delete pass type'),
+        };
+    }
+
+    /**
+     * Get the label of the success message shown after an entry is updated.
+     */
+    public function updatedEntryLabel(): string
+    {
+        return match ($this) {
+            self::Mentor => __('Mentor updated.'),
+            self::FluidicRemedy => __('Fluidic remedy updated.'),
+            self::Guidance => __('Guidance updated.'),
+            self::PassType => __('Pass type updated.'),
+        };
+    }
+
+    /**
+     * Get the label of the success message shown after an entry is deleted.
+     */
+    public function deletedEntryLabel(): string
+    {
+        return match ($this) {
+            self::Mentor => __('Mentor deleted.'),
+            self::FluidicRemedy => __('Fluidic remedy deleted.'),
+            self::Guidance => __('Guidance deleted.'),
+            self::PassType => __('Pass type deleted.'),
+        };
+    }
+
+    /**
      * Get the label of the success message shown after an entry is created inline.
      */
     public function newEntryLabel(): string

@@ -25,6 +25,10 @@
                     <flux:sidebar.item icon="users" :href="route('assisted-people.index')" :current="request()->routeIs('assisted-people.*')" wire:navigate>
                         {{ __('Assisted people') }}
                     </flux:sidebar.item>
+
+                    <flux:sidebar.item icon="rectangle-stack" :href="route('catalogs.appointment-types')" :current="request()->routeIs('catalogs.*')" wire:navigate>
+                        {{ __('Catalogs') }}
+                    </flux:sidebar.item>
                 </flux:sidebar.group>
             </flux:sidebar.nav>
 

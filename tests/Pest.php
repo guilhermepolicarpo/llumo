@@ -65,3 +65,23 @@ function teamOwnedBy(User $user, array $attributes = []): Team
 
     return $team;
 }
+
+/**
+ * Sign in a new user holding the given role on a new team.
+ *
+ * @return array{0: User, 1: Team}
+ */
+function actingAsTeamMember(TeamRole $role): array
+{
+    $user = User::factory()->create();
+    $team = teamOwnedBy($role === TeamRole::Owner ? $user : User::factory()->create());
+
+    if ($role !== TeamRole::Owner) {
+        $team->members()->attach($user, ['role' => $role->value]);
+    }
+
+    test()->actingAs($user);
+    $user->switchTeam($team);
+
+    return [$user, $team];
+}
