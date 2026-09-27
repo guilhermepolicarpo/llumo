@@ -5,7 +5,7 @@
         <flux:navlist aria-label="{{ __('Catalogs') }}">
             <flux:navlist.item :href="route('catalogs.appointment-types')" wire:navigate data-test="catalogs-nav-appointment-types">{{ __('Appointment types') }}</flux:navlist.item>
             @foreach (Catalog::cases() as $catalog)
-                <flux:navlist.item :href="route('catalogs.index', ['catalog' => $catalog])" wire:navigate data-test="catalogs-nav-{{ $catalog->value }}">{{ $catalog->label() }}</flux:navlist.item>
+                <flux:navlist.item :href="$catalog->url()" wire:navigate data-test="catalogs-nav-{{ $catalog->value }}">{{ $catalog->label() }}</flux:navlist.item>
             @endforeach
         </flux:navlist>
     </div>

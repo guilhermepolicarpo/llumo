@@ -75,7 +75,7 @@ test('members can view the catalogs but cannot change them', function () {
     [, $team] = actingAsTeamMember(TeamRole::Member);
     $entry = Guidance::factory()->for($team)->create(['name' => 'Evangelho no lar']);
 
-    $this->get(route('catalogs.index', ['current_team' => $team, 'catalog' => Catalog::Guidance]))
+    $this->get(route('catalogs.index', ['current_team' => $team, 'catalog' => Catalog::Guidance->slug()]))
         ->assertOk()
         ->assertSee('Evangelho no lar')
         ->assertDontSee('data-test="catalog-entry-new-button"', false)
@@ -133,8 +133,21 @@ test('catalog entry names must be unique among the team active entries', functio
     expect($other->fresh()->name)->toBe('Fluídico B');
 });
 
-test('unknown catalogs are not found', function () {
+test('catalog pages are addressed by their plural hyphenated slug', function (Catalog $catalog, string $slug) {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+
+    $this->get("/{$team->slug}/catalogs/{$slug}")
+        ->assertOk()
+        ->assertSee($catalog->label());
+})->with([
+    'mentor' => [Catalog::Mentor, 'mentors'],
+    'fluidic remedy' => [Catalog::FluidicRemedy, 'fluidic-remedies'],
+    'guidance' => [Catalog::Guidance, 'guidances'],
+    'pass type' => [Catalog::PassType, 'pass-types'],
+]);
+
+test('unknown catalogs are not found', function (string $slug) {
     [, $team] = actingAsTeamMember(TeamRole::Owner);
 
-    $this->get("/{$team->slug}/catalogs/unknown")->assertNotFound();
-});
+    $this->get("/{$team->slug}/catalogs/{$slug}")->assertNotFound();
+})->with(['unknown', 'fluidic_remedy']);

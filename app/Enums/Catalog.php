@@ -7,6 +7,7 @@ use App\Models\Guidance;
 use App\Models\Mentor;
 use App\Models\PassType;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 enum Catalog: string
 {
@@ -14,6 +15,30 @@ enum Catalog: string
     case FluidicRemedy = 'fluidic_remedy';
     case Guidance = 'guidance';
     case PassType = 'pass_type';
+
+    /**
+     * Find the catalog addressed by the given URL segment.
+     */
+    public static function fromSlug(string $slug): ?self
+    {
+        return collect(self::cases())->first(fn (self $catalog) => $catalog->slug() === $slug);
+    }
+
+    /**
+     * Get the URL segment of the catalog's management page, derived from its team relationship name.
+     */
+    public function slug(): string
+    {
+        return Str::kebab($this->relationName());
+    }
+
+    /**
+     * Get the URL of the catalog's management page, so callers never build it from the enum's backing value.
+     */
+    public function url(): string
+    {
+        return route('catalogs.index', ['catalog' => $this->slug()]);
+    }
 
     /**
      * Get the model class that stores the catalog's entries.
