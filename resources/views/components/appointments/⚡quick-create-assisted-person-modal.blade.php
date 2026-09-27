@@ -62,7 +62,7 @@ new class extends Component {
         </div>
 
         <div class="space-y-4">
-            <flux:input wire:model="name" :label="__('Name')" :placeholder="__('John Doe')" required autofocus data-test="quick-assisted-person-name-input" />
+            <flux:input wire:model="name" :label="__('Name')" :placeholder="__('E.g. John Doe')" required autofocus data-test="quick-assisted-person-name-input" />
 
             <div class="grid gap-4 sm:grid-cols-2">
                 <flux:input wire:model="phone" :label="__('Phone')" placeholder="(00) 00000-0000" inputmode="numeric" mask="(99) 99999-9999" data-test="quick-assisted-person-phone-input" />

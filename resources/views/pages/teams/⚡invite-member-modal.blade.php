@@ -67,7 +67,7 @@ new class extends Component {
         </div>
 
         <div class="space-y-4">
-            <flux:input wire:model="inviteEmail" type="email" :label="__('Email address')" :placeholder="__('john.doe@example.com')" required data-test="invite-email" />
+            <flux:input wire:model="inviteEmail" type="email" :label="__('Email address')" :placeholder="__('E.g. john.doe@example.com')" required data-test="invite-email" />
 
             <flux:select wire:model="inviteRole" :label="__('Role')" data-test="invite-role">
                 @foreach ($this->availableRoles as $role)

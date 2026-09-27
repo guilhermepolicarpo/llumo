@@ -23,12 +23,12 @@
                 required
                 autofocus
                 autocomplete="email"
-                placeholder="email@example.com"
+                :placeholder="__('Your email address')"
             />
 
             <!-- Password -->
             <flux:field>
-                <div class="flex justify-between">
+                <div class="mb-3 flex justify-between">
                     <flux:label>{{ __('Password') }}</flux:label>
 
                     @if (Route::has('password.request'))
@@ -43,7 +43,7 @@
                     type="password"
                     required
                     autocomplete="current-password"
-                    :placeholder="__('Password')"
+                    :placeholder="__('Your password')"
                     viewable
                 />
 

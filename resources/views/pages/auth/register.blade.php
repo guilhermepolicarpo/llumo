@@ -20,7 +20,7 @@
                 required
                 autofocus
                 autocomplete="name"
-                :placeholder="__('Full name')"
+                :placeholder="__('Your full name')"
             />
 
             <!-- Email Address -->
@@ -31,7 +31,7 @@
                 type="email"
                 required
                 autocomplete="email"
-                placeholder="email@example.com"
+                :placeholder="__('Your email address')"
             />
 
             <!-- Password -->
@@ -41,7 +41,7 @@
                 type="password"
                 required
                 autocomplete="new-password"
-                :placeholder="__('Password')"
+                :placeholder="__('Your password')"
                 passwordrules="{{ \Illuminate\Validation\Rules\Password::defaults()->toPasswordRulesString() }}"
                 viewable
             />
@@ -53,7 +53,7 @@
                 type="password"
                 required
                 autocomplete="new-password"
-                :placeholder="__('Confirm password')"
+                :placeholder="__('Confirm your password')"
                 passwordrules="{{ \Illuminate\Validation\Rules\Password::defaults()->toPasswordRulesString() }}"
                 viewable
             />

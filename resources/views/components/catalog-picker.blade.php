@@ -160,7 +160,7 @@
                     class="flex w-full items-center gap-2 px-3 py-1.5 text-start text-sm text-zinc-800 disabled:opacity-50 dark:text-white"
                     data-test="{{ $testId }}-create"
                 >
-                    <flux:icon name="plus" variant="mini" class="size-4 shrink-0" />
+                    <flux:icon name="plus" class="size-4 shrink-0" />
                     <span class="truncate">{{ __('Create') }} «<span x-text="search.trim()"></span>»</span>
                 </button>
 
@@ -181,7 +181,7 @@
                             size="sm"
                             maxlength="100"
                             :placeholder="$detailPlaceholder"
-                            :aria-label="__('Detail')"
+                            x-bind:aria-label="{{ Js::from(__('Detail of :name')) }}.replace(':name', nameOf(id))"
                             x-bind:value="detailOf(id)"
                             x-on:input="setDetail(id, $event.target.value)"
                             data-test="{{ $testId }}-detail-input"

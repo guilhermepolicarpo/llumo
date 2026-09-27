@@ -95,6 +95,19 @@ enum Catalog: string
     }
 
     /**
+     * Get the example shown in the name field while creating or editing an entry.
+     */
+    public function namePlaceholder(): string
+    {
+        return match ($this) {
+            self::Mentor => __('E.g. Eurípedes Barsanulfo'),
+            self::FluidicRemedy => __('E.g. Calming'),
+            self::Guidance => __('E.g. Gospel at home'),
+            self::PassType => __('E.g. Pass with 3 mediums'),
+        };
+    }
+
+    /**
      * Get the title of the button and modal used to create an entry on the management page.
      */
     public function newEntryTitle(): string

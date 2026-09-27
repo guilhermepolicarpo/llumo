@@ -43,8 +43,8 @@ new class extends Component
 
     <form wire:submit="createAssistedPerson" class="max-w-xl space-y-6">
         <flux:fieldset>
-            <flux:input wire:model="name" :label="__('Name')" required autofocus :placeholder="__('John Doe')" data-test="assisted-person-name-input" />
-            <flux:input type="email" wire:model="email" :label="__('Email')" :placeholder="__('john.doe@example.com')" data-test="assisted-person-email-input" />
+            <flux:input wire:model="name" :label="__('Name')" required autofocus :placeholder="__('E.g. John Doe')" data-test="assisted-person-name-input" />
+            <flux:input type="email" wire:model="email" :label="__('Email')" :placeholder="__('E.g. john.doe@example.com')" data-test="assisted-person-email-input" />
 
             <div class="grid gap-6 sm:grid-cols-2">
                 <flux:input type="date" wire:model="birthDate" :label="__('Birth date')" max="{{ today()->toDateString() }}" data-test="assisted-person-birth-date-input" />

@@ -27,7 +27,7 @@
                 type="password"
                 required
                 autocomplete="new-password"
-                :placeholder="__('Password')"
+                :placeholder="__('Your password')"
                 passwordrules="{{ \Illuminate\Validation\Rules\Password::defaults()->toPasswordRulesString() }}"
                 viewable
             />
@@ -39,7 +39,7 @@
                 type="password"
                 required
                 autocomplete="new-password"
-                :placeholder="__('Confirm password')"
+                :placeholder="__('Confirm your password')"
                 passwordrules="{{ \Illuminate\Validation\Rules\Password::defaults()->toPasswordRulesString() }}"
                 viewable
             />
