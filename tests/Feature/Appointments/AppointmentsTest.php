@@ -616,7 +616,7 @@ test('the details flyout shows the arrival and how long a person who is still he
         ->assertDontSeeHtml('data-test="appointment-details-waiting-for"');
 });
 
-test('the details flyout credits the record mentor and presents the other times as a system entry', function () {
+test('the details flyout credits the record mentor only when there is one and always presents who entered it in the system', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
     $withMentor = Appointment::factory()->for($team)->completed()->create([
@@ -641,11 +641,29 @@ test('the details flyout credits the record mentor and presents the other times 
         ]))
         ->call('showAppointment', $withoutRecord->id)
         ->assertDontSeeHtml('data-test="appointment-details-mentor"')
-        ->assertSee($withoutRecord->attendant->name)
-        ->assertSee(__('Entered in the system from :start to :end.', [
+        ->assertSee(__('Entered in the system by :user, from :start to :end.', [
+            'user' => $withoutRecord->attendant->name,
             'start' => $withoutRecord->started_at->format('H:i'),
             'end' => $withoutRecord->finished_at->format('H:i'),
         ]));
+});
+
+test('the details flyout shows the system entry time once when it started and finished in the same minute', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->completed()->create([
+        'attendant_id' => User::factory()->create(['name' => 'Pedro Alves']),
+        'started_at' => today()->setTime(17, 49, 5),
+        'finished_at' => today()->setTime(17, 49, 50),
+    ]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->call('showAppointment', $appointment->id)
+        ->assertSee(__('Entered in the system by :user, at :start.', ['user' => 'Pedro Alves', 'start' => '17:49']))
+        ->assertDontSee(__('Entered in the system by :user, from :start to :end.', ['user' => 'Pedro Alves', 'start' => '17:49', 'end' => '17:49']));
 });
 
 test('deleting the appointment closes the details flyout', function () {

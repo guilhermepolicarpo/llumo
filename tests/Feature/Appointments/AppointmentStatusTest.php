@@ -3,7 +3,9 @@
 use App\Enums\AppointmentAction;
 use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
+use App\Models\AppointmentRecord;
 use App\Models\AssistedPerson;
+use App\Models\Mentor;
 use App\Models\User;
 use Database\Factories\AppointmentFactory;
 use Livewire\Livewire;
@@ -208,7 +210,9 @@ test('the index describes where each appointment stands below its status', funct
     Appointment::factory()->for($team)->inPerson()->create(['scheduled_on' => today()]);
     Appointment::factory()->for($team)->waiting()->create(['received_at' => '2026-09-19 09:42:00']);
     Appointment::factory()->for($team)->inProgress()->create(['attendant_id' => User::factory()->create(['name' => 'Joana Lima'])]);
-    Appointment::factory()->for($team)->completed()->create(['attendant_id' => User::factory()->create(['name' => 'Pedro Alves'])]);
+    $withMentor = Appointment::factory()->for($team)->completed()->create(['attendant_id' => User::factory()->create(['name' => 'Pedro Alves'])]);
+    AppointmentRecord::factory()->for($withMentor)->create(['mentor_id' => Mentor::factory()->for($team)->create(['name' => 'Dona Ana'])]);
+    Appointment::factory()->for($team)->completed()->create(['attendant_id' => User::factory()->create(['name' => 'Rita Costa'])]);
 
     $this->actingAs($user);
     $user->switchTeam($team);
@@ -217,7 +221,9 @@ test('the index describes where each appointment stands below its status', funct
         ->assertSee(__('Not arrived yet'))
         ->assertSee(__('Arrived at :time', ['time' => '09:42']).' · '.now()->subMinutes(18)->diffForHumans(short: true))
         ->assertSee(__('with :name', ['name' => 'Joana Lima']))
-        ->assertSee(__('by :name', ['name' => 'Pedro Alves']));
+        ->assertSee(__('by :name', ['name' => 'Dona Ana']))
+        ->assertDontSee('Pedro Alves')
+        ->assertDontSee('Rita Costa');
 });
 
 test('the edit page offers the actions available for the appointment', function () {

@@ -335,7 +335,7 @@ new class extends Component
     public function appointments(): LengthAwarePaginator
     {
         return Auth::user()->currentTeam->appointments()
-            ->with(['appointmentType', 'assistedPerson', 'attendant'])
+            ->with(['appointmentType', 'assistedPerson', 'attendant', 'record.mentor'])
             ->when($this->search !== '', fn ($query) => $query->whereHas(
                 'assistedPerson',
                 fn ($query) => $query->withTrashed()->whereLike('name', "%{$this->search}%"),
@@ -527,7 +527,7 @@ new class extends Component
                                             ? __('Arrived at :time', ['time' => $appointment->received_at->format('H:i')]).' · '.$appointment->received_at->diffForHumans(short: true)
                                             : null,
                                         AppointmentStatus::InProgress => $appointment->attendant ? __('with :name', ['name' => $appointment->attendant->name]) : null,
-                                        AppointmentStatus::Completed => $appointment->attendant ? __('by :name', ['name' => $appointment->attendant->name]) : null,
+                                        AppointmentStatus::Completed => $appointment->record?->mentor ? __('by :name', ['name' => $appointment->record->mentor->name]) : null,
                                         AppointmentStatus::NoShow => __('Did not show up'),
                                         AppointmentStatus::Canceled => __('Appointment canceled'),
                                     };
@@ -737,9 +737,6 @@ new class extends Component
                         @if ($mentor = $selectedAppointment->record?->mentor)
                             <dt>{{ __('Mentor') }}</dt>
                             <dd data-test="appointment-details-mentor">{{ $mentor->name }}</dd>
-                        @elseif ($selectedAppointment->attendant)
-                            <dt>{{ __('Attendant') }}</dt>
-                            <dd>{{ $selectedAppointment->attendant->name }}</dd>
                         @endif
                     </dl>
 
@@ -754,12 +751,19 @@ new class extends Component
                         <div class="flex items-start gap-2 border-t border-zinc-200 pt-4 dark:border-white/10">
                             <flux:icon.pencil-square class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
                             <flux:text size="sm" class="min-w-0" data-test="appointment-details-system-entry">
-                                @php($entry = ['start' => $selectedAppointment->started_at->format('H:i'), 'end' => $selectedAppointment->finished_at->format('H:i')])
-                                @if ($mentor && $selectedAppointment->attendant)
-                                    {{ __('Entered in the system by :user, from :start to :end.', ['user' => $selectedAppointment->attendant->name] + $entry) }}
-                                @else
-                                    {{ __('Entered in the system from :start to :end.', $entry) }}
-                                @endif
+                                {{ __(
+                                    match (true) {
+                                        $selectedAppointment->attendant && $selectedAppointment->started_at->format('H:i') === $selectedAppointment->finished_at->format('H:i') => 'Entered in the system by :user, at :start.',
+                                        (bool) $selectedAppointment->attendant => 'Entered in the system by :user, from :start to :end.',
+                                        $selectedAppointment->started_at->format('H:i') === $selectedAppointment->finished_at->format('H:i') => 'Entered in the system at :start.',
+                                        default => 'Entered in the system from :start to :end.',
+                                    },
+                                    [
+                                        'user' => $selectedAppointment->attendant?->name,
+                                        'start' => $selectedAppointment->started_at->format('H:i'),
+                                        'end' => $selectedAppointment->finished_at->format('H:i'),
+                                    ],
+                                ) }}
                             </flux:text>
                         </div>
                     @endif
