@@ -15,6 +15,7 @@ use App\Models\Mentor;
 use App\Models\PassType;
 use App\Models\Team;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
@@ -205,18 +206,23 @@ class DatabaseSeeder extends Seeder
             'scheduled_on' => today()->subDays(fake()->numberBetween(1, 3))->toDateString(),
         ])->create();
 
+        $attendedOn = $this->attendedOn(...);
+
         $completedToday = Appointment::factory()->count(3)->for($team)->state($scheduledAppointment)->completed()->state($attendant)->create();
 
-        $completedEarlier = Appointment::factory()->count(25)->for($team)->state($scheduledAppointment)->completed()->state($attendant)->state(function (array $attributes) {
-            $receivedAt = today()->subDays(fake()->numberBetween(1, 45))->setTime(19, 0)->addMinutes(fake()->numberBetween(0, 60));
+        $completedEarlier = Appointment::factory()->count(25)->for($team)->state($scheduledAppointment)->completed()->state($attendant)->state(
+            fn (array $attributes): array => $attendedOn(today()->subDays(fake()->numberBetween(1, 45)), $attributes['mode']),
+        )->create();
 
-            return [
-                'scheduled_on' => $receivedAt->toDateString(),
-                'received_at' => $attributes['mode'] === AppointmentMode::Remote ? null : $receivedAt,
-                'started_at' => $receivedAt->addMinutes(fake()->numberBetween(10, 40)),
-                'finished_at' => $receivedAt->addMinutes(fake()->numberBetween(50, 80)),
-            ];
-        })->create();
+        $weekAgo = today()->subDays(7);
+        $healingTreatmentWeekAgo = fn (): array => ['appointment_type_id' => $healingTreatment->id, 'scheduled_on' => $weekAgo->toDateString()];
+
+        $completedWeekAgo = Appointment::factory()->count(14)->for($team)->state($scheduledAppointment)->completed()->state($attendant)->state(
+            fn (array $attributes): array => ['appointment_type_id' => $healingTreatment->id] + $attendedOn($weekAgo, $attributes['mode']),
+        )->create();
+        Appointment::factory()->count(3)->for($team)->state($scheduledAppointment)->noShow()->state($healingTreatmentWeekAgo)->create();
+        Appointment::factory()->for($team)->state($scheduledAppointment)->canceled()->state($healingTreatmentWeekAgo)->create();
+        Appointment::factory()->count(2)->for($team)->state($scheduledAppointment)->state($healingTreatmentWeekAgo)->create();
 
         Appointment::factory()->count(3)->for($team)->state($scheduledAppointment)->noShow()->state(fn () => [
             'scheduled_on' => today()->subDays(fake()->numberBetween(1, 30))->toDateString(),
@@ -224,7 +230,7 @@ class DatabaseSeeder extends Seeder
 
         Appointment::factory()->count(2)->for($team)->state($scheduledAppointment)->canceled()->create();
 
-        $completedToday->concat($completedEarlier)
+        $completedToday->concat($completedEarlier)->concat($completedWeekAgo)
             ->load('appointmentType')
             ->filter(fn (Appointment $appointment): bool => $appointment->usesRecord())
             ->each(fn (Appointment $appointment) => app(SaveAppointmentRecord::class)->handle(
@@ -233,6 +239,23 @@ class DatabaseSeeder extends Seeder
             ));
 
         $this->fillHealingTreatmentDays($team, $healingTreatment, $assistedPeople);
+    }
+
+    /**
+     * Get the times of an appointment attended in the evening of the given day.
+     *
+     * @return array{scheduled_on: string, received_at: ?CarbonInterface, started_at: CarbonInterface, finished_at: CarbonInterface}
+     */
+    private function attendedOn(CarbonInterface $day, AppointmentMode $mode): array
+    {
+        $receivedAt = $day->setTime(19, 0)->addMinutes(fake()->numberBetween(0, 60));
+
+        return [
+            'scheduled_on' => $receivedAt->toDateString(),
+            'received_at' => $mode === AppointmentMode::Remote ? null : $receivedAt,
+            'started_at' => $receivedAt->addMinutes(fake()->numberBetween(10, 40)),
+            'finished_at' => $receivedAt->addMinutes(fake()->numberBetween(50, 80)),
+        ];
     }
 
     /**
