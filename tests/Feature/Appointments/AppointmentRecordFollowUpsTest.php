@@ -215,3 +215,83 @@ test('the removal type is learned from the last removal the team scheduled', fun
     Livewire::test('pages::appointments.attend', ['appointment' => $next])
         ->assertSet('removalAppointmentTypeId', (string) $removalType->id);
 });
+
+test('the return date shows how many appointments of the return type it already has and the places left', function () {
+    [$component, $appointment, $team] = attendRecordAppointment();
+    $appointment->appointmentType->update(['name' => 'Tratamento de Cura', 'daily_limit' => 3]);
+    $returnType = ['appointment_type_id' => $appointment->appointment_type_id];
+
+    Appointment::factory()->for($team)->count(2)->create($returnType + ['scheduled_on' => '2026-10-11']);
+    Appointment::factory()->for($team)->canceled()->create($returnType + ['scheduled_on' => '2026-10-11']);
+    Appointment::factory()->for($team)->create(['scheduled_on' => '2026-10-11', 'appointment_type_id' => AppointmentType::factory()->for($team)]);
+    Appointment::factory()->create(['scheduled_on' => '2026-10-11']);
+    Appointment::factory()->for($team)->create($returnType + ['scheduled_on' => '2026-10-12']);
+
+    $component
+        ->set('returnOn', '2026-10-11')
+        ->assertDontSeeHtml('data-test="appointment-record-return-day-occupancy"')
+        ->set('schedulesReturn', true)
+        ->assertSeeHtml('data-test="appointment-record-return-day-occupancy"')
+        ->assertSee('2 agendamentos de Tratamento de Cura em 11/10/2026')
+        ->assertSee('1 vaga')
+        ->assertDontSeeHtml('data-test="appointment-record-return-day-full"');
+});
+
+test('the return already scheduled by the record does not take a place on its date', function () {
+    [$component, $appointment, $team] = attendRecordAppointment();
+    Appointment::factory()->for($team)->create(['appointment_type_id' => $appointment->appointment_type_id, 'scheduled_on' => '2026-10-11']);
+
+    $component
+        ->set('returnOn', '2026-10-11')
+        ->set('schedulesReturn', true)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(followUpsOf($appointment)->count())->toBe(2)
+        ->and($component->instance()->returnDayOccupancy['count'])->toBe(1);
+});
+
+test('the return shortcuts count the days from the appointment', function () {
+    [$component] = attendRecordAppointment();
+
+    $component
+        ->call('setReturnInDays', 30)
+        ->assertSet('returnOn', '2026-10-20')
+        ->call('setReturnInDays', 7)
+        ->assertSet('returnOn', '2026-09-27');
+});
+
+test('a return date that reached the daily limit warns but still schedules the return', function () {
+    [$component, $appointment, $team] = attendRecordAppointment();
+    $appointment->appointmentType->update(['name' => 'Tratamento de Cura', 'daily_limit' => 1]);
+    Appointment::factory()->for($team)->create(['appointment_type_id' => $appointment->appointment_type_id, 'scheduled_on' => '2026-10-11']);
+
+    $component
+        ->set('schedulesReturn', true)
+        ->set('returnOn', '2026-10-12')
+        ->assertSee('Nenhum agendamento de Tratamento de Cura em 12/10/2026')
+        ->assertDontSeeHtml('data-test="appointment-record-return-day-full"')
+        ->set('returnOn', '2026-10-11')
+        ->assertSeeHtml('data-test="appointment-record-return-day-full"')
+        ->assertSee('Limite atingido: já existem 1 de 1 agendamentos de Tratamento de Cura em 11/10/2026.')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(followUpsOf($appointment)->where('scheduled_on', '>=', '2026-10-11')->count())->toBe(2);
+});
+
+test('choosing another return type counts the appointments of that type, without places when it has no limit', function () {
+    [$component, $appointment, $team] = attendRecordAppointment();
+    $appointment->appointmentType->update(['daily_limit' => 1]);
+    $otherType = AppointmentType::factory()->for($team)->create(['name' => 'Hidroterapia']);
+    Appointment::factory()->for($team)->create(['appointment_type_id' => $appointment->appointment_type_id, 'scheduled_on' => '2026-10-11']);
+    Appointment::factory()->for($team)->count(2)->create(['appointment_type_id' => $otherType->id, 'scheduled_on' => '2026-10-11']);
+
+    $component
+        ->set('schedulesReturn', true)
+        ->set('returnOn', '2026-10-11')
+        ->set('returnAppointmentTypeId', (string) $otherType->id)
+        ->assertSee('2 agendamentos de Hidroterapia em 11/10/2026')
+        ->assertDontSee('vaga')
+        ->assertDontSeeHtml('data-test="appointment-record-return-day-full"');
+});

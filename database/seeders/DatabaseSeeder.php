@@ -112,6 +112,18 @@ class DatabaseSeeder extends Seeder
     ];
 
     /**
+     * How many healing treatments are booked on each day, by days from today, so the return occupancy shows
+     * a day at the limit, one past it, and one with places left.
+     *
+     * @var array<int, int>
+     */
+    private const array HEALING_TREATMENTS_BY_DAYS_AHEAD = [
+        0 => 20,
+        7 => 25,
+        15 => 15,
+    ];
+
+    /**
      * Seed the application's database.
      */
     public function run(): void
@@ -155,7 +167,7 @@ class DatabaseSeeder extends Seeder
             ->withBirthDate()
             ->create();
 
-        $healingTreatment = AppointmentType::factory()->for($team)->withRecord()->create(['name' => 'Tratamento de Cura']);
+        $healingTreatment = AppointmentType::factory()->for($team)->withRecord()->withDailyLimit(20)->create(['name' => 'Tratamento de Cura']);
         $spiritualIntervention = AppointmentType::factory()->for($team)->withRecord()->create(['name' => 'Intervenção Espiritual']);
         $hydrotherapy = AppointmentType::factory()->for($team)->create(['name' => 'Hidroterapia']);
         $infiltrationRemoval = AppointmentType::factory()->for($team)->create(['name' => 'Retirada de Infiltração']);
@@ -219,6 +231,33 @@ class DatabaseSeeder extends Seeder
                 $appointment,
                 $this->recordAttributes($team, $appointment, $infiltrationRemoval),
             ));
+
+        $this->fillHealingTreatmentDays($team, $healingTreatment, $assistedPeople);
+    }
+
+    /**
+     * Book healing treatments until each day of HEALING_TREATMENTS_BY_DAYS_AHEAD has its number of them,
+     * counting the ones already seeded, like the returns scheduled by the records.
+     *
+     * @param  Collection<int, AssistedPerson>  $assistedPeople
+     */
+    private function fillHealingTreatmentDays(Team $team, AppointmentType $healingTreatment, Collection $assistedPeople): void
+    {
+        foreach (self::HEALING_TREATMENTS_BY_DAYS_AHEAD as $daysAhead => $total) {
+            $day = today()->addDays($daysAhead);
+
+            $booked = $team->appointments()
+                ->where('appointment_type_id', $healingTreatment->id)
+                ->scheduledOn($day)
+                ->takingPlace()
+                ->count();
+
+            Appointment::factory()->count(max(0, $total - $booked))->for($team)->state(fn () => [
+                'appointment_type_id' => $healingTreatment->id,
+                'assisted_person_id' => $assistedPeople->random()->id,
+                'scheduled_on' => $day->toDateString(),
+            ])->create();
+        }
     }
 
     /**

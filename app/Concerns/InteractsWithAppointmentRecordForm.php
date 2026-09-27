@@ -19,10 +19,12 @@ use App\Models\PassPrescription;
 use App\Models\PassType;
 use App\Rules\AppointmentTypeRules;
 use App\Rules\CatalogRules;
+use Carbon\CarbonInterface;
 use Flux\Flux;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
@@ -127,7 +129,34 @@ trait InteractsWithAppointmentRecordForm
     #[Computed]
     public function appointmentTypes(): Collection
     {
-        return $this->appointment->team->appointmentTypes()->orderBy('name')->get(['id', 'name']);
+        return $this->appointment->team->appointmentTypes()->orderBy('name')->get(['id', 'name', 'daily_limit']);
+    }
+
+    /**
+     * Get how many appointments of the return type the chosen return date already has, and how many places are left.
+     *
+     * @return array{count: int, limit: ?int, remaining: ?int, type: string, date: string}|null
+     */
+    #[Computed]
+    public function returnDayOccupancy(): ?array
+    {
+        $returnOn = $this->returnOnDate();
+        $returnType = $this->appointmentTypes->firstWhere('id', (int) $this->returnAppointmentTypeId);
+
+        if ($returnOn === null || $returnType === null) {
+            return null;
+        }
+
+        $count = $this->returnAppointmentCountOn($returnType, $returnOn);
+        $limit = $returnType->daily_limit;
+
+        return [
+            'count' => $count,
+            'limit' => $limit,
+            'remaining' => $limit === null ? null : max(0, $limit - $count),
+            'type' => $returnType->name,
+            'date' => $returnOn->format('d/m/Y'),
+        ];
     }
 
     /**
@@ -156,6 +185,14 @@ trait InteractsWithAppointmentRecordForm
         if (trim($this->infiltrationSite) !== '' && $this->infiltrationRemoveOn === '') {
             $this->infiltrationRemoveOn = $this->appointment->scheduled_on->addDays(3)->toDateString();
         }
+    }
+
+    /**
+     * Set the return date the given number of days after the appointment.
+     */
+    public function setReturnInDays(int $days): void
+    {
+        $this->returnOn = $this->appointment->scheduled_on->addDays($days)->toDateString();
     }
 
     public function addPassPrescription(): void
@@ -477,6 +514,28 @@ trait InteractsWithAppointmentRecordForm
             ->whereNull('appointment_types.deleted_at')
             ->latest('appointments.id')
             ->value('appointments.appointment_type_id');
+    }
+
+    private function returnOnDate(): ?CarbonInterface
+    {
+        return $this->returnOn === '' ? null : rescue(fn () => Date::createFromFormat('!Y-m-d', $this->returnOn), report: false);
+    }
+
+    /**
+     * Count the appointments of the given type already scheduled on the given day.
+     *
+     * The return this record already scheduled does not take a place.
+     */
+    private function returnAppointmentCountOn(AppointmentType $appointmentType, CarbonInterface $day): int
+    {
+        $linkedReturnId = $this->appointment->record()->value('return_appointment_id');
+
+        return $this->appointment->team->appointments()
+            ->where('appointment_type_id', $appointmentType->id)
+            ->scheduledOn($day)
+            ->takingPlace()
+            ->when($linkedReturnId, fn ($query, int $id) => $query->whereKeyNot($id))
+            ->count();
     }
 
     /**

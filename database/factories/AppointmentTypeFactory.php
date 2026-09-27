@@ -35,6 +35,16 @@ class AppointmentTypeFactory extends Factory
     }
 
     /**
+     * Indicate that at most the given number of appointments of this type fit in a day.
+     */
+    public function withDailyLimit(int $limit): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'daily_limit' => $limit,
+        ]);
+    }
+
+    /**
      * Indicate that the appointment type has been deleted.
      */
     public function trashed(): static

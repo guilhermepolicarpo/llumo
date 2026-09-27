@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\AppointmentAction;
 use App\Enums\AppointmentMode;
 use App\Enums\AppointmentStatus;
+use Carbon\CarbonInterface;
 use Database\Factories\AppointmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -154,6 +155,29 @@ class Appointment extends Model
     {
         $query->where('scheduled_on', '<', today()->toDateString())
             ->whereIn('status', [AppointmentStatus::Scheduled, AppointmentStatus::Waiting, AppointmentStatus::InProgress]);
+    }
+
+    /**
+     * Scope the query to appointments scheduled on the given day.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function scheduledOn(Builder $query, CarbonInterface $day): void
+    {
+        $query->where('scheduled_on', '>=', $day->toDateString())
+            ->where('scheduled_on', '<', $day->addDay()->toDateString());
+    }
+
+    /**
+     * Scope the query to appointments that take a place in the day they are scheduled on, which every one but a canceled one does.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function takingPlace(Builder $query): void
+    {
+        $query->where('status', '!=', AppointmentStatus::Canceled);
     }
 
     /**

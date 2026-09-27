@@ -99,3 +99,39 @@ test('an appointment type can be created to be attended with a record', function
     'with a record' => [true],
     'without a record' => [false],
 ]);
+
+test('an appointment type can be created with a daily limit, or without one', function (string $dailyLimit, ?int $expected) {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('appointments.create-appointment-type-modal')
+        ->set('name', 'Tratamento de Cura')
+        ->set('dailyLimit', $dailyLimit)
+        ->call('createAppointmentType')
+        ->assertHasNoErrors()
+        ->assertSet('dailyLimit', '');
+
+    expect($team->appointmentTypes()->sole()->daily_limit)->toBe($expected);
+})->with([
+    'with a limit' => ['20', 20],
+    'without a limit' => ['', null],
+]);
+
+test('the daily limit of an appointment type must be a positive number', function (string $dailyLimit) {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('appointments.create-appointment-type-modal')
+        ->set('name', 'Tratamento de Cura')
+        ->set('dailyLimit', $dailyLimit)
+        ->call('createAppointmentType')
+        ->assertHasErrors('dailyLimit');
+
+    expect($team->appointmentTypes()->exists())->toBeFalse();
+})->with(['zero' => ['0'], 'text' => ['vinte'], 'too large' => ['1000']]);

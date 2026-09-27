@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
  * @property int $team_id
  * @property string $name
  * @property bool $requires_record
+ * @property int|null $daily_limit
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -27,6 +28,7 @@ use Illuminate\Support\Carbon;
     'team_id',
     'name',
     'requires_record',
+    'daily_limit',
 ])]
 class AppointmentType extends Model
 {
@@ -62,6 +64,7 @@ class AppointmentType extends Model
     {
         return [
             'requires_record' => 'boolean',
+            'daily_limit' => 'integer',
         ];
     }
 }

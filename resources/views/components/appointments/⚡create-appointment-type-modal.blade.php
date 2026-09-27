@@ -13,6 +13,8 @@ new class extends Component {
 
     public bool $requiresRecord = false;
 
+    public string $dailyLimit = '';
+
     public function createAppointmentType(CreateAppointmentType $createAppointmentType): void
     {
         $team = Auth::user()->currentTeam;
@@ -24,14 +26,16 @@ new class extends Component {
         $validated = $this->validate([
             'name' => AppointmentTypeRules::name($team),
             'requiresRecord' => AppointmentTypeRules::requiresRecord(),
+            'dailyLimit' => AppointmentTypeRules::dailyLimit(),
         ]);
 
         $appointmentType = $createAppointmentType->handle($team, [
             'name' => $validated['name'],
             'requires_record' => $validated['requiresRecord'],
+            'daily_limit' => (int) $validated['dailyLimit'] ?: null,
         ]);
 
-        $this->reset('name', 'requiresRecord');
+        $this->reset('name', 'requiresRecord', 'dailyLimit');
 
         Flux::modal('create-appointment-type')->close();
 
@@ -56,6 +60,16 @@ new class extends Component {
             :description="__('Opens the appointment record screen when the assisted person is attended.')"
             align="left"
             data-test="appointment-type-requires-record-switch"
+        />
+
+        <flux:input
+            type="number"
+            min="1"
+            max="999"
+            wire:model="dailyLimit"
+            :label="__('Daily appointment limit')"
+            :description="__('Leave blank for no limit.')"
+            data-test="appointment-type-daily-limit-input"
         />
 
         <div class="flex justify-end space-x-2 rtl:space-x-reverse">

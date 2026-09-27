@@ -515,7 +515,6 @@
   "Last visit": "Última visita",
   "First visit": "Primeira visita",
   "View registration": "Ver cadastro",
-  "Arrived at :time": "Chegou às :time",
   "Entered in the system by :user, from :start to :end.": "Lançado no sistema por :user, das :start às :end.",
   "Entered in the system from :start to :end.": "Lançado no sistema das :start às :end.",
   "Entered in the system by :user, at :start.": "Lançado no sistema por :user, às :start.",
@@ -529,5 +528,11 @@
   "Appointment notes": "Anotações do atendimento",
   "Record what was done in this appointment": "Registre o que foi feito neste atendimento",
   "See what was recorded in this appointment": "Veja o que foi registrado neste atendimento",
-  "Back to assisted people": "Voltar para os assistidos"
+  "Back to assisted people": "Voltar para os assistidos",
+  "+:days days": "+:days dias",
+  "Daily appointment limit": "Limite diário de agendamentos",
+  "Leave blank for no limit.": "Deixe em branco para não limitar.",
+  "Limit reached: :count of :limit :type appointments on :date.": "Limite atingido: já existem :count de :limit agendamentos de :type em :date.",
+  "{0} No :type appointments on :date|{1} 1 :type appointment on :date|[2,*] :count :type appointments on :date": "{0} Nenhum agendamento de :type em :date|{1} 1 agendamento de :type em :date|[2,*] :count agendamentos de :type em :date",
+  "{1} 1 spot left|[2,*] :count spots left": "{1} 1 vaga|[2,*] :count vagas"
 }

@@ -277,7 +277,7 @@ new class extends Component
                             : __('We restored an unsaved draft from :time.', $restoredDraft) }}
                     </flux:callout.heading>
 
-                    <x-slot name="actions">
+                    <x-slot name="actions" class="@md:self-center">
                         <flux:button size="sm" wire:click="discardDraft" data-test="appointment-record-discard-draft-button">
                             {{ __('Discard draft') }}
                         </flux:button>
@@ -321,6 +321,7 @@ new class extends Component
                     x-on:input="schedule()"
                     x-on:change="schedule()"
                     x-on:catalog-picker-change="schedule()"
+                    x-on:return-date-picked="schedule()"
                     x-on:submit="cancel(); status = ''"
                     x-on:visibilitychange.document="document.hidden && flush()"
                     x-on:livewire:navigating.document="flush()"
@@ -446,11 +447,26 @@ new class extends Component
 
                     <flux:separator variant="subtle" />
 
-                    <div class="space-y-4">
+                    {{-- Picking another return type does not send a request, so the section asks for the return date's occupancy again. --}}
+                    <div class="space-y-4" x-on:catalog-picker-change="$wire.$refresh()" data-test="appointment-record-return-section">
                         <flux:heading size="lg">{{ __('Return') }}</flux:heading>
 
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <flux:input type="date" wire:model="returnOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Return date')" data-test="appointment-record-return-on-input" />
+                        <div class="grid items-start gap-4 sm:grid-cols-2">
+                            <div class="space-y-2">
+                                <flux:input type="date" wire:model.live="returnOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Return date')" data-test="appointment-record-return-on-input" />
+
+                                <div class="flex flex-wrap gap-1">
+                                    @foreach ([7, 15, 30, 60] as $days)
+                                        <flux:button size="xs" wire:click="setReturnInDays({{ $days }})" x-on:click="$dispatch('return-date-picked')" data-test="appointment-record-return-in-{{ $days }}-days-button">
+                                            {{ __('+:days days', ['days' => $days]) }}
+                                        </flux:button>
+                                    @endforeach
+                                </div>
+
+                                <div class="pt-2">
+                                    <flux:checkbox wire:model.live="schedulesReturn" :label="__('Schedule the return')" data-test="appointment-record-schedules-return-checkbox" />
+                                </div>
+                            </div>
 
                             @if ($schedulesReturn)
                                 <flux:field>
@@ -466,11 +482,27 @@ new class extends Component
                                         test-id="appointment-record-return-type"
                                     />
                                     <flux:error name="returnAppointmentTypeId" />
+
+                                    @if ($occupancy = $this->returnDayOccupancy)
+                                        @if ($occupancy['remaining'] === 0)
+                                            <flux:callout
+                                                variant="warning"
+                                                icon="exclamation-triangle"
+                                                :heading="__('Limit reached: :count of :limit :type appointments on :date.', $occupancy)"
+                                                data-test="appointment-record-return-day-full"
+                                            />
+                                        @else
+                                            <flux:text class="text-sm" data-test="appointment-record-return-day-occupancy">
+                                                {{ trans_choice('{0} No :type appointments on :date|{1} 1 :type appointment on :date|[2,*] :count :type appointments on :date', $occupancy['count'], $occupancy) }}
+                                                @if ($occupancy['remaining'] !== null)
+                                                    · <span class="font-medium whitespace-nowrap text-green-700 dark:text-green-400">{{ trans_choice('{1} 1 spot left|[2,*] :count spots left', $occupancy['remaining']) }}</span>
+                                                @endif
+                                            </flux:text>
+                                        @endif
+                                    @endif
                                 </flux:field>
                             @endif
                         </div>
-
-                        <flux:checkbox wire:model.live="schedulesReturn" :label="__('Schedule the return')" data-test="appointment-record-schedules-return-checkbox" />
                     </div>
 
                     <flux:separator variant="subtle" />

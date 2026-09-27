@@ -32,4 +32,14 @@ class AppointmentTypeRules
     {
         return ['boolean'];
     }
+
+    /**
+     * Get the validation rules used to validate how many appointments of a type fit in a day.
+     *
+     * @return array<int, ValidationRule|array<mixed>|string|object>
+     */
+    public static function dailyLimit(): array
+    {
+        return ['nullable', 'integer', 'between:1,999'];
+    }
 }
