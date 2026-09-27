@@ -202,7 +202,7 @@ new class extends Component
                     <div class="space-y-2">
                         @foreach ($contactDetails as $icon => $detail)
                             <div class="flex items-start gap-2">
-                                <flux:icon :name="$icon" variant="micro" class="mt-0.5 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                                <flux:icon :name="$icon" class="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
                                 <flux:text class="min-w-0 break-words">{{ $detail }}</flux:text>
                             </div>
                         @endforeach
@@ -230,7 +230,7 @@ new class extends Component
                         class="flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-start text-sm font-medium text-zinc-800 dark:text-white"
                         data-test="appointment-record-history-toggle"
                     >
-                        <flux:icon name="chevron-right" variant="mini" class="size-4 transition-transform duration-200" x-bind:class="open && 'rotate-90'" />
+                        <flux:icon name="chevron-right" class="size-4 transition-transform duration-200" x-bind:class="open && 'rotate-90'" />
                         {{ __('Previous appointments (:count)', ['count' => $this->history->count()]) }}
                     </button>
 
@@ -266,11 +266,11 @@ new class extends Component
 
         <div class="min-w-0 space-y-6">
             @if ($this->otherAttendant)
-                <flux:callout variant="warning" icon="exclamation-triangle" :heading="__(':name is already attending this appointment.', ['name' => $this->otherAttendant->name])" data-test="appointment-record-other-attendant" />
+                <flux:callout variant="warning" icon="exclamation-triangle" icon:variant="outline" :heading="__(':name is already attending this appointment.', ['name' => $this->otherAttendant->name])" data-test="appointment-record-other-attendant" />
             @endif
 
             @if ($restoredDraft)
-                <flux:callout variant="secondary" icon="document-text" inline data-test="appointment-record-restored-draft">
+                <flux:callout variant="secondary" icon="document-text" icon:variant="outline" inline data-test="appointment-record-restored-draft">
                     <flux:callout.heading>
                         {{ $restoredDraft['name']
                             ? __('We restored an unsaved draft from :time (:name).', $restoredDraft)
@@ -397,7 +397,7 @@ new class extends Component
                                         @endforeach
                                     </flux:radio.group>
 
-                                    <flux:button variant="ghost" size="sm" icon="x-mark" class="self-end sm:mb-1.5" wire:click="removePassPrescription({{ $index }})" :aria-label="__('Remove pass')" data-test="appointment-record-remove-pass-button" />
+                                    <flux:button variant="ghost" size="sm" icon="x-mark" icon:variant="outline" class="self-end sm:mb-1.5" wire:click="removePassPrescription({{ $index }})" :aria-label="__('Remove pass')" data-test="appointment-record-remove-pass-button" />
                                 </div>
 
                                 <flux:error name="passPrescriptions.{{ $index }}.pass_type_id" />
@@ -406,7 +406,7 @@ new class extends Component
                             </div>
                         @endforeach
 
-                        <flux:button size="sm" icon="plus" wire:click="addPassPrescription" data-test="appointment-record-add-pass-button">
+                        <flux:button size="sm" icon="plus" icon:variant="outline" wire:click="addPassPrescription" data-test="appointment-record-add-pass-button">
                             {{ __('Add pass') }}
                         </flux:button>
                     </div>
@@ -488,6 +488,7 @@ new class extends Component
                                             <flux:callout
                                                 variant="warning"
                                                 icon="exclamation-triangle"
+                                                icon:variant="outline"
                                                 :heading="__('Limit reached: :count of :limit :type appointments on :date.', $occupancy)"
                                                 data-test="appointment-record-return-day-full"
                                             />
@@ -516,7 +517,7 @@ new class extends Component
                         <flux:text x-show="status" x-text="status" x-cloak class="text-xs sm:me-auto" data-test="appointment-record-draft-status"></flux:text>
 
                         @if ($this->isInProgress)
-                            <flux:button variant="ghost" icon="arrow-uturn-left" x-on:click="cancel()" wire:click="returnToQueue" data-test="appointment-record-return-to-queue-button">
+                            <flux:button variant="ghost" icon="arrow-uturn-left" icon:variant="outline" x-on:click="cancel()" wire:click="returnToQueue" data-test="appointment-record-return-to-queue-button">
                                 {{ __('Return to queue') }}
                             </flux:button>
                         @endif
@@ -526,7 +527,7 @@ new class extends Component
                         </flux:button>
 
                         @if ($this->isInProgress)
-                            <flux:button variant="primary" icon="check-circle" x-on:click="cancel()" wire:click="complete" data-test="appointment-record-complete-button">
+                            <flux:button variant="primary" icon="check-circle" icon:variant="outline" x-on:click="cancel()" wire:click="complete" data-test="appointment-record-complete-button">
                                 {{ __('Complete appointment') }}
                             </flux:button>
                         @endif
