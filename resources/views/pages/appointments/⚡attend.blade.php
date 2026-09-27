@@ -153,7 +153,7 @@ new class extends Component
 
         $validated = $this->validate(AppointmentRecordRules::all($this->appointment));
 
-        $saveAppointmentRecord->handle($this->appointment, $this->recordAttributes($validated));
+        $saveAppointmentRecord->handle($this->appointment, Auth::user(), $this->recordAttributes($validated));
 
         unset($this->record);
         $this->restoredDraft = null;

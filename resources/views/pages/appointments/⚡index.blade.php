@@ -198,7 +198,7 @@ new class extends Component
         }
 
         return Auth::user()->currentTeam->appointments()
-            ->with(['appointmentType', 'assistedPerson', 'attendant', 'record.mentor'])
+            ->with(['appointmentType', 'assistedPerson', 'attendant', 'creator', 'record.mentor'])
             ->find($this->selectedAppointmentId);
     }
 
@@ -747,26 +747,42 @@ new class extends Component
                         </div>
                     @endif
 
-                    @if ($selectedAppointment->started_at && $selectedAppointment->finished_at)
-                        <div class="flex items-start gap-2 border-t border-zinc-200 pt-4 dark:border-white/10">
-                            <flux:icon.pencil-square class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-                            <flux:text size="sm" class="min-w-0" data-test="appointment-details-system-entry">
+                    <div class="space-y-2 border-t border-zinc-200 pt-4 dark:border-white/10">
+                        <div class="flex items-start gap-2">
+                            <flux:icon.calendar class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                            <flux:text size="sm" class="min-w-0" data-test="appointment-details-scheduling">
                                 {{ __(
-                                    match (true) {
-                                        $selectedAppointment->attendant && $selectedAppointment->started_at->format('H:i') === $selectedAppointment->finished_at->format('H:i') => 'Entered in the system by :user, at :start.',
-                                        (bool) $selectedAppointment->attendant => 'Entered in the system by :user, from :start to :end.',
-                                        $selectedAppointment->started_at->format('H:i') === $selectedAppointment->finished_at->format('H:i') => 'Entered in the system at :start.',
-                                        default => 'Entered in the system from :start to :end.',
-                                    },
+                                    $selectedAppointment->creator ? 'Scheduled by :user on :date at :time.' : 'Scheduled on :date at :time.',
                                     [
-                                        'user' => $selectedAppointment->attendant?->name,
-                                        'start' => $selectedAppointment->started_at->format('H:i'),
-                                        'end' => $selectedAppointment->finished_at->format('H:i'),
+                                        'user' => $selectedAppointment->creator?->name,
+                                        'date' => $selectedAppointment->created_at->format('d/m/Y'),
+                                        'time' => $selectedAppointment->created_at->format('H:i'),
                                     ],
                                 ) }}
                             </flux:text>
                         </div>
-                    @endif
+
+                        @if ($selectedAppointment->started_at && $selectedAppointment->finished_at)
+                            <div class="flex items-start gap-2">
+                                <flux:icon.pencil-square class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                                <flux:text size="sm" class="min-w-0" data-test="appointment-details-system-entry">
+                                    {{ __(
+                                        match (true) {
+                                            $selectedAppointment->attendant && $selectedAppointment->started_at->format('H:i') === $selectedAppointment->finished_at->format('H:i') => 'Entered in the system by :user, at :start.',
+                                            (bool) $selectedAppointment->attendant => 'Entered in the system by :user, from :start to :end.',
+                                            $selectedAppointment->started_at->format('H:i') === $selectedAppointment->finished_at->format('H:i') => 'Entered in the system at :start.',
+                                            default => 'Entered in the system from :start to :end.',
+                                        },
+                                        [
+                                            'user' => $selectedAppointment->attendant?->name,
+                                            'start' => $selectedAppointment->started_at->format('H:i'),
+                                            'end' => $selectedAppointment->finished_at->format('H:i'),
+                                        ],
+                                    ) }}
+                                </flux:text>
+                            </div>
+                        @endif
+                    </div>
                 </flux:card>
 
                 @php($opensRecord = $selectedAppointment->usesRecord() && $selectedAppointment->status === AppointmentStatus::Completed)

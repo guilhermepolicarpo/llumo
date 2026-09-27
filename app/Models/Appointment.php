@@ -30,6 +30,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $started_at
  * @property Carbon|null $finished_at
  * @property int|null $attendant_id
+ * @property int|null $creator_id
  * @property string|null $notes
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -38,6 +39,7 @@ use Illuminate\Support\Carbon;
  * @property-read AppointmentType $appointmentType
  * @property-read AssistedPerson $assistedPerson
  * @property-read User|null $attendant
+ * @property-read User|null $creator
  * @property-read AppointmentRecord|null $record
  * @property-read AppointmentRecordDraft|null $recordDraft
  * @property-read string $description
@@ -53,6 +55,7 @@ use Illuminate\Support\Carbon;
     'started_at',
     'finished_at',
     'attendant_id',
+    'creator_id',
     'notes',
 ])]
 class Appointment extends Model
@@ -107,6 +110,16 @@ class Appointment extends Model
     public function attendant(): BelongsTo
     {
         return $this->belongsTo(User::class, 'attendant_id');
+    }
+
+    /**
+     * Get the user who scheduled this appointment.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'creator_id');
     }
 
     /**

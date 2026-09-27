@@ -519,6 +519,8 @@
   "Entered in the system from :start to :end.": "Lançado no sistema das :start às :end.",
   "Entered in the system by :user, at :start.": "Lançado no sistema por :user, às :start.",
   "Entered in the system at :start.": "Lançado no sistema às :start.",
+  "Scheduled by :user on :date at :time.": "Agendado por :user em :date às :time.",
+  "Scheduled on :date at :time.": "Agendado em :date às :time.",
   "Appointment mentor": "Mentor do atendimento",
   "Fluidic remedy": "Fluídico",
   "Medications": "Medicamentos",

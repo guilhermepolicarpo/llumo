@@ -19,6 +19,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Collection as SupportCollection;
 
 class DatabaseSeeder extends Seeder
 {
@@ -184,7 +185,11 @@ class DatabaseSeeder extends Seeder
         FluidicRemedy::factory()->for($team)->createMany(array_map(fn (string $name): array => ['name' => $name], self::FLUIDIC_REMEDIES));
         Guidance::factory()->for($team)->createMany(array_map(fn (string $name): array => ['name' => $name], array_keys(self::GUIDANCES)));
 
+        $memberIds = $team->members()->pluck('users.id');
+        $attendant = fn () => ['attendant_id' => $memberIds->random()];
+
         $scheduledAppointment = fn () => [
+            'creator_id' => $memberIds->random(),
             'appointment_type_id' => fake()->randomElement([$healingTreatment, $healingTreatment, $spiritualIntervention, $hydrotherapy])->id,
             'assisted_person_id' => $assistedPeople->random()->id,
             'notes' => fake()->optional(0.3)->randomElement([
@@ -195,9 +200,6 @@ class DatabaseSeeder extends Seeder
             ]),
             'scheduled_on' => today()->toDateString(),
         ];
-
-        $attendantIds = $team->members()->pluck('users.id');
-        $attendant = fn () => ['attendant_id' => $attendantIds->random()];
 
         Appointment::factory()->count(12)->for($team)->state($scheduledAppointment)->create();
         Appointment::factory()->count(4)->for($team)->state($scheduledAppointment)->waiting()->create();
@@ -231,14 +233,15 @@ class DatabaseSeeder extends Seeder
         Appointment::factory()->count(2)->for($team)->state($scheduledAppointment)->canceled()->create();
 
         $completedToday->concat($completedEarlier)->concat($completedWeekAgo)
-            ->load('appointmentType')
+            ->load(['appointmentType', 'attendant'])
             ->filter(fn (Appointment $appointment): bool => $appointment->usesRecord())
             ->each(fn (Appointment $appointment) => app(SaveAppointmentRecord::class)->handle(
                 $appointment,
+                $appointment->attendant,
                 $this->recordAttributes($team, $appointment, $infiltrationRemoval),
             ));
 
-        $this->fillHealingTreatmentDays($team, $healingTreatment, $assistedPeople);
+        $this->fillHealingTreatmentDays($team, $healingTreatment, $assistedPeople, $memberIds);
     }
 
     /**
@@ -263,8 +266,9 @@ class DatabaseSeeder extends Seeder
      * counting the ones already seeded, like the returns scheduled by the records.
      *
      * @param  Collection<int, AssistedPerson>  $assistedPeople
+     * @param  SupportCollection<int, int>  $memberIds
      */
-    private function fillHealingTreatmentDays(Team $team, AppointmentType $healingTreatment, Collection $assistedPeople): void
+    private function fillHealingTreatmentDays(Team $team, AppointmentType $healingTreatment, Collection $assistedPeople, SupportCollection $memberIds): void
     {
         foreach (self::HEALING_TREATMENTS_BY_DAYS_AHEAD as $daysAhead => $total) {
             $day = today()->addDays($daysAhead);
@@ -276,6 +280,7 @@ class DatabaseSeeder extends Seeder
                 ->count();
 
             Appointment::factory()->count(max(0, $total - $booked))->for($team)->state(fn () => [
+                'creator_id' => $memberIds->random(),
                 'appointment_type_id' => $healingTreatment->id,
                 'assisted_person_id' => $assistedPeople->random()->id,
                 'scheduled_on' => $day->toDateString(),

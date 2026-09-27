@@ -52,6 +52,7 @@ test('members can schedule an appointment', function () {
         ->and($appointment->mode)->toBe(AppointmentMode::Remote)
         ->and($appointment->scheduled_on->toDateString())->toBe(today()->addWeek()->toDateString())
         ->and($appointment->notes)->toBe('Trazer exames')
+        ->and($appointment->creator_id)->toBe($user->id)
         ->and($appointment->fresh()->status)->toBe(AppointmentStatus::Scheduled);
 });
 
@@ -664,6 +665,24 @@ test('the details flyout shows the system entry time once when it started and fi
         ->call('showAppointment', $appointment->id)
         ->assertSee(__('Entered in the system by :user, at :start.', ['user' => 'Pedro Alves', 'start' => '17:49']))
         ->assertDontSee(__('Entered in the system by :user, from :start to :end.', ['user' => 'Pedro Alves', 'start' => '17:49', 'end' => '17:49']));
+});
+
+test('the details flyout presents who scheduled the appointment and when', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $this->travelTo(today()->setTime(14, 32));
+    $withCreator = Appointment::factory()->for($team)->create(['creator_id' => User::factory()->create(['name' => 'Marta Reis'])]);
+    $withoutCreator = Appointment::factory()->for($team)->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->call('showAppointment', $withCreator->id)
+        ->assertSee(__('Scheduled by :user on :date at :time.', ['user' => 'Marta Reis', 'date' => today()->format('d/m/Y'), 'time' => '14:32']))
+        ->assertDontSeeHtml('data-test="appointment-details-system-entry"')
+        ->call('showAppointment', $withoutCreator->id)
+        ->assertSee(__('Scheduled on :date at :time.', ['date' => today()->format('d/m/Y'), 'time' => '14:32']));
 });
 
 test('deleting the appointment closes the details flyout', function () {

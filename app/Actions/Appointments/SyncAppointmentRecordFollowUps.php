@@ -6,6 +6,7 @@ use App\Enums\AppointmentMode;
 use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
 use App\Models\AppointmentRecord;
+use App\Models\User;
 use Carbon\CarbonInterface;
 
 class SyncAppointmentRecordFollowUps
@@ -17,14 +18,15 @@ class SyncAppointmentRecordFollowUps
 
     /**
      * Create, update, or remove the infiltration removal and return appointments requested by the record,
-     * linking them to the record without saving it.
+     * linking them to the record without saving it. New follow-ups are scheduled in the name of the given user.
      *
      * @param  array{removal_appointment_type_id: ?int, schedules_return: bool, return_appointment_type_id: ?int}  $attributes
      */
-    public function handle(Appointment $appointment, AppointmentRecord $record, array $attributes): void
+    public function handle(Appointment $appointment, AppointmentRecord $record, User $user, array $attributes): void
     {
         $record->infiltration_removal_appointment_id = $this->syncFollowUp(
             appointment: $appointment,
+            user: $user,
             followUp: $record->infiltrationRemovalAppointment,
             scheduledOn: $record->infiltration_removal_place?->schedulesRemoval() ? $record->infiltration_remove_on : null,
             appointmentTypeId: $attributes['removal_appointment_type_id'],
@@ -33,6 +35,7 @@ class SyncAppointmentRecordFollowUps
 
         $record->return_appointment_id = $this->syncFollowUp(
             appointment: $appointment,
+            user: $user,
             followUp: $record->returnAppointment,
             scheduledOn: $attributes['schedules_return'] ? $record->return_on : null,
             appointmentTypeId: $attributes['return_appointment_type_id'],
@@ -48,6 +51,7 @@ class SyncAppointmentRecordFollowUps
      */
     private function syncFollowUp(
         Appointment $appointment,
+        User $user,
         ?Appointment $followUp,
         ?CarbonInterface $scheduledOn,
         ?int $appointmentTypeId,
@@ -74,7 +78,7 @@ class SyncAppointmentRecordFollowUps
         ];
 
         if ($followUp === null) {
-            return $this->createAppointment->handle($appointment->team, $attributes)->id;
+            return $this->createAppointment->handle($appointment->team, $user, $attributes)->id;
         }
 
         return $this->updateAppointment->handle($followUp, $attributes)->id;

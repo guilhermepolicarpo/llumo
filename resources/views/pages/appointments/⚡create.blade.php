@@ -28,7 +28,7 @@ new class extends Component
 
         $validated = $this->validate(AppointmentRules::all($team));
 
-        $createAppointment->handle($team, $this->appointmentAttributes($validated));
+        $createAppointment->handle($team, Auth::user(), $this->appointmentAttributes($validated));
 
         Flux::toast(variant: 'success', text: __('Appointment created.'));
 

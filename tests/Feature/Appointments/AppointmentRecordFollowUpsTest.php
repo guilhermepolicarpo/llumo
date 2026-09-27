@@ -64,6 +64,7 @@ test('the return checkbox schedules the return with the same type and mode by de
         ->assisted_person_id->toBe($appointment->assisted_person_id)
         ->mode->toBe(AppointmentMode::Remote)
         ->status->toBe(AppointmentStatus::Scheduled)
+        ->creator_id->toBe($appointment->attendant_id)
         ->and($return->scheduled_on->toDateString())->toBe('2026-10-11')
         ->and($appointment->record->return_appointment_id)->toBe($return->id);
 });

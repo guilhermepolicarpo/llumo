@@ -5,6 +5,7 @@ namespace App\Actions\Appointments;
 use App\Concerns\NormalizesBlankStrings;
 use App\Models\Appointment;
 use App\Models\AppointmentRecord;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class SaveAppointmentRecord
@@ -33,9 +34,9 @@ class SaveAppointmentRecord
      *     observations: ?string,
      * }  $attributes
      */
-    public function handle(Appointment $appointment, array $attributes): AppointmentRecord
+    public function handle(Appointment $appointment, User $user, array $attributes): AppointmentRecord
     {
-        return DB::transaction(function () use ($appointment, $attributes): AppointmentRecord {
+        return DB::transaction(function () use ($appointment, $user, $attributes): AppointmentRecord {
             $record = $appointment->record()->firstOrNew();
 
             $record->fill([
@@ -48,7 +49,7 @@ class SaveAppointmentRecord
                 'observations' => $this->blankToNull($attributes['observations']),
             ]);
 
-            $this->syncAppointmentRecordFollowUps->handle($appointment, $record, $attributes);
+            $this->syncAppointmentRecordFollowUps->handle($appointment, $record, $user, $attributes);
 
             $record->save();
 
