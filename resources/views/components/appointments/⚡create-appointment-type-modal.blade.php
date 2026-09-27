@@ -29,7 +29,7 @@ new class extends Component {
     }
 }; ?>
 
-<flux:modal name="create-appointment-type" :show="$errors->isNotEmpty()" focusable class="max-w-lg">
+<flux:modal name="create-appointment-type" flyout variant="floating" :show="$errors->isNotEmpty()" class="md:w-lg">
     <form wire:submit="createAppointmentType" class="space-y-6">
         <div>
             <flux:heading size="lg">{{ __('New appointment type') }}</flux:heading>

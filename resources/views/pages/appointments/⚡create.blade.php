@@ -65,5 +65,5 @@ new class extends Component
     </form>
 
     <livewire:appointments.create-appointment-type-modal />
-    <livewire:appointments.quick-create-assisted-person-modal />
+    <livewire:appointments.create-assisted-person-modal />
 </section>

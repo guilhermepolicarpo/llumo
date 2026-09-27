@@ -172,7 +172,7 @@
                                 <flux:button
                                     size="sm"
                                     icon="plus"
-                                    x-on:click="$dispatch('open-quick-create-assisted-person', { name: $wire.assistedPersonSearch })"
+                                    x-on:click="$dispatch('open-create-assisted-person', { name: $wire.assistedPersonSearch })"
                                     data-test="appointment-register-searched-assisted-person-button"
                                 >
                                     {{ __('Register ":name"', ['name' => trim($assistedPersonSearch)]) }}
