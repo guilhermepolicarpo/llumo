@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\BrazilianState;
+use App\Enums\TeamRole;
 use App\Models\AppointmentType;
 use App\Models\User;
 use Livewire\Livewire;
@@ -42,37 +44,43 @@ test('appointment type names are unique per team', function () {
     expect($team->appointmentTypes()->count())->toBe(2);
 });
 
-test('members can quickly create an assisted person from the modal', function () {
-    $user = User::factory()->create();
-    $team = teamOwnedBy($user);
+test('members can create an assisted person with the full profile from the modal', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
 
-    $this->actingAs($user);
-    $user->switchTeam($team);
-
-    Livewire::test('appointments.quick-create-assisted-person-modal')
-        ->dispatch('open-quick-create-assisted-person', name: ' Maria Silva ')
+    Livewire::test('appointments.create-assisted-person-modal')
+        ->dispatch('open-create-assisted-person', name: ' Maria Silva ')
         ->assertSet('name', 'Maria Silva')
-        ->set('phone', '(11) 98765-4321')
-        ->set('birthDate', '1990-05-20')
+        ->set('email', 'maria@example.com')
+        ->set('city', 'São Paulo')
+        ->set('state', 'SP')
         ->call('createAssistedPerson')
         ->assertHasNoErrors()
         ->assertDispatched('assisted-person-created', assistedPersonId: $team->assistedPeople()->sole()->id);
 
-    $assistedPerson = $team->assistedPeople()->sole();
-
-    expect($assistedPerson->name)->toBe('Maria Silva')
-        ->and($assistedPerson->phone)->toBe('11987654321')
-        ->and($assistedPerson->birth_date->toDateString())->toBe('1990-05-20');
+    expect($team->assistedPeople()->sole())
+        ->name->toBe('Maria Silva')
+        ->email->toBe('maria@example.com')
+        ->city->toBe('São Paulo')
+        ->state->toBe(BrazilianState::SaoPaulo);
 });
 
-test('the quick-create assisted person modal requires a name', function () {
-    $user = User::factory()->create();
-    $team = teamOwnedBy($user);
+test('reopening the assisted person modal clears the previous form', function () {
+    actingAsTeamMember(TeamRole::Member);
 
-    $this->actingAs($user);
-    $user->switchTeam($team);
+    Livewire::test('appointments.create-assisted-person-modal')
+        ->dispatch('open-create-assisted-person', name: 'Maria Silva')
+        ->set('email', 'maria@example.com')
+        ->set('city', 'São Paulo')
+        ->dispatch('open-create-assisted-person', name: 'João Souza')
+        ->assertSet('name', 'João Souza')
+        ->assertSet('email', '')
+        ->assertSet('city', '');
+});
 
-    Livewire::test('appointments.quick-create-assisted-person-modal')
+test('the assisted person modal requires a name', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+
+    Livewire::test('appointments.create-assisted-person-modal')
         ->call('createAssistedPerson')
         ->assertHasErrors(['name' => 'required'])
         ->assertNotDispatched('assisted-person-created');

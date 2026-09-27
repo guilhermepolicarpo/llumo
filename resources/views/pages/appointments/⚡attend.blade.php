@@ -349,7 +349,7 @@ new class extends Component
                             <flux:error name="fluidicRemedyIds.*" />
                         </flux:field>
 
-                        <flux:input wire:model="fluidInstructions" :label="__('How to take')" :placeholder="__('3 times a day, every 3 hours')" data-test="appointment-record-fluid-instructions-input" />
+                        <flux:input wire:model="fluidInstructions" :label="__('How to take')" :placeholder="__('E.g. 3 times a day, every 3 hours')" data-test="appointment-record-fluid-instructions-input" />
                     </div>
 
                     <flux:separator variant="subtle" />
@@ -417,7 +417,7 @@ new class extends Component
                         <flux:heading size="lg">{{ __('Infiltration') }}</flux:heading>
 
                         <div class="grid gap-4 sm:grid-cols-2">
-                            <flux:input wire:model.blur="infiltrationSite" :label="__('Site')" :placeholder="__('Right arm')" data-test="appointment-record-infiltration-site-input" />
+                            <flux:input wire:model.blur="infiltrationSite" :label="__('Site')" :placeholder="__('E.g. Right arm')" data-test="appointment-record-infiltration-site-input" />
                             <flux:input type="date" wire:model="infiltrationRemoveOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Remove on')" data-test="appointment-record-infiltration-remove-on-input" />
                         </div>
 

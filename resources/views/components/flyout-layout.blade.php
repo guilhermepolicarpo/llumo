@@ -1,5 +1,5 @@
 {{-- Lays out a flyout's content: only the body scrolls, the footer stays pinned, and a fade with a shortcut shows while more content sits below. --}}
-{{-- The flyout modal must be a flex column (class="flex flex-col") for the body to fill it. --}}
+{{-- The flyout modal must be a flex column (class="flex flex-col") for the body to fill it, and so must any wrapper in between, such as a form (class="flex min-h-0 flex-1 flex-col"). --}}
 @props(['moreLabel' => __('More details')])
 
 <div

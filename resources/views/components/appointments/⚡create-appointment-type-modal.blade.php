@@ -1,19 +1,15 @@
 <?php
 
 use App\Actions\AppointmentTypes\CreateAppointmentType;
+use App\Concerns\InteractsWithAppointmentTypeForm;
 use App\Models\AppointmentType;
-use App\Rules\AppointmentTypeRules;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 
 new class extends Component {
-    public string $name = '';
-
-    public bool $requiresRecord = false;
-
-    public string $dailyLimit = '';
+    use InteractsWithAppointmentTypeForm;
 
     public function createAppointmentType(CreateAppointmentType $createAppointmentType): void
     {
@@ -21,19 +17,7 @@ new class extends Component {
 
         Gate::authorize('create', [AppointmentType::class, $team]);
 
-        $this->name = trim($this->name);
-
-        $validated = $this->validate([
-            'name' => AppointmentTypeRules::name($team),
-            'requiresRecord' => AppointmentTypeRules::requiresRecord(),
-            'dailyLimit' => AppointmentTypeRules::dailyLimit(),
-        ]);
-
-        $appointmentType = $createAppointmentType->handle($team, [
-            'name' => $validated['name'],
-            'requires_record' => $validated['requiresRecord'],
-            'daily_limit' => (int) $validated['dailyLimit'] ?: null,
-        ]);
+        $appointmentType = $createAppointmentType->handle($team, $this->validatedAppointmentTypeAttributes($team));
 
         $this->reset('name', 'requiresRecord', 'dailyLimit');
 
@@ -45,32 +29,14 @@ new class extends Component {
     }
 }; ?>
 
-<flux:modal name="create-appointment-type" :show="$errors->isNotEmpty()" focusable class="max-w-lg">
+<flux:modal name="create-appointment-type" flyout variant="floating" :show="$errors->isNotEmpty()" class="md:w-lg">
     <form wire:submit="createAppointmentType" class="space-y-6">
         <div>
             <flux:heading size="lg">{{ __('New appointment type') }}</flux:heading>
             <flux:subheading>{{ __('Register a type of appointment offered by this Spiritist Center.') }}</flux:subheading>
         </div>
 
-        <flux:input wire:model="name" :label="__('Name')" :placeholder="__('Fraternal assistance')" required autofocus data-test="appointment-type-name-input" />
-
-        <flux:switch
-            wire:model="requiresRecord"
-            :label="__('Fill in a record during the appointment')"
-            :description="__('Opens the appointment record screen when the assisted person is attended.')"
-            align="left"
-            data-test="appointment-type-requires-record-switch"
-        />
-
-        <flux:input
-            type="number"
-            min="1"
-            max="999"
-            wire:model="dailyLimit"
-            :label="__('Daily appointment limit')"
-            :description="__('Leave blank for no limit.')"
-            data-test="appointment-type-daily-limit-input"
-        />
+        <x-appointment-types.fields />
 
         <div class="flex justify-end space-x-2 rtl:space-x-reverse">
             <flux:modal.close>

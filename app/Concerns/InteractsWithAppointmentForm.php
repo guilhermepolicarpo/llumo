@@ -79,7 +79,7 @@ trait InteractsWithAppointmentForm
     }
 
     /**
-     * Select the given assisted person for the appointment, including one just created from the quick-create modal.
+     * Select the given assisted person for the appointment, including one just created from the create modal.
      */
     #[On('assisted-person-created')]
     public function selectAssistedPerson(int $assistedPersonId): void
@@ -104,7 +104,7 @@ trait InteractsWithAppointmentForm
     }
 
     /**
-     * Select an appointment type just created from the quick-create modal.
+     * Select an appointment type just created from the create modal.
      */
     #[On('appointment-type-created')]
     public function appointmentTypeCreated(int $appointmentTypeId): void

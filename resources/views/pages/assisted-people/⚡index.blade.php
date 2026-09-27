@@ -57,11 +57,7 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <flux:heading size="xl">{{ __('Assisted people') }}</flux:heading>
-            <flux:subheading>{{ __('People assisted by this Spiritist Center') }}</flux:subheading>
-        </div>
+    <x-page-header :heading="__('Assisted people')" :subheading="__('People assisted by this Spiritist Center')" :separator="false">
 
         <div class="flex items-center gap-3">
             <flux:input
@@ -83,9 +79,9 @@ new class extends Component
                 {{ __('New assisted person') }}
             </flux:button>
         </div>
-    </div>
+    </x-page-header>
 
-    <flux:card class="mt-6 scroll-mt-6 px-4 pt-0 pb-4 [--flux-bleed:1rem]" id="assisted-people-table">
+    <flux:card class="scroll-mt-6 px-4 pt-0 pb-4 [--flux-bleed:1rem]" id="assisted-people-table">
         @if ($this->assistedPeople->isNotEmpty())
             <flux:table bleed>
                 <flux:table.columns>

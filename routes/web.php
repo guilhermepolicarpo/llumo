@@ -19,6 +19,9 @@ Route::prefix('{current_team}')
         Route::livewire('appointments/create', 'pages::appointments.create')->name('appointments.create');
         Route::livewire('appointments/{appointment}/edit', 'pages::appointments.edit')->name('appointments.edit');
         Route::livewire('appointments/{appointment}/attend', 'pages::appointments.attend')->name('appointments.attend');
+
+        Route::livewire('catalogs/appointment-types', 'pages::catalogs.appointment-types')->name('catalogs.appointment-types');
+        Route::livewire('catalogs/{catalog}', 'pages::catalogs.index')->name('catalogs.index');
     });
 
 require __DIR__.'/settings.php';

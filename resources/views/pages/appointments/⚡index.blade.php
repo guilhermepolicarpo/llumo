@@ -362,22 +362,19 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-            <flux:heading size="xl">{{ __('Appointments') }}</flux:heading>
-            <flux:subheading>
-                @if ($this->pending)
-                    {{ __('Appointments from previous days awaiting entry') }}
-                @elseif ($this->filteredDate)
-                    {{ __('Appointments on :weekday, :date', [
-                        'weekday' => $this->filteredDate->translatedFormat('l'),
-                        'date' => $this->filteredDate->format('d/m/Y'),
-                    ]) }}
-                @else
-                    {{ __('Appointments scheduled at this Spiritist Center') }}
-                @endif
-            </flux:subheading>
-        </div>
+    <x-page-header :heading="__('Appointments')" :separator="false" stack-until="lg">
+        <x-slot:subheading>
+            @if ($this->pending)
+                {{ __('Appointments from previous days awaiting entry') }}
+            @elseif ($this->filteredDate)
+                {{ __('Appointments on :weekday, :date', [
+                    'weekday' => $this->filteredDate->translatedFormat('l'),
+                    'date' => $this->filteredDate->format('d/m/Y'),
+                ]) }}
+            @else
+                {{ __('Appointments scheduled at this Spiritist Center') }}
+            @endif
+        </x-slot:subheading>
 
         <div class="flex flex-wrap md:flex-nowrap items-center gap-3">
             <flux:input
@@ -416,7 +413,7 @@ new class extends Component
                 {{ __('New appointment') }}
             </flux:button>
         </div>
-    </div>
+    </x-page-header>
 
     @if (! $this->pending && $this->pendingCount > 0)
         <flux:callout variant="warning" icon="exclamation-triangle" icon:variant="outline" inline class="mt-4" data-test="appointments-pending-callout">

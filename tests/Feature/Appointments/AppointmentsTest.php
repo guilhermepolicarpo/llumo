@@ -164,7 +164,7 @@ test('an assisted person from another team cannot be selected', function () {
         ->assertSet('assistedPersonId', null);
 });
 
-test('the form selects records created from the quick-create modals', function () {
+test('the form selects records created from the create modals', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
     $appointmentType = AppointmentType::factory()->for($team)->create(['name' => 'Passe']);

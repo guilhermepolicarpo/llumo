@@ -60,15 +60,7 @@ new class extends Component
     <x-page-header :heading="__('Edit assisted person')" :subheading="__('Update this assisted person\'s details for this Spiritist Center')" :back-href="route('assisted-people.index')" :back-label="__('Back to assisted people')" />
 
     <form wire:submit="updateAssistedPerson" class="max-w-xl space-y-6">
-        <flux:fieldset>
-            <flux:input wire:model="name" :label="__('Name')" required autofocus :placeholder="__('John Doe')" data-test="assisted-person-name-input" />
-            <flux:input type="email" wire:model="email" :label="__('Email')" :placeholder="__('john.doe@example.com')" data-test="assisted-person-email-input" />
-
-            <div class="grid gap-6 sm:grid-cols-2">
-                <flux:input type="date" wire:model="birthDate" :label="__('Birth date')" max="{{ today()->toDateString() }}" data-test="assisted-person-birth-date-input" />
-                <flux:input wire:model="phone" :label="__('Phone')" placeholder="(00) 00000-0000" inputmode="numeric" mask="(99) 99999-9999" data-test="assisted-person-phone-input" />
-            </div>
-        </flux:fieldset>
+        <x-assisted-people.fields />
 
         <x-pages::address-form :states="$this->states" test-prefix="assisted-person" />
 

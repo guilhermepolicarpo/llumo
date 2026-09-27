@@ -86,7 +86,7 @@
             <flux:input
                 label="{{ __('Passkey name') }}"
                 x-model="name"
-                placeholder="{{ __('e.g., MacBook Pro, iPhone') }}"
+                placeholder="{{ __('E.g. MacBook Pro, iPhone') }}"
                 x-on:keydown.enter.prevent="register()"
                 x-ref="passkeyNameInput"
                 x-init="$nextTick(() => $refs.passkeyNameInput?.focus())"
