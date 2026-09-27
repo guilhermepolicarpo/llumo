@@ -220,9 +220,12 @@ new class extends Component
         </flux:card>
     </x-pages::catalogs.layout>
 
-    <flux:modal name="appointment-type" :show="$errors->isNotEmpty()" focusable class="w-full max-w-lg">
+    <flux:modal name="appointment-type" flyout variant="floating" :show="$errors->isNotEmpty()" class="md:w-lg">
         <form wire:submit="saveAppointmentType" class="space-y-6">
-            <flux:heading size="lg">{{ $editingId !== null ? __('Edit appointment type') : __('New appointment type') }}</flux:heading>
+            <div>
+                <flux:heading size="lg">{{ $editingId !== null ? __('Edit appointment type') : __('New appointment type') }}</flux:heading>
+                <flux:subheading>{{ __('Types of appointment offered by this Spiritist Center.') }}</flux:subheading>
+            </div>
 
             <x-appointment-types.fields />
 

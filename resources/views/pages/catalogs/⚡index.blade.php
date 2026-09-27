@@ -272,11 +272,14 @@ new class extends Component
         </flux:card>
     </x-pages::catalogs.layout>
 
-    <flux:modal name="catalog-entry" :show="$errors->isNotEmpty()" focusable class="w-full max-w-lg">
+    <flux:modal name="catalog-entry" flyout variant="floating" :show="$errors->isNotEmpty()" class="md:w-lg">
         <form wire:submit="saveEntry" class="space-y-6">
-            <flux:heading size="lg">{{ $editingId !== null ? $catalog->editEntryTitle() : $catalog->newEntryTitle() }}</flux:heading>
+            <div>
+                <flux:heading size="lg">{{ $editingId !== null ? $catalog->editEntryTitle() : $catalog->newEntryTitle() }}</flux:heading>
+                <flux:subheading>{{ $catalog->description() }}</flux:subheading>
+            </div>
 
-            <flux:input wire:model="name" :label="__('Name')" required autofocus data-test="catalog-entry-name-input" />
+            <flux:input wire:model="name" :label="__('Name')" :placeholder="$catalog->namePlaceholder()" required autofocus data-test="catalog-entry-name-input" />
 
             <div class="flex justify-end space-x-2 rtl:space-x-reverse">
                 <flux:modal.close>
