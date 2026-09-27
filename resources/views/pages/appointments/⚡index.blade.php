@@ -424,7 +424,7 @@ new class extends Component
                 {{ trans_choice(':count appointment from previous days is still awaiting entry.|:count appointments from previous days are still awaiting entry.', $this->pendingCount) }}
             </flux:callout.heading>
 
-            <x-slot name="actions">
+            <x-slot name="actions" class="@md:self-center">
                 <flux:button size="sm" wire:click="showPending" data-test="appointments-show-pending">{{ __('Show pending') }}</flux:button>
             </x-slot>
         </flux:callout>
