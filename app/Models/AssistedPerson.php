@@ -111,6 +111,19 @@ class AssistedPerson extends Model
     }
 
     /**
+     * Get the records of this assisted person's completed appointments, latest first.
+     *
+     * @return HasManyThrough<AppointmentRecord, Appointment, $this>
+     */
+    public function completedAppointmentRecords(): HasManyThrough
+    {
+        return $this->appointmentRecords()
+            ->where('appointments.status', AppointmentStatus::Completed)
+            ->orderByDesc('appointments.scheduled_on')
+            ->orderByDesc('appointments.id');
+    }
+
+    /**
      * Get the assisted person's age in years, based on their birth date.
      *
      * @return Attribute<int|null, never>

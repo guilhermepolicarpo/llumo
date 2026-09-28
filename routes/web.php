@@ -13,6 +13,7 @@ Route::prefix('{current_team}')
 
         Route::livewire('assisted-people', 'pages::assisted-people.index')->name('assisted-people.index');
         Route::livewire('assisted-people/create', 'pages::assisted-people.create')->name('assisted-people.create');
+        Route::livewire('assisted-people/{assistedPerson}', 'pages::assisted-people.show')->name('assisted-people.show');
         Route::livewire('assisted-people/{assistedPerson}/edit', 'pages::assisted-people.edit')->name('assisted-people.edit');
 
         Route::livewire('appointments', 'pages::appointments.index')->name('appointments.index');

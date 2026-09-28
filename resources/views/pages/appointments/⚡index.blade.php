@@ -667,18 +667,18 @@ new class extends Component
                             <flux:text>{{ $assistedPerson->formatted_age }}</flux:text>
                         @endif
 
-                        @if (! $assistedPerson->trashed() && Auth::user()->can('update', $assistedPerson))
+                        @if (! $assistedPerson->trashed() && Auth::user()->can('view', $assistedPerson))
                             <flux:button
                                 variant="ghost"
                                 size="xs"
                                 icon="arrow-top-right-on-square"
                                 icon:variant="outline"
                                 class="-ms-2 mt-1"
-                                :href="route('assisted-people.edit', ['assistedPerson' => $assistedPerson])"
+                                :href="route('assisted-people.show', ['assistedPerson' => $assistedPerson])"
                                 wire:navigate
                                 data-test="appointment-details-assisted-person-link"
                                 >
-                                {{ __('View registration') }}
+                                {{ __('View history') }}
                             </flux:button>
                         @endif
                     </div>

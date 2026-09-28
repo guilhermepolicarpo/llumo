@@ -47,7 +47,7 @@ new class extends Component
 
         Flux::toast(variant: 'success', text: __('Assisted person updated.'));
 
-        $this->redirectRoute('assisted-people.index', navigate: true);
+        $this->redirectRoute('assisted-people.show', ['assistedPerson' => $this->assistedPerson], navigate: true);
     }
 
     public function render()
@@ -57,7 +57,7 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <x-page-header :heading="__('Edit assisted person')" :subheading="__('Update this assisted person\'s details for this Spiritist Center')" :back-href="route('assisted-people.index')" :back-label="__('Back to assisted people')" />
+    <x-page-header :heading="__('Edit assisted person')" :subheading="__('Update this assisted person\'s details for this Spiritist Center')" :back-href="route('assisted-people.show', ['assistedPerson' => $assistedPerson])" :back-label="__('Back to history')" />
 
     <form wire:submit="updateAssistedPerson" class="max-w-xl space-y-6">
         <x-assisted-people.fields />
@@ -65,7 +65,7 @@ new class extends Component
         <x-pages::address-form :states="$this->states" test-prefix="assisted-person" />
 
         <div class="flex justify-end gap-2">
-            <flux:button variant="ghost" :href="route('assisted-people.index')" wire:navigate>
+            <flux:button variant="ghost" :href="route('assisted-people.show', ['assistedPerson' => $assistedPerson])" wire:navigate>
                 {{ __('Cancel') }}
             </flux:button>
 

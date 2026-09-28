@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\AppointmentMode;
 use Database\Factories\PassPrescriptionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read AppointmentRecord $appointmentRecord
  * @property-read PassType $passType
+ * @property-read string $label
  */
 #[Fillable([
     'appointment_record_id',
@@ -50,6 +52,16 @@ class PassPrescription extends Model
     public function passType(): BelongsTo
     {
         return $this->belongsTo(PassType::class)->withTrashed();
+    }
+
+    /**
+     * Get the prescription as a display string, with its quantity, pass type and mode.
+     *
+     * @return Attribute<string, never>
+     */
+    protected function label(): Attribute
+    {
+        return Attribute::make(get: fn (): string => "{$this->quantity}× {$this->passType->name} ({$this->mode->label()})");
     }
 
     /**

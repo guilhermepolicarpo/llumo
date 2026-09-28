@@ -1,4 +1,4 @@
-{{-- The default slot holds optional actions shown beside the heading. --}}
+{{-- The default slot holds optional actions shown beside the heading; the optional leading slot sits before it, such as an avatar. --}}
 @props([
     'heading',
     'subheading' => null,
@@ -22,7 +22,11 @@
                 <flux:button variant="ghost" size="sm" icon="arrow-left" :href="$backHref" wire:navigate :aria-label="$backLabel ?? __('Back')" data-test="page-header-back-button" />
             @endif
 
-            <div>
+            @isset($leading)
+                <div {{ $leading->attributes->class('shrink-0') }}>{{ $leading }}</div>
+            @endisset
+
+            <div class="min-w-0">
                 <flux:heading size="xl" level="1">{{ $heading }}</flux:heading>
                 @if ($subheading)
                     <flux:subheading size="lg">{{ $subheading }}</flux:subheading>

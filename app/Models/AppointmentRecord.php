@@ -38,6 +38,8 @@ use Illuminate\Support\Carbon;
  * @property-read Appointment|null $infiltrationRemovalAppointment
  * @property-read Appointment|null $returnAppointment
  * @property-read string $guidance_summary
+ * @property-read string $pass_summary
+ * @property-read string $infiltration_summary
  */
 #[Fillable([
     'appointment_id',
@@ -136,6 +138,30 @@ class AppointmentRecord extends Model
         return Attribute::make(get: fn (): string => $this->guidances
             ->map(fn (Guidance $guidance): string => $guidance->pivot->detail ? "{$guidance->name} ({$guidance->pivot->detail})" : $guidance->name)
             ->implode(', '));
+    }
+
+    /**
+     * Get the passes prescribed as a display string, each with its quantity and mode.
+     *
+     * @return Attribute<string, never>
+     */
+    protected function passSummary(): Attribute
+    {
+        return Attribute::make(get: fn (): string => $this->passPrescriptions->pluck('label')->implode(', '));
+    }
+
+    /**
+     * Get the infiltration as a display string: its site, when it is removed and where.
+     *
+     * @return Attribute<string, never>
+     */
+    protected function infiltrationSummary(): Attribute
+    {
+        return Attribute::make(get: fn (): string => collect([
+            $this->infiltration_site,
+            $this->infiltration_remove_on ? __('remove on :date', ['date' => $this->infiltration_remove_on->format('d/m/Y')]) : null,
+            $this->infiltration_removal_place?->label(),
+        ])->filter()->implode(' · '));
     }
 
     /**

@@ -6,7 +6,9 @@ use App\Models\Appointment;
 use App\Rules\AppointmentRules;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
 
 new class extends Component
@@ -18,6 +20,27 @@ new class extends Component
         Gate::authorize('create', [Appointment::class, Auth::user()->currentTeam]);
 
         $this->scheduledOn = today()->toDateString();
+
+        $this->prefillFromQuery();
+    }
+
+    /**
+     * Pre-select the assisted person and the date given in the link that opened the form, such as the one scheduling a return.
+     */
+    private function prefillFromQuery(): void
+    {
+        $prefill = Validator::make(request()->query(), [
+            'assisted_person' => AppointmentRules::assistedPersonId(Auth::user()->currentTeam),
+            'date' => AppointmentRules::scheduledOn(),
+        ])->valid();
+
+        if (isset($prefill['assisted_person'])) {
+            $this->selectAssistedPerson((int) $prefill['assisted_person']);
+        }
+
+        if (isset($prefill['date'])) {
+            $this->scheduledOn = Date::parse($prefill['date'])->toDateString();
+        }
     }
 
     public function createAppointment(CreateAppointment $createAppointment): void

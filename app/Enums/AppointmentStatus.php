@@ -57,6 +57,16 @@ enum AppointmentStatus: string
     }
 
     /**
+     * Get the statuses of an appointment whose attendance is not over yet.
+     *
+     * @return list<self>
+     */
+    public static function open(): array
+    {
+        return [self::Scheduled, self::Waiting, self::InProgress];
+    }
+
+    /**
      * Get the statuses as select options.
      *
      * @return array<int, array{value: string, label: string}>
