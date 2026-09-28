@@ -56,6 +56,38 @@ test('members can schedule an appointment', function () {
         ->and($appointment->fresh()->status)->toBe(AppointmentStatus::Scheduled);
 });
 
+test('the schedule form can open with the assisted person and date already chosen', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $assistedPerson = AssistedPerson::factory()->for($team)->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::withQueryParams(['assisted_person' => $assistedPerson->id, 'date' => today()->addWeek()->toDateString()])
+        ->test('pages::appointments.create')
+        ->assertSet('assistedPersonId', $assistedPerson->id)
+        ->assertSet('scheduledOn', today()->addWeek()->toDateString());
+});
+
+test('the schedule form ignores an assisted person of another team and an invalid or past date in its link', function (string $date) {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $outsider = AssistedPerson::factory()->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::withQueryParams(['assisted_person' => $outsider->id, 'date' => $date])
+        ->test('pages::appointments.create')
+        ->assertSet('assistedPersonId', null)
+        ->assertSet('scheduledOn', today()->toDateString());
+})->with([
+    'a date in the past' => fn () => today()->subDay()->toDateString(),
+    'a day that does not exist' => '2099-02-31',
+    'not a date' => 'amanhã',
+]);
+
 test('the appointment fields are validated', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);

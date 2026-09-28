@@ -42,6 +42,8 @@ use Illuminate\Support\Carbon;
  * @property-read User|null $creator
  * @property-read AppointmentRecord|null $record
  * @property-read AppointmentRecordDraft|null $recordDraft
+ * @property-read AppointmentRecord|null $returnOfRecord
+ * @property-read AppointmentRecord|null $infiltrationRemovalOfRecord
  * @property-read string $description
  */
 #[Fillable([
@@ -143,6 +145,26 @@ class Appointment extends Model
     }
 
     /**
+     * Get the record that scheduled this appointment as its return.
+     *
+     * @return HasOne<AppointmentRecord, $this>
+     */
+    public function returnOfRecord(): HasOne
+    {
+        return $this->hasOne(AppointmentRecord::class, 'return_appointment_id');
+    }
+
+    /**
+     * Get the record that scheduled this appointment to remove its infiltration.
+     *
+     * @return HasOne<AppointmentRecord, $this>
+     */
+    public function infiltrationRemovalOfRecord(): HasOne
+    {
+        return $this->hasOne(AppointmentRecord::class, 'infiltration_removal_appointment_id');
+    }
+
+    /**
      * Determine whether this appointment's type is attended by filling a record.
      */
     public function usesRecord(): bool
@@ -167,7 +189,32 @@ class Appointment extends Model
     protected function pending(Builder $query): void
     {
         $query->where('scheduled_on', '<', today()->toDateString())
-            ->whereIn('status', [AppointmentStatus::Scheduled, AppointmentStatus::Waiting, AppointmentStatus::InProgress]);
+            ->whereIn('status', AppointmentStatus::open());
+    }
+
+    /**
+     * Scope the query to appointments from today on whose attendance is not over yet.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function upcoming(Builder $query): void
+    {
+        $query->where('scheduled_on', '>=', today()->toDateString())
+            ->whereIn('status', AppointmentStatus::open());
+    }
+
+    /**
+     * Scope the query to appointments no longer ahead: those from previous days, and today's already finished ones.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function past(Builder $query): void
+    {
+        $query->where(fn (Builder $query) => $query
+            ->where('scheduled_on', '<', today()->toDateString())
+            ->orWhereNotIn('status', AppointmentStatus::open()));
     }
 
     /**

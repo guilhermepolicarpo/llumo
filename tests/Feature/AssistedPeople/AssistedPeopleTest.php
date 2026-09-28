@@ -220,7 +220,7 @@ test('members can update an assisted person', function () {
         ->set('email', 'maria.santos@example.com')
         ->call('updateAssistedPerson')
         ->assertHasNoErrors()
-        ->assertRedirectToRoute('assisted-people.index');
+        ->assertRedirectToRoute('assisted-people.show', ['assistedPerson' => $assistedPerson]);
 
     $this->assertDatabaseHas('assisted_people', [
         'id' => $assistedPerson->id,
@@ -500,7 +500,7 @@ test('the index shows the age in years, or in months when under a year old', fun
     'months only, plural, under a year' => [0, 2, false],
 ]);
 
-test('each row links to the assisted person edit page', function () {
+test('each row links to the assisted person history', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
 
@@ -510,7 +510,7 @@ test('each row links to the assisted person edit page', function () {
     $user->switchTeam($team);
 
     Livewire::test('pages::assisted-people.index')
-        ->assertSeeHtml(route('assisted-people.edit', ['assistedPerson' => $assistedPerson]));
+        ->assertSeeHtml(route('assisted-people.show', ['assistedPerson' => $assistedPerson]));
 });
 
 test('members can delete an assisted person', function () {

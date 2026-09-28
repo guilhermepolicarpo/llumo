@@ -25,6 +25,14 @@ class AssistedPersonPolicy
     }
 
     /**
+     * Determine whether the user can view the model and its appointment history.
+     */
+    public function view(User $user, AssistedPerson $assistedPerson): bool
+    {
+        return $this->belongsToPersonsTeam($user, $assistedPerson);
+    }
+
+    /**
      * Determine whether the user can update the model.
      */
     public function update(User $user, AssistedPerson $assistedPerson): bool

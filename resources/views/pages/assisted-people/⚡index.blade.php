@@ -96,11 +96,11 @@ new class extends Component
                         <flux:table.row :key="$person->id" class="relative cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800" data-test="assisted-person-row">
                             <flux:table.cell>
                                 <a
-                                    href="{{ route('assisted-people.edit', ['assistedPerson' => $person]) }}"
+                                    href="{{ route('assisted-people.show', ['assistedPerson' => $person]) }}"
                                     wire:navigate
                                     class="absolute inset-0"
-                                    aria-label="{{ __('Edit :name', ['name' => $person->name]) }}"
-                                    data-test="assisted-person-edit-link"
+                                    aria-label="{{ __('View history of :name', ['name' => $person->name]) }}"
+                                    data-test="assisted-person-history-link"
                                 ></a>
 
                                 <div class="text-[15px] text-zinc-900 dark:text-white">{{ $person->name }}</div>
@@ -130,6 +130,9 @@ new class extends Component
                                 <flux:dropdown position="bottom" align="end">
                                     <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" data-test="assisted-person-actions-trigger" />
                                     <flux:menu>
+                                        <flux:menu.item as="a" href="{{ route('assisted-people.show', ['assistedPerson' => $person]) }}" wire:navigate icon="clock" data-test="assisted-person-history-menu-item">
+                                            {{ __('View history') }}
+                                        </flux:menu.item>
                                         <flux:menu.item as="a" href="{{ route('assisted-people.edit', ['assistedPerson' => $person]) }}" wire:navigate icon="pencil" data-test="assisted-person-edit-menu-item">
                                             {{ __('Edit') }}
                                         </flux:menu.item>

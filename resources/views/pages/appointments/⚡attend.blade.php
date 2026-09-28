@@ -137,12 +137,9 @@ new class extends Component
     #[Computed]
     public function history(): Collection
     {
-        return $this->appointment->assistedPerson->appointmentRecords()
-            ->where('appointments.status', AppointmentStatus::Completed)
+        return $this->appointment->assistedPerson->completedAppointmentRecords()
             ->where('appointments.id', '!=', $this->appointment->id)
             ->with(['appointment.appointmentType', 'mentor', 'fluidicRemedies', 'guidances'])
-            ->orderByDesc('appointments.scheduled_on')
-            ->orderByDesc('appointments.id')
             ->limit(self::HISTORY_LIMIT)
             ->get();
     }
@@ -259,6 +256,23 @@ new class extends Component
                                 </div>
                             @endforeach
                         </div>
+
+                        @unless ($person->trashed())
+                            <div class="border-t border-zinc-100 px-4 py-2 dark:border-white/5">
+                                <flux:button
+                                    variant="ghost"
+                                    size="xs"
+                                    icon="arrow-top-right-on-square"
+                                    icon:variant="outline"
+                                    class="-ms-2"
+                                    :href="route('assisted-people.show', ['assistedPerson' => $person])"
+                                    wire:navigate
+                                    data-test="appointment-record-full-history-link"
+                                    >
+                                    {{ __('View full history') }}
+                                </flux:button>
+                            </div>
+                        @endunless
                     </div>
                 </div>
             @endif
@@ -541,25 +555,7 @@ new class extends Component
                         <flux:text>{{ __('No record has been filled for this appointment yet.') }}</flux:text>
                     @else
                         <flux:card>
-                            <dl class="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-[12rem_1fr]">
-                                @foreach (array_filter([
-                                    __('Mentor') => $record->mentor?->name,
-                                    __('Fluidic remedies') => $record->fluidicRemedies->pluck('name')->implode(', '),
-                                    __('How to take the fluidic remedy') => $record->fluid_instructions,
-                                    __('Guidances') => $record->guidance_summary,
-                                    __('Passes') => $record->passPrescriptions->map(fn ($prescription) => "{$prescription->quantity}× {$prescription->passType->name} ({$prescription->mode->label()})")->implode(', '),
-                                    __('Infiltration') => collect([
-                                        $record->infiltration_site,
-                                        $record->infiltration_remove_on ? __('remove on :date', ['date' => $record->infiltration_remove_on->format('d/m/Y')]) : null,
-                                        $record->infiltration_removal_place?->label(),
-                                    ])->filter()->implode(' · '),
-                                    __('Return date') => $record->return_on?->format('d/m/Y'),
-                                    __('Observations') => $record->observations,
-                                ], fn ($value) => filled($value)) as $label => $value)
-                                    <dt class="text-zinc-500 dark:text-zinc-400">{{ $label }}</dt>
-                                    <dd class="whitespace-pre-line text-zinc-900 dark:text-white">{{ $value }}</dd>
-                                @endforeach
-                            </dl>
+                            <x-appointments.record-details :record="$record" />
                         </flux:card>
                     @endif
                 </div>
