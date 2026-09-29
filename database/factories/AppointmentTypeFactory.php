@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\Weekday;
 use App\Models\AppointmentType;
 use App\Models\Team;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -41,6 +42,16 @@ class AppointmentTypeFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'daily_limit' => $limit,
+        ]);
+    }
+
+    /**
+     * Indicate that appointments of this type only take place on the given weekdays.
+     */
+    public function onWeekdays(Weekday ...$weekdays): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'weekdays' => $weekdays,
         ]);
     }
 

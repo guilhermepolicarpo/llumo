@@ -12,6 +12,18 @@
     data-test="appointment-type-daily-limit-input"
 />
 
+<flux:checkbox.group
+    wire:model="weekdays"
+    variant="pills"
+    :label="__('Days it takes place')"
+    :description="__('A warning is shown when an appointment of this type falls on another day. Leave all unselected to allow any day.')"
+    data-test="appointment-type-weekdays-checkbox-group"
+>
+    @foreach (\App\Enums\Weekday::options() as $weekdayOption)
+        <flux:checkbox :value="$weekdayOption['value']" :label="$weekdayOption['label']" data-test="appointment-type-weekday-{{ $weekdayOption['value'] }}" />
+    @endforeach
+</flux:checkbox.group>
+
 <flux:switch
     wire:model="requiresRecord"
     :label="__('Fill in a record during the appointment')"

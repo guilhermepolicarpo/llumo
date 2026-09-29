@@ -2,6 +2,7 @@
 
 namespace App\Rules;
 
+use App\Enums\Weekday;
 use App\Models\AppointmentType;
 use App\Models\Team;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -42,5 +43,18 @@ class AppointmentTypeRules
     public static function dailyLimit(): array
     {
         return ['nullable', 'integer', 'between:1,999'];
+    }
+
+    /**
+     * Get the validation rules used to validate the weekdays on which appointments of a type take place.
+     *
+     * @return array<string, array<int, ValidationRule|array<mixed>|string|object>>
+     */
+    public static function weekdays(): array
+    {
+        return [
+            'weekdays' => ['array'],
+            'weekdays.*' => ['distinct', Rule::enum(Weekday::class)],
+        ];
     }
 }

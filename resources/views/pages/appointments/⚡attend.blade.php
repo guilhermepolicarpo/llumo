@@ -427,12 +427,13 @@ new class extends Component
 
                     <flux:separator variant="subtle" />
 
-                    <div class="space-y-4">
+                    {{-- Picking another removal type does not send a request, so the section asks for the removal date's warning again. --}}
+                    <div class="space-y-4" x-on:catalog-picker-change="$wire.infiltrationRemoveOn && $wire.$refresh()" data-test="appointment-record-infiltration-section">
                         <flux:heading size="lg">{{ __('Infiltration') }}</flux:heading>
 
                         <div class="grid gap-4 sm:grid-cols-2">
                             <flux:input wire:model.blur="infiltrationSite" :label="__('Site')" :placeholder="__('E.g. Right arm')" data-test="appointment-record-infiltration-site-input" />
-                            <flux:input type="date" wire:model="infiltrationRemoveOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Remove on')" data-test="appointment-record-infiltration-remove-on-input" />
+                            <flux:input type="date" wire:model.live="infiltrationRemoveOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Remove on')" data-test="appointment-record-infiltration-remove-on-input" />
                         </div>
 
                         <flux:radio.group wire:model.live="infiltrationRemovalPlace" variant="segmented" :label="__('Where it is removed')" data-test="appointment-record-removal-place-radio">
@@ -456,6 +457,10 @@ new class extends Component
                                 />
                                 <flux:error name="removalAppointmentTypeId" />
                             </flux:field>
+
+                            @if ($warning = $this->removalDayWarning)
+                                <flux:callout variant="warning" icon="exclamation-triangle" icon:variant="outline" :heading="$warning" data-test="appointment-record-removal-day-not-offered" />
+                            @endif
                         @endif
                     </div>
 
@@ -483,22 +488,26 @@ new class extends Component
                             </div>
 
                             @if ($schedulesReturn)
-                                <flux:field>
-                                    <flux:label>{{ __('Schedule the return as') }}</flux:label>
-                                    <x-catalog-picker
-                                        model="returnAppointmentTypeId"
-                                        :options="$this->appointmentTypes"
-                                        :selected="$returnAppointmentTypeId"
-                                        :placeholder="__('Select a type...')"
-                                        error-key="new_returnAppointmentTypeId"
-                                        create="(name) => $wire.createAppointmentType(name, 'returnAppointmentTypeId')"
-                                        cache-key="appointment_types"
-                                        test-id="appointment-record-return-type"
-                                    />
-                                    <flux:error name="returnAppointmentTypeId" />
+                                <div class="space-y-3">
+                                    <flux:field>
+                                        <flux:label>{{ __('Schedule the return as') }}</flux:label>
+                                        <x-catalog-picker
+                                            model="returnAppointmentTypeId"
+                                            :options="$this->appointmentTypes"
+                                            :selected="$returnAppointmentTypeId"
+                                            :placeholder="__('Select a type...')"
+                                            error-key="new_returnAppointmentTypeId"
+                                            create="(name) => $wire.createAppointmentType(name, 'returnAppointmentTypeId')"
+                                            cache-key="appointment_types"
+                                            test-id="appointment-record-return-type"
+                                        />
+                                        <flux:error name="returnAppointmentTypeId" />
+                                    </flux:field>
 
                                     @if ($occupancy = $this->returnDayOccupancy)
-                                        @if ($occupancy['remaining'] === 0)
+                                        @if ($occupancy['warning'])
+                                            <flux:callout variant="warning" icon="exclamation-triangle" icon:variant="outline" :heading="$occupancy['warning']" data-test="appointment-record-return-day-not-offered" />
+                                        @elseif ($occupancy['remaining'] === 0)
                                             <flux:callout
                                                 variant="warning"
                                                 icon="exclamation-triangle"
@@ -515,7 +524,7 @@ new class extends Component
                                             </flux:text>
                                         @endif
                                     @endif
-                                </flux:field>
+                                </div>
                             @endif
                         </div>
                     </div>

@@ -15,9 +15,16 @@ trait InteractsWithAppointmentTypeForm
     public string $dailyLimit = '';
 
     /**
+     * The weekdays on which appointments of the type take place, none meaning any day.
+     *
+     * @var list<string>
+     */
+    public array $weekdays = [];
+
+    /**
      * Validate the form for the given team and map it to the attribute shape expected by the create/update actions.
      *
-     * @return array{name: string, requires_record: bool, daily_limit: ?int}
+     * @return array{name: string, requires_record: bool, daily_limit: ?int, weekdays: ?list<int>}
      */
     protected function validatedAppointmentTypeAttributes(Team $team, ?AppointmentType $ignore = null): array
     {
@@ -27,12 +34,17 @@ trait InteractsWithAppointmentTypeForm
             'name' => AppointmentTypeRules::name($team, $ignore),
             'requiresRecord' => AppointmentTypeRules::requiresRecord(),
             'dailyLimit' => AppointmentTypeRules::dailyLimit(),
+            ...AppointmentTypeRules::weekdays(),
         ]);
+
+        $weekdays = array_map('intval', $validated['weekdays'] ?? []);
+        sort($weekdays);
 
         return [
             'name' => $validated['name'],
             'requires_record' => $validated['requiresRecord'],
             'daily_limit' => (int) $validated['dailyLimit'] ?: null,
+            'weekdays' => $weekdays ?: null,
         ];
     }
 }

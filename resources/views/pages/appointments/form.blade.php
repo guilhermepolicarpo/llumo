@@ -1,4 +1,4 @@
-@props(['appointmentTypes', 'modes', 'selectedAssistedPerson', 'assistedPersonSearch', 'assistedPersonSuggestions'])
+@props(['appointmentTypes', 'weekdayRestrictedTypes', 'modes', 'selectedAssistedPerson', 'assistedPersonSearch', 'assistedPersonSuggestions'])
 
 <flux:fieldset>
     <div class="grid gap-6 sm:grid-cols-2">
@@ -49,7 +49,37 @@
             <flux:error name="appointmentTypeId" />
         </flux:field>
 
-        <flux:input type="date" wire:model="scheduledOn" :label="__('Date')" :min="today()->toDateString()" required data-test="appointment-scheduled-on-input" />
+        {{-- Checked in the browser so picking the type or the date costs no request; it only warns, the date can still be saved. --}}
+        <div
+            class="space-y-2"
+            x-data="{
+                restrictedTypes: @js($weekdayRestrictedTypes),
+                get restrictedType() {
+                    return this.restrictedTypes[$wire.appointmentTypeId] ?? null;
+                },
+                get isOffered() {
+                    if (! this.restrictedType || ! /^\d{4}-\d{2}-\d{2}$/.test($wire.scheduledOn)) {
+                        return true;
+                    }
+
+                    const [year, month, day] = $wire.scheduledOn.split('-').map(Number);
+
+                    return this.restrictedType.weekdays.includes(new Date(year, month - 1, day).getDay() || 7);
+                },
+            }"
+        >
+            <flux:input type="date" wire:model="scheduledOn" :label="__('Date')" :min="today()->toDateString()" required data-test="appointment-scheduled-on-input" />
+
+            <template x-if="restrictedType && isOffered">
+                <flux:text class="text-sm" x-text="restrictedType.hint" data-test="appointment-scheduled-on-weekdays-hint" />
+            </template>
+
+            <template x-if="restrictedType && ! isOffered">
+                <flux:callout variant="warning" icon="exclamation-triangle" icon:variant="outline" data-test="appointment-scheduled-on-not-offered">
+                    <flux:callout.heading x-text="restrictedType.warning" />
+                </flux:callout>
+            </template>
+        </div>
     </div>
 
     <div class="mt-6">

@@ -3,6 +3,7 @@
 use App\Actions\AppointmentTypes\CreateAppointmentType;
 use App\Actions\AppointmentTypes\UpdateAppointmentType;
 use App\Concerns\InteractsWithAppointmentTypeForm;
+use App\Enums\Weekday;
 use App\Models\AppointmentType;
 use App\Models\Team;
 use Flux\Flux;
@@ -34,7 +35,7 @@ new class extends Component
     {
         Gate::authorize('manage', [AppointmentType::class, $this->team()]);
 
-        $this->reset('name', 'requiresRecord', 'dailyLimit', 'editingId');
+        $this->reset('name', 'requiresRecord', 'dailyLimit', 'weekdays', 'editingId');
         $this->resetValidation();
 
         Flux::modal('appointment-type')->show();
@@ -50,6 +51,7 @@ new class extends Component
         $this->name = $appointmentType->name;
         $this->requiresRecord = $appointmentType->requires_record;
         $this->dailyLimit = (string) $appointmentType->daily_limit;
+        $this->weekdays = $appointmentType->weekdays?->map(fn (Weekday $weekday): string => (string) $weekday->value)->all() ?? [];
         $this->resetValidation();
 
         Flux::modal('appointment-type')->show();
@@ -76,7 +78,7 @@ new class extends Component
             $message = __('Appointment type created.');
         }
 
-        $this->reset('name', 'requiresRecord', 'dailyLimit', 'editingId');
+        $this->reset('name', 'requiresRecord', 'dailyLimit', 'weekdays', 'editingId');
 
         Flux::modal('appointment-type')->close();
 
@@ -163,6 +165,7 @@ new class extends Component
                 <flux:table bleed>
                     <flux:table.columns>
                         <flux:table.column>{{ __('Name') }}</flux:table.column>
+                        <flux:table.column>{{ __('Days') }}</flux:table.column>
                         <flux:table.column>{{ __('Daily limit') }}</flux:table.column>
                         @if ($this->canManage)
                             <flux:table.column></flux:table.column>
@@ -190,6 +193,8 @@ new class extends Component
                                         @endif
                                     </div>
                                 </flux:table.cell>
+
+                                <flux:table.cell data-test="appointment-type-weekdays">{{ $appointmentType->weekdaysShortLabel() }}</flux:table.cell>
 
                                 <flux:table.cell>{{ $appointmentType->daily_limit ?? __('No limit') }}</flux:table.cell>
 

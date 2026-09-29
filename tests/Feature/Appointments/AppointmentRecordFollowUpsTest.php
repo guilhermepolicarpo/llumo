@@ -3,6 +3,7 @@
 use App\Enums\AppointmentMode;
 use App\Enums\AppointmentStatus;
 use App\Enums\InfiltrationRemovalPlace;
+use App\Enums\Weekday;
 use App\Models\Appointment;
 use App\Models\AppointmentType;
 use App\Models\Mentor;
@@ -295,4 +296,58 @@ test('choosing another return type counts the appointments of that type, without
         ->assertSee('2 agendamentos de Hidroterapia em 11/10/2026')
         ->assertDontSee('vaga')
         ->assertDontSeeHtml('data-test="appointment-record-return-day-full"');
+});
+
+test('a return on a weekday its type does not take place warns but is still scheduled', function () {
+    [$component, $appointment] = attendRecordAppointment();
+    $appointment->appointmentType->update(['name' => 'Tratamento de cura', 'weekdays' => [Weekday::Monday, Weekday::Wednesday]]);
+
+    $component
+        ->set('schedulesReturn', true)
+        ->set('returnOn', '2026-09-30')
+        ->assertDontSeeHtml('data-test="appointment-record-return-day-not-offered"')
+        ->set('returnOn', '2026-10-01')
+        ->assertSeeHtml('data-test="appointment-record-return-day-not-offered"')
+        ->assertSee('Tratamento de cura acontece somente em segundas-feiras e quartas-feiras.')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(followUpsOf($appointment)->sole()->scheduled_on->toDateString())->toBe('2026-10-01');
+});
+
+test('an infiltration removal at the center on a weekday its type does not take place warns but is still scheduled', function () {
+    [$component, $appointment, $team] = attendRecordAppointment();
+    $removalType = AppointmentType::factory()->for($team)->onWeekdays(Weekday::Wednesday, Weekday::Friday)->create(['name' => 'Retirada de infiltração']);
+
+    $component
+        ->set('infiltrationSite', 'Braço direito')
+        ->set('infiltrationRemoveOn', '2026-09-24')
+        ->set('removalAppointmentTypeId', (string) $removalType->id)
+        ->set('infiltrationRemovalPlace', InfiltrationRemovalPlace::AtHome->value)
+        ->assertDontSeeHtml('data-test="appointment-record-removal-day-not-offered"')
+        ->set('infiltrationRemovalPlace', InfiltrationRemovalPlace::AtTheCenter->value)
+        ->assertSeeHtml('data-test="appointment-record-removal-day-not-offered"')
+        ->assertSee('Retirada de infiltração acontece somente em quartas-feiras e sextas-feiras.')
+        ->set('infiltrationRemoveOn', '2026-09-23')
+        ->assertDontSeeHtml('data-test="appointment-record-removal-day-not-offered"')
+        ->set('infiltrationRemoveOn', '2026-09-24')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(followUpsOf($appointment)->sole()->scheduled_on->toDateString())->toBe('2026-09-24');
+});
+
+test('the return shortcuts and the removal date move to the next day their type takes place', function () {
+    [$component, $appointment, $team] = attendRecordAppointment();
+    $appointment->appointmentType->update(['weekdays' => [Weekday::Monday, Weekday::Wednesday]]);
+    $removalType = AppointmentType::factory()->for($team)->onWeekdays(Weekday::Thursday)->create();
+
+    $component
+        ->call('setReturnInDays', 7)
+        ->assertSet('returnOn', '2026-09-28')
+        ->call('setReturnInDays', 30)
+        ->assertSet('returnOn', '2026-10-21')
+        ->set('removalAppointmentTypeId', (string) $removalType->id)
+        ->set('infiltrationSite', 'Braço direito')
+        ->assertSet('infiltrationRemoveOn', '2026-09-24');
 });

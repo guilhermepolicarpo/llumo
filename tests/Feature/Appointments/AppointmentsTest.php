@@ -4,6 +4,7 @@ use App\Enums\AppointmentMode;
 use App\Enums\AppointmentStatus;
 use App\Enums\BrazilianState;
 use App\Enums\TeamRole;
+use App\Enums\Weekday;
 use App\Models\Appointment;
 use App\Models\AppointmentRecord;
 use App\Models\AppointmentType;
@@ -126,6 +127,27 @@ test('an appointment cannot be scheduled for a past date', function () {
         ->assertHasErrors(['scheduledOn' => 'after_or_equal']);
 
     expect(Appointment::count())->toBe(0);
+});
+
+test('an appointment on a weekday its type does not take place warns but can still be scheduled', function () {
+    $this->travelTo('2026-09-28');
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointmentType = AppointmentType::factory()->for($team)->onWeekdays(Weekday::Thursday)->create(['name' => 'Hidroterapia']);
+    $assistedPerson = AssistedPerson::factory()->for($team)->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.create')
+        ->set('appointmentTypeId', (string) $appointmentType->id)
+        ->call('selectAssistedPerson', $assistedPerson->id)
+        ->assertSee('Hidroterapia acontece somente em quintas-feiras.')
+        ->set('scheduledOn', '2026-09-30')
+        ->call('createAppointment')
+        ->assertHasNoErrors();
+
+    expect($team->appointments()->sole()->scheduled_on->toDateString())->toBe('2026-09-30');
 });
 
 test('an appointment type or assisted person from another team is rejected', function () {

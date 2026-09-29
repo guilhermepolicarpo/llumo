@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\TeamRole;
+use App\Enums\Weekday;
 use App\Models\AppointmentType;
 use App\Models\User;
 use Livewire\Livewire;
@@ -66,6 +67,35 @@ test('appointment type names must be unique within the team, except for the type
 
     expect($existing->fresh()->daily_limit)->toBe(10)
         ->and($other->fresh()->name)->toBe('Palestra');
+});
+
+test('admins can restrict an appointment type to the weekdays it takes place', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Admin);
+
+    $component = Livewire::test('pages::catalogs.appointment-types')
+        ->call('createAppointmentType')
+        ->set('name', 'Tratamento de cura')
+        ->set('weekdays', ['3', '1'])
+        ->call('saveAppointmentType')
+        ->assertHasNoErrors()
+        ->assertSee('Seg, Qua');
+
+    $appointmentType = $team->appointmentTypes()->sole();
+
+    expect($appointmentType->weekdays->all())->toBe([Weekday::Monday, Weekday::Wednesday]);
+
+    $component
+        ->call('editAppointmentType', $appointmentType->id)
+        ->assertSet('weekdays', ['1', '3'])
+        ->set('weekdays', ['8'])
+        ->call('saveAppointmentType')
+        ->assertHasErrors('weekdays.0')
+        ->set('weekdays', [])
+        ->call('saveAppointmentType')
+        ->assertHasNoErrors()
+        ->assertSee('Qualquer dia');
+
+    expect($appointmentType->fresh()->weekdays)->toBeNull();
 });
 
 test('members can view appointment types but cannot change them', function () {

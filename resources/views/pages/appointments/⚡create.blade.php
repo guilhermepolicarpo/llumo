@@ -70,6 +70,7 @@ new class extends Component
     <form wire:submit="createAppointment" class="max-w-xl space-y-6">
         <x-pages::appointments.form
             :appointment-types="$this->appointmentTypes"
+            :weekday-restricted-types="$this->weekdayRestrictedAppointmentTypes"
             :modes="$this->modes"
             :selected-assisted-person="$this->selectedAssistedPerson"
             :assisted-person-search="$assistedPersonSearch"

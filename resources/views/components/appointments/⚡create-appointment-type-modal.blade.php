@@ -19,7 +19,7 @@ new class extends Component {
 
         $appointmentType = $createAppointmentType->handle($team, $this->validatedAppointmentTypeAttributes($team));
 
-        $this->reset('name', 'requiresRecord', 'dailyLimit');
+        $this->reset('name', 'requiresRecord', 'dailyLimit', 'weekdays');
 
         Flux::modal('create-appointment-type')->close();
 

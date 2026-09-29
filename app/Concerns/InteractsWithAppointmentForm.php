@@ -3,6 +3,7 @@
 namespace App\Concerns;
 
 use App\Enums\AppointmentMode;
+use App\Enums\Weekday;
 use App\Models\AppointmentType;
 use App\Models\AssistedPerson;
 use Illuminate\Database\Eloquent\Collection;
@@ -32,7 +33,25 @@ trait InteractsWithAppointmentForm
     #[Computed]
     public function appointmentTypes(): Collection
     {
-        return Auth::user()->currentTeam->appointmentTypes()->orderBy('name')->get(['id', 'name']);
+        return Auth::user()->currentTeam->appointmentTypes()->orderBy('name')->get(['id', 'name', 'weekdays']);
+    }
+
+    /**
+     * Get the types that only take place on some weekdays, keyed by id, for the form to warn about the date right away.
+     *
+     * @return array<string, array{weekdays: list<int>, hint: string, warning: string}>
+     */
+    #[Computed]
+    public function weekdayRestrictedAppointmentTypes(): array
+    {
+        return $this->appointmentTypes
+            ->filter(fn (AppointmentType $appointmentType): bool => $appointmentType->hasWeekdays())
+            ->mapWithKeys(fn (AppointmentType $appointmentType): array => [(string) $appointmentType->id => [
+                'weekdays' => $appointmentType->weekdays->map(fn (Weekday $weekday): int => $weekday->value)->values()->all(),
+                'hint' => __('Only on :weekdays.', ['weekdays' => $appointmentType->weekdaysLabel()]),
+                'warning' => $appointmentType->notOfferedWarning(),
+            ]])
+            ->all();
     }
 
     /**

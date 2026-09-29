@@ -129,18 +129,20 @@ trait InteractsWithAppointmentRecordForm
     #[Computed]
     public function appointmentTypes(): Collection
     {
-        return $this->appointment->team->appointmentTypes()->orderBy('name')->get(['id', 'name', 'daily_limit']);
+        return $this->appointment->team->appointmentTypes()->orderBy('name')->get(['id', 'name', 'daily_limit', 'weekdays']);
     }
 
     /**
      * Get how many appointments of the return type the chosen return date already has, and how many places are left.
      *
-     * @return array{count: int, limit: ?int, remaining: ?int, type: string, date: string}|null
+     * Also carries the warning shown when the return type does not take place on that weekday.
+     *
+     * @return array{count: int, limit: ?int, remaining: ?int, type: string, date: string, warning: ?string}|null
      */
     #[Computed]
     public function returnDayOccupancy(): ?array
     {
-        $returnOn = $this->returnOnDate();
+        $returnOn = $this->dateFrom($this->returnOn);
         $returnType = $this->appointmentTypes->firstWhere('id', (int) $this->returnAppointmentTypeId);
 
         if ($returnOn === null || $returnType === null) {
@@ -156,7 +158,30 @@ trait InteractsWithAppointmentRecordForm
             'remaining' => $limit === null ? null : max(0, $limit - $count),
             'type' => $returnType->name,
             'date' => $returnOn->format('d/m/Y'),
+            'warning' => $returnType->isOfferedOn($returnOn) ? null : $returnType->notOfferedWarning(),
         ];
+    }
+
+    /**
+     * Get the warning shown when the infiltration removal falls on a weekday its type does not take place.
+     *
+     * It only warns: the removal can still be scheduled on another day as an exception.
+     */
+    #[Computed]
+    public function removalDayWarning(): ?string
+    {
+        if (! InfiltrationRemovalPlace::tryFrom($this->infiltrationRemovalPlace)?->schedulesRemoval()) {
+            return null;
+        }
+
+        $removeOn = $this->dateFrom($this->infiltrationRemoveOn);
+        $removalType = $this->appointmentTypes->firstWhere('id', (int) $this->removalAppointmentTypeId);
+
+        if ($removeOn === null || $removalType === null || $removalType->isOfferedOn($removeOn)) {
+            return null;
+        }
+
+        return $removalType->notOfferedWarning();
     }
 
     /**
@@ -178,21 +203,22 @@ trait InteractsWithAppointmentRecordForm
     }
 
     /**
-     * Pre-fill the removal date three days after the appointment once an infiltration site is given.
+     * Pre-fill the removal date three days after the appointment once an infiltration site is given,
+     * moved to the next day the removal type takes place.
      */
     public function updatedInfiltrationSite(): void
     {
         if (trim($this->infiltrationSite) !== '' && $this->infiltrationRemoveOn === '') {
-            $this->infiltrationRemoveOn = $this->appointment->scheduled_on->addDays(3)->toDateString();
+            $this->infiltrationRemoveOn = $this->nextOfferedDayFrom($this->removalAppointmentTypeId, $this->appointment->scheduled_on->addDays(3))->toDateString();
         }
     }
 
     /**
-     * Set the return date the given number of days after the appointment.
+     * Set the return date the given number of days after the appointment, moved to the next day the return type takes place.
      */
     public function setReturnInDays(int $days): void
     {
-        $this->returnOn = $this->appointment->scheduled_on->addDays($days)->toDateString();
+        $this->returnOn = $this->nextOfferedDayFrom($this->returnAppointmentTypeId, $this->appointment->scheduled_on->addDays($days))->toDateString();
     }
 
     public function addPassPrescription(): void
@@ -516,9 +542,17 @@ trait InteractsWithAppointmentRecordForm
             ->value('appointments.appointment_type_id');
     }
 
-    private function returnOnDate(): ?CarbonInterface
+    /**
+     * Get the first day, starting from the given one, on which the chosen follow-up type takes place.
+     */
+    private function nextOfferedDayFrom(string $appointmentTypeId, CarbonInterface $date): CarbonInterface
     {
-        return $this->returnOn === '' ? null : rescue(fn () => Date::createFromFormat('!Y-m-d', $this->returnOn), report: false);
+        return $this->appointmentTypes->firstWhere('id', (int) $appointmentTypeId)?->nextOfferedDayFrom($date) ?? $date;
+    }
+
+    private function dateFrom(string $value): ?CarbonInterface
+    {
+        return $value === '' ? null : rescue(fn () => Date::createFromFormat('!Y-m-d', $value), report: false);
     }
 
     /**
