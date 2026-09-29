@@ -618,9 +618,11 @@
   "Full name": "Nome completo",
   "Printed on the attendance sheets and reports.": "Impresso nas fichas de atendimento e relatórios.",
   "Attendance sheet|Attendance sheets": "Ficha de atendimento|Fichas de atendimento",
-  "Recommendations": "Recomendações",
   "Removal": "Retirada",
-  "Signature": "Assinatura",
+  "Qty.": "Qtd.",
+  "Infiltration — site": "Infiltração — local",
+  "Return on": "Retorno em",
+  "Medium signature": "Assinatura do médium",
   "Print sheets": "Imprimir fichas",
   "Print attendance sheet": "Imprimir ficha"
 }
