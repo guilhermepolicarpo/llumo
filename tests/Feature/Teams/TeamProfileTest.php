@@ -44,6 +44,53 @@ test('owners can update the full team address', function () {
     ]);
 });
 
+test('owners can set the full legal name and phone printed on the attendance sheets', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $this->actingAs($user);
+
+    Livewire::test('pages::teams.edit', ['team' => $team])
+        ->set('legalName', 'Casa Espírita Missionários da Luz')
+        ->set('phone', '(34) 99729-2235')
+        ->call('updateTeam')
+        ->assertHasNoErrors();
+
+    $this->assertDatabaseHas('teams', [
+        'id' => $team->id,
+        'legal_name' => 'Casa Espírita Missionários da Luz',
+        'phone' => '34997292235',
+    ]);
+});
+
+test('phone must be a valid brazilian phone number', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $this->actingAs($user);
+
+    Livewire::test('pages::teams.edit', ['team' => $team])
+        ->set('phone', '1234')
+        ->call('updateTeam')
+        ->assertHasErrors('phone');
+});
+
+test('the display legal name falls back to the team name when the legal name is cleared', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user, ['name' => 'Missionários', 'legal_name' => 'Casa Espírita Missionários da Luz']);
+
+    $this->actingAs($user);
+
+    Livewire::test('pages::teams.edit', ['team' => $team])
+        ->set('legalName', '')
+        ->call('updateTeam')
+        ->assertHasNoErrors();
+
+    expect($team->fresh())
+        ->legal_name->toBeNull()
+        ->display_legal_name->toBe('Missionários');
+});
+
 test('renaming the team redirects to the new slug url', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user, ['name' => 'Old Name']);

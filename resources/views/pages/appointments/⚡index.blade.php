@@ -237,6 +237,22 @@ new class extends Component
         return Auth::user()->currentTeam->appointments()->pending()->count();
     }
 
+    /**
+     * Count the filtered day's appointments waiting to be attended whose attendance sheet can be printed.
+     */
+    #[Computed]
+    public function printableSheetCount(): int
+    {
+        if ($this->pending || ! $this->filteredDate) {
+            return 0;
+        }
+
+        return Auth::user()->currentTeam->appointments()
+            ->scheduledOn($this->filteredDate)
+            ->waitingForRecord()
+            ->count();
+    }
+
     #[Computed]
     public function filteredDate(): ?CarbonInterface
     {
@@ -402,6 +418,19 @@ new class extends Component
                     @endif
                 </flux:button>
             </flux:modal.trigger>
+
+            @if ($this->printableSheetCount > 0)
+                <flux:button
+                    icon="printer"
+                    icon:variant="outline"
+                    :href="route('appointments.attendance-sheets', ['date' => $this->filteredDate->toDateString()])"
+                    target="_blank"
+                    data-test="appointments-print-sheets-button"
+                    >
+                    {{ __('Print sheets') }}
+                    <flux:badge size="sm" color="amber" inset="top bottom" data-test="appointments-print-sheets-count">{{ $this->printableSheetCount }}</flux:badge>
+                </flux:button>
+            @endif
 
             <flux:button
                 variant="primary"

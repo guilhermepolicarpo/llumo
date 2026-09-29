@@ -49,6 +49,14 @@ class AppointmentPolicy
     }
 
     /**
+     * Determine whether the user can print the model's attendance sheet.
+     */
+    public function printAttendanceSheet(User $user, Appointment $appointment): bool
+    {
+        return $this->belongsToAppointmentsTeam($user, $appointment) && $appointment->hasPrintableAttendanceSheet();
+    }
+
+    /**
      * Determine whether the user belongs to the appointment's team.
      */
     private function belongsToAppointmentsTeam(User $user, Appointment $appointment): bool

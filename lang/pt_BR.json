@@ -219,7 +219,7 @@
   "Spiritist Center updated.": "Centro Espírita atualizado.",
   "Spiritist Center Info": "Informações do Centro Espírita",
   "Spiritist Center Members": "Membros do Centro Espírita",
-  "Manage your Spiritist Center logo, name, and address": "Gerencie o logotipo, nome e endereço do seu Centro Espírita",
+  "Manage your Spiritist Center logo, names, phone, and address": "Gerencie o logotipo, nomes, telefone e endereço do seu Centro Espírita",
   "Delete Spiritist Center": "Excluir Centro Espírita",
   "Permanently delete your Spiritist Center": "Excluir permanentemente seu Centro Espírita",
   "Spiritist Center members": "Membros do Centro Espírita",
@@ -613,5 +613,14 @@
   "The return indicated for :date went by without the assisted person coming back.": "O retorno indicado para :date passou sem que o assistido retornasse.",
   "Schedule return": "Agendar retorno",
   "Load more appointments": "Carregar mais atendimentos",
-  ":count in total": ":count no total"
+  ":count in total": ":count no total",
+  "Short name shown in the sidebar.": "Nome curto exibido no menu lateral.",
+  "Full name": "Nome completo",
+  "Printed on the attendance sheets and reports.": "Impresso nas fichas de atendimento e relatórios.",
+  "Attendance sheet|Attendance sheets": "Ficha de atendimento|Fichas de atendimento",
+  "Recommendations": "Recomendações",
+  "Removal": "Retirada",
+  "Signature": "Assinatura",
+  "Print sheets": "Imprimir fichas",
+  "Print attendance sheet": "Imprimir ficha"
 }

@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use App\Concerns\HasFormattedAddress;
+use App\Concerns\HasFormattedPhone;
 use App\Enums\AppointmentStatus;
 use App\Enums\BrazilianState;
-use App\Rules\Phone;
 use Carbon\CarbonInterface;
 use Database\Factories\AssistedPersonFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -65,7 +65,7 @@ use Illuminate\Support\Carbon;
 class AssistedPerson extends Model
 {
     /** @use HasFactory<AssistedPersonFactory> */
-    use HasFactory, HasFormattedAddress, SoftDeletes;
+    use HasFactory, HasFormattedAddress, HasFormattedPhone, SoftDeletes;
 
     /**
      * Get the team this assisted person belongs to.
@@ -155,16 +155,6 @@ class AssistedPerson extends Model
 
             return trans_choice(':count month|:count months', $months);
         });
-    }
-
-    /**
-     * Get the assisted person's phone formatted for display.
-     *
-     * @return Attribute<string|null, never>
-     */
-    protected function formattedPhone(): Attribute
-    {
-        return Attribute::make(get: fn (): ?string => Phone::format($this->phone) ?: null);
     }
 
     /**

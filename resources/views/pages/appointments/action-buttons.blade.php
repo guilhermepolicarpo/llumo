@@ -11,6 +11,8 @@
     [$primaryActions, $secondaryActions] = $availableActions->partition(fn (AppointmentAction $action) => $action->isPrimary());
     $startsAttendance = $availableActions->contains(AppointmentAction::Start);
     $isEditable = $appointment->status->isEditable();
+    $isPrintable = $appointment->hasPrintableAttendanceSheet();
+    $hasMenu = $secondaryActions->isNotEmpty() || $isEditable || $isPrintable;
     $usesRecord = $appointment->usesRecord();
 
     if ($usesRecord) {
@@ -21,7 +23,7 @@
     $mainVariant = $emphasizeMain ? 'primary' : 'outline';
 @endphp
 
-@if ($isAttendable || $primaryActions->isNotEmpty() || $secondaryActions->isNotEmpty() || $isEditable)
+@if ($isAttendable || $primaryActions->isNotEmpty() || $hasMenu)
 <div {{ $attributes->class('flex items-center justify-end gap-2') }}>
     @if ($isEditable && $editAs === 'button')
         <flux:button
@@ -64,10 +66,27 @@
         </flux:button>
     @endforeach
 
-    @if ($secondaryActions->isNotEmpty() || $isEditable)
+    @if ($hasMenu)
         <flux:dropdown position="bottom" align="end" :class="$menuFirst ? 'order-first me-auto' : null">
             <flux:button variant="ghost" :size="$size" icon="ellipsis-horizontal" icon:variant="outline" :aria-label="__('More actions')" data-test="appointment-actions-trigger" />
             <flux:menu>
+                @if ($isPrintable)
+                    <flux:menu.item
+                        as="a"
+                        href="{{ route('appointments.attendance-sheet', ['appointment' => $appointment]) }}"
+                        target="_blank"
+                        icon="printer"
+                        icon:variant="outline"
+                        data-test="appointment-print-sheet-menu-item"
+                        >
+                        {{ __('Print attendance sheet') }}
+                    </flux:menu.item>
+
+                    @if ($secondaryActions->isNotEmpty())
+                        <flux:menu.separator />
+                    @endif
+                @endif
+
                 <x-pages::appointments.action-menu-items :appointment="$appointment" :actions="$secondaryActions" />
 
                 @if ($isEditable)

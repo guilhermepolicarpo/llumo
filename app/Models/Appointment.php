@@ -181,6 +181,27 @@ class Appointment extends Model
     }
 
     /**
+     * Determine whether an attendance sheet can be printed for this appointment: its type uses a record and the assisted person has already arrived.
+     */
+    public function hasPrintableAttendanceSheet(): bool
+    {
+        return $this->usesRecord()
+            && in_array($this->status, [AppointmentStatus::Waiting, AppointmentStatus::InProgress], true);
+    }
+
+    /**
+     * Scope the query to appointments waiting to be attended whose type uses a record.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function waitingForRecord(Builder $query): void
+    {
+        $query->where('status', AppointmentStatus::Waiting)
+            ->whereHas('appointmentType', fn (Builder $query) => $query->where('requires_record', true));
+    }
+
+    /**
      * Scope the query to appointments from previous days whose attendance was never entered in the system.
      *
      * @param  Builder<self>  $query

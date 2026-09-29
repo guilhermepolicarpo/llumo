@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Concerns\GeneratesUniqueTeamSlugs;
 use App\Concerns\HasFormattedAddress;
+use App\Concerns\HasFormattedPhone;
 use App\Enums\BrazilianState;
 use App\Enums\TeamRole;
 use Database\Factories\TeamFactory;
@@ -22,9 +23,11 @@ use Illuminate\Support\Facades\Storage;
 /**
  * @property int $id
  * @property string $name
+ * @property string|null $legal_name
  * @property string $slug
  * @property bool $is_personal
  * @property string|null $logo_path
+ * @property string|null $phone
  * @property string|null $postal_code
  * @property string|null $street
  * @property string|null $number
@@ -36,6 +39,8 @@ use Illuminate\Support\Facades\Storage;
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  * @property-read string|null $logo_url
+ * @property-read string $display_legal_name
+ * @property-read string|null $formatted_phone
  * @property-read string|null $formatted_address
  * @property-read Collection<int, TeamInvitation> $invitations
  * @property-read Collection<int, Membership> $memberships
@@ -50,9 +55,11 @@ use Illuminate\Support\Facades\Storage;
  */
 #[Fillable([
     'name',
+    'legal_name',
     'slug',
     'is_personal',
     'logo_path',
+    'phone',
     'postal_code',
     'street',
     'number',
@@ -65,7 +72,7 @@ use Illuminate\Support\Facades\Storage;
 class Team extends Model
 {
     /** @use HasFactory<TeamFactory> */
-    use GeneratesUniqueTeamSlugs, HasFactory, HasFormattedAddress, SoftDeletes;
+    use GeneratesUniqueTeamSlugs, HasFactory, HasFormattedAddress, HasFormattedPhone, SoftDeletes;
 
     /**
      * Bootstrap the model and its traits.
@@ -210,6 +217,16 @@ class Team extends Model
         return Attribute::make(get: fn (): ?string => $this->logo_path
             ? Storage::disk('public')->url($this->logo_path)
             : null);
+    }
+
+    /**
+     * Get the team's full legal name, falling back to its short name when none was given.
+     *
+     * @return Attribute<string, never>
+     */
+    protected function displayLegalName(): Attribute
+    {
+        return Attribute::make(get: fn (): string => $this->legal_name ?: $this->name);
     }
 
     /**

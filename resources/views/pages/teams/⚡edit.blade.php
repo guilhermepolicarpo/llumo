@@ -5,6 +5,7 @@ use App\Concerns\InteractsWithAddressForm;
 use App\Data\TeamPermissions;
 use App\Enums\TeamRole;
 use App\Models\Team;
+use App\Rules\Phone;
 use App\Rules\PostalCode;
 use App\Rules\TeamProfileRules;
 use Flux\Flux;
@@ -25,12 +26,18 @@ new class extends Component
 
     public string $teamName = '';
 
+    public string $legalName = '';
+
+    public string $phone = '';
+
     public ?TemporaryUploadedFile $logo = null;
 
     public function mount(Team $team): void
     {
         $this->team = $team;
         $this->teamName = $team->name;
+        $this->legalName = $team->legal_name ?? '';
+        $this->phone = Phone::format($team->phone);
 
         $this->postalCode = PostalCode::format($team->postal_code);
         $this->street = $team->street ?? '';
@@ -51,6 +58,8 @@ new class extends Component
             $this->team,
             [
                 'name' => $validated['teamName'],
+                'legal_name' => $validated['legalName'] ?? null,
+                'phone' => $validated['phone'] ?? null,
                 'postal_code' => $validated['postalCode'] ?? null,
                 'street' => $validated['street'] ?? null,
                 'number' => $validated['number'] ?? null,
@@ -173,7 +182,7 @@ new class extends Component
             <div x-show="tab === 'info'" x-cloak role="tabpanel" class="space-y-10">
             <div>
                 <flux:heading>{{ __('Spiritist Center Info') }}</flux:heading>
-                <flux:subheading>{{ __('Manage your Spiritist Center logo, name, and address') }}</flux:subheading>
+                <flux:subheading>{{ __('Manage your Spiritist Center logo, names, phone, and address') }}</flux:subheading>
             </div>
 
             <div class="space-y-6">
@@ -228,7 +237,18 @@ new class extends Component
                                     <flux:error name="logo" />
                                 </flux:field>
 
-                                <flux:input wire:model="teamName" :label="__('Name')" required data-test="team-name-input" />
+                                <flux:input wire:model="teamName" :label="__('Name')" :description="__('Short name shown in the sidebar.')" required data-test="team-name-input" />
+
+                                <flux:input wire:model="legalName" :label="__('Full name')" :description="__('Printed on the attendance sheets and reports.')" data-test="team-legal-name-input" />
+
+                                <flux:input
+                                    wire:model="phone"
+                                    :label="__('Phone')"
+                                    placeholder="(00) 00000-0000"
+                                    inputmode="numeric"
+                                    mask:dynamic="$input.replace(/\D/g, '').length > 10 ? '(99) 99999-9999' : '(99) 9999-99999'"
+                                    data-test="team-phone-input"
+                                />
                             </flux:fieldset>
 
                             <x-pages::address-form :states="$this->states" test-prefix="team" />
@@ -244,6 +264,18 @@ new class extends Component
 
                         <div>
                             <flux:heading>{{ $team->name }}</flux:heading>
+
+                            @if ($team->legal_name)
+                                <flux:text class="text-sm text-zinc-500 dark:text-zinc-400" data-test="team-legal-name">
+                                    {{ $team->legal_name }}
+                                </flux:text>
+                            @endif
+
+                            @if ($team->formatted_phone)
+                                <flux:text class="text-sm text-zinc-500 dark:text-zinc-400" data-test="team-formatted-phone">
+                                    {{ $team->formatted_phone }}
+                                </flux:text>
+                            @endif
 
                             @if ($team->formatted_address)
                                 <flux:text class="text-sm text-zinc-500 dark:text-zinc-400" data-test="team-formatted-address">

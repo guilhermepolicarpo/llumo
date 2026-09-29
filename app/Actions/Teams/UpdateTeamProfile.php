@@ -4,6 +4,7 @@ namespace App\Actions\Teams;
 
 use App\Concerns\NormalizesBlankStrings;
 use App\Models\Team;
+use App\Rules\Phone;
 use App\Rules\PostalCode;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -15,9 +16,9 @@ class UpdateTeamProfile
     use NormalizesBlankStrings;
 
     /**
-     * Update the team's name, address and logo.
+     * Update the team's names, phone, address and logo.
      *
-     * @param  array{name: string, postal_code?: ?string, street?: ?string, number?: ?string,
+     * @param  array{name: string, legal_name?: ?string, phone?: ?string, postal_code?: ?string, street?: ?string, number?: ?string,
      *              complement?: ?string, district?: ?string, city?: ?string, state?: ?string}  $attributes
      */
     public function handle(Team $team, array $attributes, ?UploadedFile $logo = null): Team
@@ -91,6 +92,8 @@ class UpdateTeamProfile
     {
         $persisted = [
             'name' => $attributes['name'],
+            'legal_name' => $this->blankToNull($attributes['legal_name'] ?? null),
+            'phone' => Phone::digits($attributes['phone'] ?? null),
             'postal_code' => PostalCode::digits($attributes['postal_code'] ?? null),
             'street' => $this->blankToNull($attributes['street'] ?? null),
             'number' => $this->blankToNull($attributes['number'] ?? null),

@@ -15,6 +15,8 @@ class TeamProfileRules
     {
         return [
             'teamName' => static::name(),
+            'legalName' => static::legalName(),
+            'phone' => static::phone(),
             'logo' => static::logo(),
             ...static::address(),
         ];
@@ -28,6 +30,26 @@ class TeamProfileRules
     public static function name(): array
     {
         return ['required', 'string', 'max:255', new TeamName];
+    }
+
+    /**
+     * Get the validation rules used to validate a team's full legal name.
+     *
+     * @return array<int, ValidationRule|array<mixed>|string>
+     */
+    public static function legalName(): array
+    {
+        return ['nullable', 'string', 'max:255'];
+    }
+
+    /**
+     * Get the validation rules used to validate a team's phone number.
+     *
+     * @return array<int, ValidationRule|array<mixed>|string>
+     */
+    public static function phone(): array
+    {
+        return ['nullable', 'string', new Phone];
     }
 
     /**
