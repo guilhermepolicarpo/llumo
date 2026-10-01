@@ -12,8 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('teams', function (Blueprint $table) {
+            $table->string('legal_name')->nullable()->after('name');
             $table->string('logo_path')->nullable()->after('slug');
-            $table->char('postal_code', 8)->nullable()->after('logo_path');
+            $table->string('phone', 11)->nullable()->after('logo_path');
+            $table->char('postal_code', 8)->nullable()->after('phone');
             $table->string('street')->nullable()->after('postal_code');
             $table->string('number', 20)->nullable()->after('street');
             $table->string('complement')->nullable()->after('number');
@@ -30,7 +32,9 @@ return new class extends Migration
     {
         Schema::table('teams', function (Blueprint $table) {
             $table->dropColumn([
+                'legal_name',
                 'logo_path',
+                'phone',
                 'postal_code',
                 'street',
                 'number',

@@ -15,6 +15,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('team_id')->constrained()->cascadeOnDelete();
             $table->string('name', 100);
+            $table->boolean('requires_record')->default(false);
+            $table->unsignedSmallInteger('daily_limit')->nullable();
+            $table->json('weekdays')->nullable();
             $table->timestamps();
             $table->softDeletes();
 

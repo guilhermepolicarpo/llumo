@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('appointment_record_fluidic_remedy', function (Blueprint $table) {
             $table->foreignId('appointment_record_id')->constrained()->cascadeOnDelete();
             $table->foreignId('fluidic_remedy_id')->constrained()->cascadeOnDelete();
+            $table->unsignedSmallInteger('position')->default(0);
 
             $table->primary(['appointment_record_id', 'fluidic_remedy_id']);
             $table->index('fluidic_remedy_id');
