@@ -173,6 +173,14 @@ class Appointment extends Model
     }
 
     /**
+     * Determine whether this appointment is a return scheduled from the record of a previous attendance.
+     */
+    public function isReturn(): bool
+    {
+        return $this->returnOfRecord !== null;
+    }
+
+    /**
      * Determine whether this appointment can be attended, either starting it or continuing it.
      */
     public function isAttendable(): bool

@@ -637,6 +637,27 @@ test('the details flyout flags the assisted person first visit and dates the las
         ->assertSee(__('Last visit').': 20/08/2026');
 });
 
+test('the details flyout flags an appointment scheduled from a record as a return', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $assistedPerson = AssistedPerson::factory()->for($team)->create();
+    $return = Appointment::factory()->for($team)->for($assistedPerson)->create(['scheduled_on' => '2026-09-10']);
+    $scheduledElsewhere = Appointment::factory()->for($team)->for($assistedPerson)->create(['scheduled_on' => '2026-09-17']);
+    AppointmentRecord::factory()
+        ->for(Appointment::factory()->for($team)->for($assistedPerson)->completed()->create(['scheduled_on' => '2026-08-20']))
+        ->create(['return_appointment_id' => $return]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->call('showAppointment', $return->id)
+        ->assertSeeHtml('data-test="appointment-details-return"')
+        ->assertDontSeeHtml('data-test="appointment-details-first-visit"')
+        ->call('showAppointment', $scheduledElsewhere->id)
+        ->assertDontSeeHtml('data-test="appointment-details-return"');
+});
+
 test('the details flyout cannot open another team appointment', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);

@@ -200,7 +200,7 @@ new class extends Component
         }
 
         return Auth::user()->currentTeam->appointments()
-            ->with(['appointmentType', 'assistedPerson', 'attendant', 'creator', 'record.mentor'])
+            ->with(['appointmentType', 'assistedPerson', 'attendant', 'creator', 'record.mentor', 'returnOfRecord'])
             ->find($this->selectedAppointmentId);
     }
 
@@ -743,14 +743,16 @@ new class extends Component
 
                     <div class="min-w-0">
                         <flux:heading size="lg" class="truncate">{{ $assistedPerson->name }}</flux:heading>
-                        @if ($assistedPerson->formatted_age || ! $this->lastVisitOn)
+                        @if ($assistedPerson->formatted_age || $selectedAppointment->isReturn() || ! $this->lastVisitOn)
                             <div class="mt-0.5 flex flex-wrap items-center gap-2">
                                 @if ($assistedPerson->formatted_age)
                                     <flux:text>{{ $assistedPerson->formatted_age }}</flux:text>
                                 @endif
-                                @unless ($this->lastVisitOn)
+                                @if ($selectedAppointment->isReturn())
+                                    <flux:badge size="sm" color="sky" data-test="appointment-details-return">{{ __('Return') }}</flux:badge>
+                                @elseif (! $this->lastVisitOn)
                                     <flux:badge size="sm" color="purple" data-test="appointment-details-first-visit">{{ __('First visit') }}</flux:badge>
-                                @endunless
+                                @endif
                             </div>
                         @endif
 
