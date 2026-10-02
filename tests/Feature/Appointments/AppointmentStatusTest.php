@@ -220,7 +220,7 @@ test('the index describes where each appointment stands below its status', funct
     Livewire::test('pages::appointments.index')
         ->assertSee(__('Not arrived yet'))
         ->assertSee(__('Arrived at :time', ['time' => '09:42']).' · '.now()->subMinutes(18)->diffForHumans(short: true))
-        ->assertSee(__('with :name', ['name' => 'Joana Lima']))
+        ->assertSee(__('Attendant: :name', ['name' => 'Joana Lima']))
         ->assertSee(__('by :name', ['name' => 'Dona Ana']))
         ->assertDontSee('Pedro Alves')
         ->assertDontSee('Rita Costa');

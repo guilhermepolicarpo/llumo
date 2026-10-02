@@ -552,7 +552,7 @@ new class extends Component
                                         AppointmentStatus::Waiting => $appointment->received_at
                                             ? __('Arrived at :time', ['time' => $appointment->received_at->format('H:i')]).' · '.$appointment->received_at->diffForHumans(short: true)
                                             : null,
-                                        AppointmentStatus::InProgress => $appointment->attendant ? __('with :name', ['name' => $appointment->attendant->name]) : null,
+                                        AppointmentStatus::InProgress => $appointment->attendant ? __('Attendant: :name', ['name' => $appointment->attendant->name]) : null,
                                         AppointmentStatus::Completed => $appointment->record?->mentor ? __('by :name', ['name' => $appointment->record->mentor->name]) : null,
                                         AppointmentStatus::NoShow => __('Did not show up'),
                                         AppointmentStatus::Canceled => __('Appointment canceled'),
@@ -692,8 +692,15 @@ new class extends Component
 
                     <div class="min-w-0">
                         <flux:heading size="lg" class="truncate">{{ $assistedPerson->name }}</flux:heading>
-                        @if ($assistedPerson->formatted_age)
-                            <flux:text>{{ $assistedPerson->formatted_age }}</flux:text>
+                        @if ($assistedPerson->formatted_age || ! $this->lastVisitOn)
+                            <div class="mt-0.5 flex flex-wrap items-center gap-2">
+                                @if ($assistedPerson->formatted_age)
+                                    <flux:text>{{ $assistedPerson->formatted_age }}</flux:text>
+                                @endif
+                                @unless ($this->lastVisitOn)
+                                    <flux:badge size="sm" color="purple" data-test="appointment-details-first-visit">{{ __('First visit') }}</flux:badge>
+                                @endunless
+                            </div>
                         @endif
 
                         @if (! $assistedPerson->trashed() && Auth::user()->can('view', $assistedPerson))
@@ -707,32 +714,34 @@ new class extends Component
                                 wire:navigate
                                 data-test="appointment-details-assisted-person-link"
                                 >
-                                {{ __('View history') }}
+                                {{ __('View registration') }}
                             </flux:button>
                         @endif
                     </div>
                 </div>
 
-                <div class="space-y-2">
-                    @foreach (array_filter(['phone' => $assistedPerson->formatted_phone, 'envelope' => $assistedPerson->email, 'map-pin' => $assistedPerson->formatted_address]) as $icon => $detail)
-                        <div class="flex items-start gap-2">
-                            <flux:icon :name="$icon" class="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-                            <flux:text class="min-w-0 break-words">{{ $detail }}</flux:text>
-                        </div>
-                    @endforeach
+                @php($contactDetails = array_filter(['phone' => $assistedPerson->formatted_phone, 'envelope' => $assistedPerson->email, 'map-pin' => $assistedPerson->formatted_address]))
 
-                    <div class="flex items-start gap-2">
-                        <flux:icon.clock class="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-                        <flux:text class="min-w-0" data-test="appointment-details-last-visit">
-                            @if ($this->lastVisitOn)
-                                {{ __('Last visit') }}: {{ $this->lastVisitOn->format('d/m/Y') }}
-                                <span class="text-zinc-400 dark:text-zinc-500">({{ $this->lastVisitOn->diffForHumans() }})</span>
-                            @else
-                                {{ __('First visit') }}
-                            @endif
-                        </flux:text>
+                @if ($contactDetails || $this->lastVisitOn)
+                    <div class="space-y-2">
+                        @foreach ($contactDetails as $icon => $detail)
+                            <div class="flex items-start gap-2">
+                                <flux:icon :name="$icon" class="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                                <flux:text class="min-w-0 break-words">{{ $detail }}</flux:text>
+                            </div>
+                        @endforeach
+
+                        @if ($this->lastVisitOn)
+                            <div class="flex items-start gap-2">
+                                <flux:icon.clock class="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                                <flux:text class="min-w-0" data-test="appointment-details-last-visit">
+                                    {{ __('Last visit') }}: {{ $this->lastVisitOn->format('d/m/Y') }}
+                                    <span class="text-zinc-400 dark:text-zinc-500">({{ $this->lastVisitOn->diffForHumans() }})</span>
+                                </flux:text>
+                            </div>
+                        @endif
                     </div>
-                </div>
+                @endif
 
                 <flux:card class="space-y-4">
                     <div class="flex flex-wrap items-center justify-between gap-2">
@@ -742,18 +751,6 @@ new class extends Component
                         </flux:heading>
                         <flux:badge size="sm" :color="$selectedAppointment->status->color()">{{ $selectedAppointment->status->label() }}</flux:badge>
                     </div>
-
-                    @if ($selectedAppointment->received_at)
-                        <div class="flex items-center gap-2 rounded-lg bg-zinc-50 px-3 py-2 dark:bg-white/5" data-test="appointment-details-arrival">
-                            <flux:icon.clock class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-                            <flux:text class="text-zinc-800 dark:text-white">
-                                {{ __('Arrived at :time', ['time' => $selectedAppointment->received_at->format('H:i')]) }}
-                            </flux:text>
-                            @if ($this->waitingFor)
-                                <flux:badge size="sm" color="amber" class="ms-auto" data-test="appointment-details-waiting-for">{{ $this->waitingFor }}</flux:badge>
-                            @endif
-                        </div>
-                    @endif
 
                     <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm [&>dt]:text-zinc-500 dark:[&>dt]:text-zinc-400 [&>dd]:text-zinc-800 dark:[&>dd]:text-white">
                         <dt>{{ __('Appointment type') }}</dt>
@@ -773,41 +770,8 @@ new class extends Component
                         </div>
                     @endif
 
-                    <div class="space-y-2 border-t border-zinc-200 pt-4 dark:border-white/10">
-                        <div class="flex items-start gap-2">
-                            <flux:icon.calendar class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-                            <flux:text size="sm" class="min-w-0" data-test="appointment-details-scheduling">
-                                {{ __(
-                                    $selectedAppointment->creator ? 'Scheduled by :user on :date at :time.' : 'Scheduled on :date at :time.',
-                                    [
-                                        'user' => $selectedAppointment->creator?->name,
-                                        'date' => $selectedAppointment->created_at->format('d/m/Y'),
-                                        'time' => $selectedAppointment->created_at->format('H:i'),
-                                    ],
-                                ) }}
-                            </flux:text>
-                        </div>
-
-                        @if ($selectedAppointment->started_at && $selectedAppointment->finished_at)
-                            <div class="flex items-start gap-2">
-                                <flux:icon.pencil-square class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-                                <flux:text size="sm" class="min-w-0" data-test="appointment-details-system-entry">
-                                    {{ __(
-                                        match (true) {
-                                            $selectedAppointment->attendant && $selectedAppointment->started_at->format('H:i') === $selectedAppointment->finished_at->format('H:i') => 'Entered in the system by :user, at :start.',
-                                            (bool) $selectedAppointment->attendant => 'Entered in the system by :user, from :start to :end.',
-                                            $selectedAppointment->started_at->format('H:i') === $selectedAppointment->finished_at->format('H:i') => 'Entered in the system at :start.',
-                                            default => 'Entered in the system from :start to :end.',
-                                        },
-                                        [
-                                            'user' => $selectedAppointment->attendant?->name,
-                                            'start' => $selectedAppointment->started_at->format('H:i'),
-                                            'end' => $selectedAppointment->finished_at->format('H:i'),
-                                        ],
-                                    ) }}
-                                </flux:text>
-                            </div>
-                        @endif
+                    <div class="border-t border-zinc-100 pt-4 dark:border-white/5">
+                        <x-appointments.timeline :appointment="$selectedAppointment" :waiting-for="$this->waitingFor" />
                     </div>
                 </flux:card>
 

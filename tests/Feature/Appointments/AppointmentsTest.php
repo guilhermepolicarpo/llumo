@@ -592,17 +592,24 @@ test('the details flyout shows the assisted person, their last visit, and the ap
         ->assertDontSee('15/09/2026');
 });
 
-test('the details flyout says when it is the assisted person first visit', function () {
+test('the details flyout flags the assisted person first visit and dates the last one otherwise', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
-    $appointment = Appointment::factory()->for($team)->create();
+    $firstVisit = Appointment::factory()->for($team)->create();
+    $returningPerson = AssistedPerson::factory()->for($team)->create();
+    Appointment::factory()->for($team)->for($returningPerson)->completed()->create(['scheduled_on' => '2026-08-20']);
+    $returning = Appointment::factory()->for($team)->for($returningPerson)->create(['scheduled_on' => '2026-09-10']);
 
     $this->actingAs($user);
     $user->switchTeam($team);
 
     Livewire::test('pages::appointments.index')
-        ->call('showAppointment', $appointment->id)
-        ->assertSee(__('First visit'));
+        ->call('showAppointment', $firstVisit->id)
+        ->assertSeeHtml('data-test="appointment-details-first-visit"')
+        ->assertDontSeeHtml('data-test="appointment-details-last-visit"')
+        ->call('showAppointment', $returning->id)
+        ->assertDontSeeHtml('data-test="appointment-details-first-visit"')
+        ->assertSee(__('Last visit').': 20/08/2026');
 });
 
 test('the details flyout cannot open another team appointment', function () {
@@ -689,6 +696,7 @@ test('the details flyout credits the record mentor only when there is one and al
         ->call('showAppointment', $withMentor->id)
         ->assertSeeHtml('data-test="appointment-details-mentor"')
         ->assertSee('Dona Ana')
+        ->assertDontSee(__('Attendant: :name', ['name' => $withMentor->attendant->name]))
         ->assertSee(__('Entered in the system by :user, from :start to :end.', [
             'user' => $withMentor->attendant->name,
             'start' => $withMentor->started_at->format('H:i'),
@@ -733,10 +741,48 @@ test('the details flyout presents who scheduled the appointment and when', funct
 
     Livewire::test('pages::appointments.index')
         ->call('showAppointment', $withCreator->id)
-        ->assertSee(__('Scheduled by :user on :date at :time.', ['user' => 'Marta Reis', 'date' => today()->format('d/m/Y'), 'time' => '14:32']))
+        ->assertSee(__('by :user on :date at :time', ['user' => 'Marta Reis', 'date' => today()->format('d/m/Y'), 'time' => '14:32']))
         ->assertDontSeeHtml('data-test="appointment-details-system-entry"')
         ->call('showAppointment', $withoutCreator->id)
-        ->assertSee(__('Scheduled on :date at :time.', ['date' => today()->format('d/m/Y'), 'time' => '14:32']));
+        ->assertSee(__('on :date at :time', ['date' => today()->format('d/m/Y'), 'time' => '14:32']))
+        ->assertDontSee(__('by :user on :date at :time', ['user' => 'Marta Reis', 'date' => today()->format('d/m/Y'), 'time' => '14:32']));
+});
+
+test('the details flyout timeline marks the attendance in progress with who is attending and the conclusion still ahead', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->inPerson()->inProgress()->create([
+        'attendant_id' => User::factory()->create(['name' => 'Pedro Alves']),
+    ]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->call('showAppointment', $appointment->id)
+        ->assertSeeHtml('data-test="appointment-details-arrival" data-state="done"')
+        ->assertSeeHtml('data-test="appointment-details-attending" data-state="current"')
+        ->assertSee(__('Attendant: :name', ['name' => 'Pedro Alves']))
+        ->assertSeeHtml('data-test="appointment-details-conclusion" data-state="upcoming"');
+});
+
+test('the details flyout timeline ends at the no-show and skips the arrival of remote appointments', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $noShow = Appointment::factory()->for($team)->noShow()->create();
+    $remote = Appointment::factory()->for($team)->remote()->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->call('showAppointment', $noShow->id)
+        ->assertSeeHtml('data-test="appointment-details-arrival" data-state="missed"')
+        ->assertDontSeeHtml('data-test="appointment-details-attending"')
+        ->assertDontSeeHtml('data-test="appointment-details-conclusion"')
+        ->call('showAppointment', $remote->id)
+        ->assertDontSeeHtml('data-test="appointment-details-arrival"')
+        ->assertSeeHtml('data-test="appointment-details-attending" data-state="upcoming"');
 });
 
 test('deleting the appointment closes the details flyout', function () {
