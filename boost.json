@@ -9,7 +9,8 @@
     "packages": [
         "albertoarena/laravel-truss",
         "livewire/blaze",
-        "fruitcake/laravel-debugbar"
+        "fruitcake/laravel-debugbar",
+        "spatie/laravel-pdf"
     ],
     "sail": false,
     "skills": [
@@ -22,6 +23,7 @@
         "livewire-development",
         "tailwindcss-development",
         "blaze-optimize",
+        "laravel-pdf",
         "truss-schema",
         "debug-using-debugbar",
         "deploying-laravel-cloud"
