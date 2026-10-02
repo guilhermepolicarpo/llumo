@@ -201,7 +201,7 @@ new class extends Component
             data-test="catalog-entries-search-input"
         />
 
-        <flux:card class="mt-4 scroll-mt-6 px-4 pt-0 pb-4 [--flux-bleed:1rem]" id="catalog-entries-table">
+        <flux:card class="mt-4 scroll-mt-6 px-4 pb-4 [--flux-bleed:1rem]" id="catalog-entries-table">
             @if ($this->entries->isNotEmpty())
                 <flux:table bleed>
                     <flux:table.columns>
@@ -248,7 +248,7 @@ new class extends Component
                     </flux:table.rows>
                 </flux:table>
 
-                <div class="@container flex flex-wrap items-center justify-center gap-3 border-t border-zinc-100 pt-3 dark:border-zinc-700">
+                <div class="@container -mx-4 flex flex-wrap items-center justify-center gap-3 border-t border-zinc-800/10 px-4 pt-3 dark:border-white/20">
                     <flux:pagination :paginator="$this->entries" scroll-to="#catalog-entries-table" class="contents! @container-normal! *:order-2 [&>:first-child]:order-none [&>:first-child]:font-normal @max-[40rem]:[&>:first-child]:w-full @max-[40rem]:[&>:first-child]:text-center" />
 
                     <div class="order-1 flex items-center gap-2 @[40rem]:ms-auto">

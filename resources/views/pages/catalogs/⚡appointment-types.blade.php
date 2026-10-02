@@ -160,7 +160,7 @@ new class extends Component
             </x-slot:actions>
         @endif
 
-        <flux:card class="px-4 pt-0 pb-4 [--flux-bleed:1rem]">
+        <flux:card class="px-4 pb-4 [--flux-bleed:1rem]">
             @if ($this->appointmentTypes->isNotEmpty())
                 <flux:table bleed>
                     <flux:table.columns>
