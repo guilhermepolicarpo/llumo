@@ -463,20 +463,45 @@ test('the index filters appointments by mode and appointment type', function () 
     $user->switchTeam($team);
 
     Livewire::test('pages::appointments.index')
-        ->set('modes', [AppointmentMode::InPerson->value])
+        ->set('mode', AppointmentMode::InPerson->value)
         ->assertSee(['Ana Oliveira', 'Carlos Souza'])
         ->assertDontSee('Bruno Lima')
         ->assertDontSee('Diana Rocha')
-        ->set('modes', [])
+        ->set('mode', '')
         ->set('appointmentTypeIds', [(string) $passe->id])
         ->assertSee(['Ana Oliveira', 'Bruno Lima'])
         ->assertDontSee('Carlos Souza')
         ->assertDontSee('Diana Rocha')
-        ->set('modes', [AppointmentMode::InPerson->value])
+        ->set('mode', AppointmentMode::InPerson->value)
         ->assertSee('Ana Oliveira')
         ->assertDontSee('Bruno Lima')
         ->assertDontSee('Carlos Souza')
         ->assertDontSee('Diana Rocha');
+});
+
+test('the filters flyout counts each status and appointment type within the other active filters', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $passe = AppointmentType::factory()->for($team)->create();
+    $palestra = AppointmentType::factory()->for($team)->create();
+    Appointment::factory()->for($team)->waiting()->count(2)->create(['appointment_type_id' => $passe->id]);
+    Appointment::factory()->for($team)->remote()->create(['appointment_type_id' => $passe->id, 'scheduled_on' => today()]);
+    Appointment::factory()->for($team)->inPerson()->completed()->create(['appointment_type_id' => $palestra->id]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->set('mode', AppointmentMode::InPerson->value)
+        ->assertSeeHtml('data-test="appointments-type-count-'.$passe->id.'">2</span>')
+        ->assertSeeHtml('data-test="appointments-type-count-'.$palestra->id.'">1</span>')
+        ->assertSeeHtml('data-test="appointments-status-count-waiting">2</span>')
+        ->assertSeeHtml('data-test="appointments-status-count-completed">1</span>')
+        ->assertSee(trans_choice('Show :count appointment|Show :count appointments', 3))
+        ->set('appointmentTypeIds', [(string) $passe->id])
+        ->assertSeeHtml('data-test="appointments-type-count-'.$palestra->id.'">1</span>')
+        ->assertSeeHtml('data-test="appointments-status-count-completed">0</span>')
+        ->assertSee(trans_choice('Show :count appointment|Show :count appointments', 2));
 });
 
 test('the index filters appointments by attendant', function () {
@@ -516,15 +541,15 @@ test('the index shows removable chips for the active filters', function () {
     Livewire::test('pages::appointments.index')
         ->assertDontSeeHtml('appointments-active-filters')
         ->set('statuses', [AppointmentStatus::Waiting->value, AppointmentStatus::Completed->value])
-        ->set('modes', [AppointmentMode::InPerson->value])
+        ->set('mode', AppointmentMode::InPerson->value)
         ->assertSeeHtml('appointments-active-filters')
         ->assertSeeHtml('appointments-filters-count')
         ->call('removeFilter', 'statuses', AppointmentStatus::Completed->value)
         ->assertSet('statuses', [AppointmentStatus::Waiting->value])
-        ->assertSet('modes', [AppointmentMode::InPerson->value])
+        ->assertSet('mode', AppointmentMode::InPerson->value)
         ->call('clearFilters')
         ->assertSet('statuses', [])
-        ->assertSet('modes', [])
+        ->assertSet('mode', '')
         ->assertDontSeeHtml('appointments-active-filters')
         ->assertSee('Maria Silva');
 });
@@ -539,13 +564,13 @@ test('the index remembers the flyout filters across visits', function () {
     Livewire::test('pages::appointments.index')
         ->set('search', 'Maria')
         ->set('statuses', [AppointmentStatus::Waiting->value])
-        ->set('modes', [AppointmentMode::InPerson->value])
+        ->set('mode', AppointmentMode::InPerson->value)
         ->set('attendantIds', [(string) $user->id]);
 
     Livewire::test('pages::appointments.index')
         ->assertSet('search', '')
         ->assertSet('statuses', [AppointmentStatus::Waiting->value])
-        ->assertSet('modes', [AppointmentMode::InPerson->value])
+        ->assertSet('mode', AppointmentMode::InPerson->value)
         ->assertSet('attendantIds', [(string) $user->id])
         ->assertSet('date', today()->toDateString());
 });

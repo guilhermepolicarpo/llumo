@@ -7,10 +7,12 @@ use App\Enums\AppointmentMode;
 use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
 use App\Models\AppointmentType;
+use App\Models\Team;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Flux\Flux;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
@@ -40,7 +42,7 @@ new class extends Component
      */
     public const array FILTER_GROUPS = [
         'statuses' => 'status',
-        'modes' => 'mode',
+        'mode' => 'mode',
         'appointmentTypeIds' => 'appointment_type_id',
         'attendantIds' => 'attendant_id',
     ];
@@ -61,10 +63,10 @@ new class extends Component
     public array $statuses = [];
 
     /**
-     * @var list<string>
+     * The single mode the list is narrowed to, or an empty string for every mode.
      */
-    #[Session('appointments-modes')]
-    public array $modes = [];
+    #[Session('appointments-mode')]
+    public string $mode = '';
 
     /**
      * @var list<string>
@@ -144,7 +146,7 @@ new class extends Component
             return;
         }
 
-        $this->{$group} = array_values(array_diff($this->{$group}, [$value]));
+        $this->{$group} = is_array($this->{$group}) ? array_values(array_diff($this->{$group}, [$value])) : '';
 
         $this->resetPage();
     }
@@ -305,7 +307,7 @@ new class extends Component
     public function activeFilterCount(): int
     {
         return array_sum(array_map(
-            fn (string $group): int => count($this->{$group}),
+            fn (string $group): int => count($this->selectedFilterValues($group)),
             array_keys(self::FILTER_GROUPS),
         ));
     }
@@ -321,7 +323,7 @@ new class extends Component
         $chips = [];
 
         foreach (array_keys(self::FILTER_GROUPS) as $group) {
-            foreach ($this->{$group} as $value) {
+            foreach ($this->selectedFilterValues($group) as $value) {
                 if ($label = $this->filterLabel($group, (string) $value)) {
                     $chips[] = ['group' => $group, 'value' => (string) $value, 'label' => $label];
                 }
@@ -332,16 +334,52 @@ new class extends Component
     }
 
     /**
+     * Get the values selected in a filter group, whether it allows many choices or a single one left blank for all.
+     *
+     * @return list<string>
+     */
+    private function selectedFilterValues(string $group): array
+    {
+        return array_values(array_filter((array) $this->{$group}, fn (string $value): bool => $value !== ''));
+    }
+
+    /**
      * Resolve the display label for a selected filter value, or null when it no longer exists.
      */
     private function filterLabel(string $group, string $value): ?string
     {
         return match ($group) {
             'statuses' => AppointmentStatus::tryFrom($value)?->label(),
-            'modes' => AppointmentMode::tryFrom($value)?->label(),
+            'mode' => AppointmentMode::tryFrom($value)?->label(),
             'appointmentTypeIds' => $this->appointmentTypes->firstWhere('id', $value)?->name,
             'attendantIds' => $this->attendants->firstWhere('id', $value)?->name,
         };
+    }
+
+    /**
+     * Count the listed appointments under each status and appointment type, within every other active filter.
+     *
+     * A group leaves its own selection out, so each option tells how many appointments picking it would add.
+     *
+     * @return array{statuses: array<string, int>, appointmentTypeIds: array<string, int>}
+     */
+    #[Computed]
+    public function filterCounts(): array
+    {
+        $counts = [];
+
+        foreach (['statuses', 'appointmentTypeIds'] as $group) {
+            $column = self::FILTER_GROUPS[$group];
+
+            $counts[$group] = $this->filteredAppointments(except: $group)->toBase()
+                ->select($column)
+                ->selectRaw('count(*) as total')
+                ->groupBy($column)
+                ->pluck('total', $column)
+                ->all();
+        }
+
+        return $counts;
     }
 
     /**
@@ -350,25 +388,35 @@ new class extends Component
     #[Computed]
     public function appointments(): LengthAwarePaginator
     {
-        return Auth::user()->currentTeam->appointments()
+        return $this->filteredAppointments()
             ->with(['appointmentType', 'assistedPerson', 'attendant', 'record.mentor'])
+            ->when($this->statuses === [AppointmentStatus::Waiting->value], fn ($query) => $query->orderBy('received_at'))
+            ->orderBy('scheduled_on', $this->pending ? 'asc' : 'desc')
+            ->orderBy('id', 'desc')
+            ->paginate(in_array($this->perPage, self::PER_PAGE_OPTIONS, true) ? $this->perPage : self::PER_PAGE_OPTIONS[0]);
+    }
+
+    /**
+     * Narrow the team's appointments by the search, the day or pending list, and the flyout filters, optionally leaving one filter group out.
+     *
+     * @return HasMany<Appointment, Team>
+     */
+    private function filteredAppointments(?string $except = null): HasMany
+    {
+        return Auth::user()->currentTeam->appointments()
             ->when($this->search !== '', fn ($query) => $query->whereHas(
                 'assistedPerson',
                 fn ($query) => $query->withTrashed()->whereLike('name', "%{$this->search}%"),
             ))
             ->when($this->pending, fn ($query) => $query->pending())
-            ->when($this->filteredDate, fn ($query, CarbonInterface $date) => $query
-                ->where('scheduled_on', '>=', $date->toDateString())
-                ->where('scheduled_on', '<', $date->copy()->addDay()->toDateString()))
-            ->tap(function ($query) {
+            ->when($this->filteredDate, fn ($query, CarbonInterface $date) => $query->scheduledOn($date))
+            ->tap(function ($query) use ($except) {
                 foreach (self::FILTER_GROUPS as $group => $column) {
-                    $query->when($this->{$group} !== [], fn ($query) => $query->whereIn($column, $this->{$group}));
+                    $values = $this->selectedFilterValues($group);
+
+                    $query->when($group !== $except && $values !== [], fn ($query) => $query->whereIn($column, $values));
                 }
-            })
-            ->when($this->statuses === [AppointmentStatus::Waiting->value], fn ($query) => $query->orderBy('received_at'))
-            ->orderBy('scheduled_on', $this->pending ? 'asc' : 'desc')
-            ->orderBy('id', 'desc')
-            ->paginate(in_array($this->perPage, self::PER_PAGE_OPTIONS, true) ? $this->perPage : self::PER_PAGE_OPTIONS[0]);
+            });
     }
 
     public function render()
@@ -606,40 +654,41 @@ new class extends Component
         @endif
     </flux:card>
 
-    <flux:modal name="appointments-filters" flyout variant="floating" class="flex flex-col">
+    <flux:modal name="appointments-filters" flyout variant="floating" class="flex flex-col md:w-100">
         <x-flyout-layout :more-label="__('More filters')">
             <div class="pe-8">
                 <flux:heading size="lg">{{ __('Filters') }}</flux:heading>
                 <flux:subheading>{{ __('Refine the appointments shown in the list.') }}</flux:subheading>
             </div>
 
-            <flux:checkbox.group wire:model.live.debounce.250ms="statuses" :label="__('Status')" data-test="appointments-status-filter">
-                @foreach (AppointmentStatus::options() as $option)
-                    <flux:checkbox :value="$option['value']" :label="$option['label']" />
+            <flux:checkbox.group wire:model.live.debounce.250ms="statuses" variant="pills" :label="__('Status')" class="*:px-3! *:py-1.5!" data-test="appointments-status-filter">
+                @foreach (AppointmentStatus::cases() as $statusOption)
+                    <flux:checkbox :value="$statusOption->value" wire:key="status-filter-{{ $statusOption->value }}">
+                        {{ $statusOption->label() }}
+                        <span class="text-xs opacity-60" data-test="appointments-status-count-{{ $statusOption->value }}">{{ $this->filterCounts['statuses'][$statusOption->value] ?? 0 }}</span>
+                    </flux:checkbox>
                 @endforeach
             </flux:checkbox.group>
 
-            <flux:separator variant="subtle" />
-
-            <flux:checkbox.group wire:model.live.debounce.250ms="modes" :label="__('Mode')" data-test="appointments-mode-filter">
-                @foreach (AppointmentMode::options() as $option)
-                    <flux:checkbox :value="$option['value']" :label="$option['label']" />
+            <flux:radio.group wire:model.live="mode" variant="segmented" :label="__('Mode')" data-test="appointments-mode-filter">
+                <flux:radio value="" :label="__('All')" />
+                @foreach (AppointmentMode::cases() as $modeOption)
+                    <flux:radio :value="$modeOption->value" :label="$modeOption->label()" :icon="$modeOption->icon()" icon:variant="outline" />
                 @endforeach
-            </flux:checkbox.group>
+            </flux:radio.group>
 
             @if ($this->appointmentTypes->isNotEmpty())
-                <flux:separator variant="subtle" />
-
-                <flux:checkbox.group wire:model.live.debounce.250ms="appointmentTypeIds" :label="__('Appointment type')" data-test="appointments-type-filter">
+                <flux:checkbox.group wire:model.live.debounce.250ms="appointmentTypeIds" variant="pills" :label="__('Appointment type')" class="*:px-3! *:py-1.5!" data-test="appointments-type-filter">
                     @foreach ($this->appointmentTypes as $appointmentType)
-                        <flux:checkbox :value="(string) $appointmentType->id" :label="$appointmentType->name" />
+                        <flux:checkbox :value="(string) $appointmentType->id" wire:key="type-filter-{{ $appointmentType->id }}">
+                            {{ $appointmentType->name }}
+                            <span class="text-xs opacity-60" data-test="appointments-type-count-{{ $appointmentType->id }}">{{ $this->filterCounts['appointmentTypeIds'][$appointmentType->id] ?? 0 }}</span>
+                        </flux:checkbox>
                     @endforeach
                 </flux:checkbox.group>
             @endif
 
             @if ($this->attendants->isNotEmpty())
-                <flux:separator variant="subtle" />
-
                 <flux:field>
                     <flux:label>{{ __('Attendant') }}</flux:label>
 
@@ -667,7 +716,7 @@ new class extends Component
             <x-slot:footer>
                 <div class="flex justify-end gap-2">
                     <flux:button
-                        variant="subtle"
+                        variant="ghost"
                         wire:click="clearFilters"
                         :disabled="$this->activeFilterCount === 0"
                         data-test="appointments-flyout-clear-filters"
@@ -676,7 +725,9 @@ new class extends Component
                     </flux:button>
 
                     <flux:modal.close>
-                        <flux:button variant="primary" data-test="appointments-flyout-done">{{ __('Done') }}</flux:button>
+                        <flux:button variant="primary" data-test="appointments-flyout-done">
+                            {{ trans_choice('Show :count appointment|Show :count appointments', $this->appointments->total()) }}
+                        </flux:button>
                     </flux:modal.close>
                 </div>
             </x-slot:footer>
