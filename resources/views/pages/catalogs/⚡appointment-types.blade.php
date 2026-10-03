@@ -160,9 +160,9 @@ new class extends Component
             </x-slot:actions>
         @endif
 
-        <flux:card class="px-4 pb-4 [--flux-bleed:1rem]">
+        <flux:card class="[--flux-card-padding:1rem]">
             @if ($this->appointmentTypes->isNotEmpty())
-                <flux:table bleed>
+                <flux:table bleed container:class="overflow-hidden">
                     <flux:table.columns>
                         <flux:table.column>{{ __('Name') }}</flux:table.column>
                         <flux:table.column>{{ __('Days') }}</flux:table.column>
