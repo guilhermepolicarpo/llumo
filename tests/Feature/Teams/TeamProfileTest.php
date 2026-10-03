@@ -403,11 +403,7 @@ test('the formatted address skips the parts that are not filled in', function ()
         'postal_code' => '01310100',
     ]);
 
-    expect($team->formatted_address)
-        ->toContain('Avenida Paulista, 1578')
-        ->toContain('São Paulo/SP')
-        ->toContain('01310-100')
-        ->not->toContain('  ');
+    expect($team->formatted_address)->toBe('Avenida Paulista, 1578, São Paulo - SP, 01310-100');
 
     expect(Team::factory()->create()->formatted_address)->toBeNull();
 });

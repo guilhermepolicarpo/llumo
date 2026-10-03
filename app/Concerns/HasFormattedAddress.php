@@ -15,21 +15,15 @@ trait HasFormattedAddress
     protected function formattedAddress(): Attribute
     {
         return Attribute::make(get: function (): ?string {
-            $streetLine = collect([$this->street, $this->number])
+            $streetLine = collect([$this->street, $this->number, $this->complement])
                 ->filter()
                 ->implode(', ');
 
-            $cityLine = $this->city && $this->state
-                ? $this->city.'/'.$this->state->value
-                : ($this->city ?? $this->state?->value);
-
             $address = collect([
-                $streetLine,
-                $this->complement,
-                $this->district,
-                $cityLine,
-                $this->postal_code ? __('Postal code :code', ['code' => PostalCode::format($this->postal_code)]) : null,
-            ])->filter()->implode(' — ');
+                collect([$streetLine, $this->district])->filter()->implode(' - '),
+                $this->address_city_line,
+                $this->postal_code ? PostalCode::format($this->postal_code) : null,
+            ])->filter()->implode(', ');
 
             return $address === '' ? null : $address;
         });

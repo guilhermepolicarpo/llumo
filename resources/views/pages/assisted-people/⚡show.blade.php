@@ -244,7 +244,7 @@ new class extends Component
                     'cake' => $assistedPerson->formatted_age ? $assistedPerson->formatted_age.' · '.$assistedPerson->birth_date->format('d/m/Y') : null,
                     'phone' => $assistedPerson->formatted_phone,
                     'envelope' => $assistedPerson->email,
-                    'map-pin' => collect([$assistedPerson->district, $assistedPerson->address_city_line])->filter()->implode(', ') ?: null,
+                    'map-pin' => $assistedPerson->formatted_address,
                 ]) as $icon => $detail)
                     <span class="flex items-center gap-1.5">
                         <flux:icon :name="$icon" class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
@@ -252,6 +252,17 @@ new class extends Component
                     </span>
                 @endforeach
             </span>
+
+            <div class="mt-3 flex flex-wrap gap-2" data-test="assisted-person-history-stats">
+                @foreach (array_filter([
+                    trans_choice(':count appointment|:count appointments', $this->stats['completed']),
+                    trans_choice(':count no-show|:count no-shows', $this->stats['no_shows']),
+                    ($firstVisitOn = $this->stats['first_visit_on']) ? __('Since :date', ['date' => $firstVisitOn->format('d/m/Y')]) : null,
+                    ($lastVisitOn = $this->stats['last_visit_on']) ? __('Last visit :when', ['when' => $lastVisitOn->isToday() ? __('today') : $lastVisitOn->diffForHumans()]) : null,
+                ]) as $stat)
+                    <flux:badge rounded size="sm" color="zinc" class="text-[13px]!">{{ $stat }}</flux:badge>
+                @endforeach
+            </div>
         </x-slot:subheading>
 
         <div class="flex shrink-0 flex-wrap gap-2">
@@ -264,17 +275,6 @@ new class extends Component
             </flux:button>
         </div>
     </x-page-header>
-
-    <div class="mb-6 flex flex-wrap gap-2" data-test="assisted-person-history-stats">
-        <flux:badge rounded color="zinc">{{ trans_choice(':count appointment|:count appointments', $this->stats['completed']) }}</flux:badge>
-        <flux:badge rounded color="zinc">{{ trans_choice(':count no-show|:count no-shows', $this->stats['no_shows']) }}</flux:badge>
-        @if ($firstVisitOn = $this->stats['first_visit_on'])
-            <flux:badge rounded color="zinc">{{ __('Since :date', ['date' => $firstVisitOn->format('d/m/Y')]) }}</flux:badge>
-        @endif
-        @if ($lastVisitOn = $this->stats['last_visit_on'])
-            <flux:badge rounded color="zinc">{{ __('Last visit :when', ['when' => $lastVisitOn->isToday() ? __('today') : $lastVisitOn->diffForHumans()]) }}</flux:badge>
-        @endif
-    </div>
 
     @foreach ($this->pendingFollowUps as $followUp)
         <flux:callout variant="warning" icon="exclamation-triangle" icon:variant="outline" inline class="mb-4" wire:key="follow-up-{{ $followUp['key'] }}" data-test="assisted-person-history-follow-up">

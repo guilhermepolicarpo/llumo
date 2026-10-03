@@ -221,6 +221,26 @@ test('an upcoming appointment scheduled by a record says so', function () {
         ->assertSee(__('return from the record of :date', ['date' => '20/09']));
 });
 
+test('the history header shows the full address', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $person = AssistedPerson::factory()->for($team)->create([
+        'street' => 'Rua das Flores',
+        'number' => '120',
+        'complement' => 'Apto 12',
+        'district' => 'Centro',
+        'city' => 'Porto Alegre',
+        'state' => 'RS',
+        'postal_code' => '90010000',
+    ]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::assisted-people.show', ['assistedPerson' => $person])
+        ->assertSee('Rua das Flores, 120, Apto 12 - Centro, Porto Alegre - RS, 90010-000');
+});
+
 test('non members cannot view an assisted person history', function () {
     $owner = User::factory()->create();
     $outsider = User::factory()->create();
