@@ -241,6 +241,7 @@ test('completed records stay editable and the index opens them', function () {
     Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
         ->assertSet('observations', 'Anotação')
         ->assertDontSeeHtml('data-test="appointment-record-complete-button"')
+        ->assertSeeHtml('data-test="appointment-record-print-button"')
         ->set('observations', 'Corrigida')
         ->call('save')
         ->assertHasNoErrors();

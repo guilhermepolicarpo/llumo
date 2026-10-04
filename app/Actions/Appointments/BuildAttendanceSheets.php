@@ -16,19 +16,20 @@ class BuildAttendanceSheets
 {
     /**
      * Build the printable attendance sheets of the given appointments, one front and back A5 sheet each, shown inline.
+     * A completed appointment's sheet comes filled in with its record.
      *
      * @param  Collection<int, Appointment>  $appointments
      */
     public function handle(Team $team, Collection $appointments): PdfBuilder
     {
-        $appointments->loadMissing('assistedPerson');
+        $appointments->loadMissing(['assistedPerson', 'record.mentor', 'record.fluidicRemedies', 'record.guidances', 'record.passPrescriptions.passType']);
 
         return Pdf::view('pdf.attendance-sheets', [
             'team' => $team,
             'logo' => $this->logoDataUri($team),
             'appointments' => $appointments,
-            'guidances' => $team->guidances()->orderBy('name')->pluck('name'),
-            'passTypes' => $team->passTypes()->orderBy('name')->pluck('name'),
+            'guidances' => $team->guidances()->orderBy('name')->pluck('name', 'id'),
+            'passTypes' => $team->passTypes()->orderBy('name')->pluck('name', 'id'),
         ])
             ->format(Format::A5)
             ->inline($this->fileName($appointments));

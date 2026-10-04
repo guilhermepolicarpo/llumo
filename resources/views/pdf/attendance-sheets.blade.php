@@ -34,8 +34,13 @@
 
         .section-label { margin: 5mm 0 1.8mm; }
         .item { margin-bottom: 2mm; }
-        .box { display: inline-block; width: 3mm; height: 3mm; border: 0.8pt solid #141414; border-radius: 0.4mm; vertical-align: -0.4mm; margin-right: 2.1mm; }
+        .box { display: inline-block; width: 3mm; height: 3mm; border: 0.8pt solid #141414; border-radius: 0.4mm; vertical-align: -0.4mm; margin-right: 2.1mm; position: relative; }
         .radio { display: inline-block; width: 3mm; height: 3mm; border: 0.8pt solid #141414; border-radius: 1.5mm; }
+        .tick { position: absolute; left: 0.3mm; top: -0.9mm; font-size: 10pt; font-weight: bold; line-height: 1; }
+        .radio.checked { background: #141414; }
+        .detail { color: #333; }
+        .filled { font-weight: bold; }
+        .written-notes { margin-top: 1mm; white-space: pre-line; }
 
         .passes { margin-top: 5mm; border-bottom: 0.8pt solid #141414; }
         .passes th { padding: 0 0 1.4mm; border-bottom: 0.8pt solid #141414; text-align: center; font-size: 7.5pt; font-weight: bold; color: #333; }
@@ -61,20 +66,27 @@
         .back-detail { font-size: 8.5pt; color: #333; margin-top: 0.7mm; }
         .back-rule { border: 0; border-top: 1.6pt solid #141414; margin: 3.2mm 0 0; }
         .back-line { border-bottom: 0.5pt solid #bdbdbd; height: 8mm; }
+        .back-line.filled { height: auto; padding-top: 3.6mm; line-height: 3.4mm; white-space: nowrap; }
+        .back-columns td { width: 50%; border-bottom: 0.5pt solid #bdbdbd; }
+        .back-columns .back-line { border-bottom: 0; }
         .back-footer { position: absolute; left: 0; bottom: 0; font-size: 7.5pt; color: #555; }
     </style>
 </head>
 <body>
-    @php
-        // The closing is pinned to the page bottom, so each guidance (≈7mm) or pass (≈9mm) beyond the
-        // three of each the sheet was laid out for takes the room of the 6.4mm dotted notes lines.
-        $extraCatalogHeight = max(0, $guidances->count() - 3) * 7 + max(0, $passTypes->count() - 3) * 9;
-        $notesLineCount = max(0, 4 - (int) ceil(max(0, $extraCatalogHeight - 12) / 6.4));
-    @endphp
-
     @foreach ($appointments as $appointment)
         @php
             $assistedPerson = $appointment->assistedPerson;
+            // A completed appointment's sheet is printed filled in with its record, keeping the items no longer in the catalogs.
+            $record = $appointment->filledRecord();
+            $givenGuidances = $record?->guidances->keyBy('id') ?? collect();
+            $prescriptionsByPass = $record?->passPrescriptions->groupBy('pass_type_id') ?? collect();
+            $sheetGuidances = $guidances->union($givenGuidances->pluck('name', 'id'));
+            $sheetPassTypes = $passTypes->union($prescriptionsByPass->map(fn ($prescriptions) => $prescriptions->first()->passType->name));
+
+            // The closing is pinned to the page bottom, so each guidance (≈7mm) or pass (≈9mm) beyond the
+            // three of each the sheet was laid out for takes the room of the 6.4mm dotted notes lines.
+            $extraCatalogHeight = max(0, $sheetGuidances->count() - 3) * 7 + max(0, $sheetPassTypes->count() - 3) * 9;
+            $notesLineCount = max(0, 4 - (int) ceil(max(0, $extraCatalogHeight - 12) / 6.4));
             $sheetDay = $appointment->received_at ?? today();
             $sheetDate = $sheetDay->translatedFormat('d \d\e F \d\e Y');
         @endphp
@@ -120,14 +132,22 @@
                 </tr>
             </table>
 
-            @if ($guidances->isNotEmpty())
+            @if ($sheetGuidances->isNotEmpty())
                 <div class="label section-label">{{ __('Guidances') }}</div>
-                @foreach ($guidances as $guidance)
-                    <div class="item"><span class="box"></span>{{ $guidance }}</div>
+                @foreach ($sheetGuidances as $guidanceId => $guidance)
+                    @php
+                        $given = $givenGuidances->get($guidanceId);
+                    @endphp
+                    <div class="item">
+                        <span class="box">@if ($given)<span class="tick">✓</span>@endif</span>{{ $guidance }}
+                        @if ($given?->pivot->detail)
+                            <span class="detail">· {{ $given->pivot->detail }}</span>
+                        @endif
+                    </div>
                 @endforeach
             @endif
 
-            @if ($passTypes->isNotEmpty())
+            @if ($sheetPassTypes->isNotEmpty())
                 <table class="passes">
                     <thead>
                         <tr>
@@ -139,12 +159,21 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($passTypes as $passType)
+                        @foreach ($sheetPassTypes as $passTypeId => $passType)
+                            @php
+                                $prescriptions = $prescriptionsByPass->get($passTypeId, collect());
+                            @endphp
                             <tr>
                                 <td class="name">{{ $passType }}</td>
-                                <td><span class="quantity"></span></td>
+                                <td>
+                                    @if ($prescriptions->isNotEmpty())
+                                        <span class="filled">{{ $prescriptions->pluck('quantity')->implode(' + ') }}</span>
+                                    @else
+                                        <span class="quantity"></span>
+                                    @endif
+                                </td>
                                 @foreach (AppointmentMode::cases() as $mode)
-                                    <td><span class="radio"></span></td>
+                                    <td><span @class(['radio', 'checked' => $prescriptions->contains('mode', $mode)])></span></td>
                                 @endforeach
                             </tr>
                         @endforeach
@@ -155,34 +184,46 @@
             <div class="write-in">
                 <table>
                     <tr>
-                        <td class="shrink"><span class="box"></span>{{ __('Infiltration — site') }}</td>
-                        <td class="line-fill"></td>
+                        <td class="shrink"><span class="box">@if ($record?->infiltration_site)<span class="tick">✓</span>@endif</span>{{ __('Infiltration — site') }}</td>
+                        <td class="line-fill filled">{{ $record?->infiltration_site }}</td>
                         <td class="shrink" style="padding-left: 1.8mm;">{{ __('Removal') }}</td>
                         <td class="shrink" style="padding-right: 0;">
-                            <span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 8mm;"></span>
+                            @if ($record?->infiltration_remove_on)
+                                <span class="filled">{{ $record->infiltration_remove_on->format('d/m/Y') }}</span>
+                            @else
+                                <span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 8mm;"></span>
+                            @endif
                         </td>
                     </tr>
                 </table>
                 <table>
                     <tr>
-                        <td class="shrink"><span class="box"></span>{{ __('Return on') }}</td>
+                        <td class="shrink"><span class="box">@if ($record?->return_on)<span class="tick">✓</span>@endif</span>{{ __('Return on') }}</td>
                         <td>
-                            <span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 8mm;"></span>
+                            @if ($record?->return_on)
+                                <span class="filled">{{ $record->return_on->format('d/m/Y') }}</span>
+                            @else
+                                <span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 8mm;"></span>
+                            @endif
                         </td>
                     </tr>
                 </table>
 
                 <div>{{ __('Observations') }}:</div>
-                @for ($line = 0; $line < $notesLineCount; $line++)
-                    <div class="notes-line"></div>
-                @endfor
+                @if ($record?->observations)
+                    <div class="written-notes filled">{{ $record->observations }}</div>
+                @else
+                    @for ($line = 0; $line < $notesLineCount; $line++)
+                        <div class="notes-line"></div>
+                    @endfor
+                @endif
             </div>
 
             <div class="closing">
                 <table>
                     <tr>
                         <td style="padding-bottom: 0.9mm;">{{ $sheetDate }}</td>
-                        <td class="signature-line"></td>
+                        <td class="signature-line" style="text-align: center; vertical-align: bottom;">{{ $record?->mentor?->name }}</td>
                     </tr>
                     <tr>
                         <td class="caption">{{ $team->address_city_line }}</td>
@@ -197,9 +238,44 @@
             <div class="back-title">{{ __('Fluidic remedies') }}</div>
             <div class="back-detail">{{ $assistedPerson->name }} · {{ $sheetDate }}</div>
             <hr class="back-rule">
-            @foreach (range(1, 20) as $line)
-                <div class="back-line"></div>
+            @php
+                // Each written line takes one ruled line, so the instructions are wrapped to the width of the page; when the
+                // remedies would not fit the ruled lines in one column, they are split into two columns, filled top to bottom.
+                $backLineCount = 20;
+                $remedies = $record?->fluidicRemedies->pluck('name') ?? collect();
+                $instructionsLabel = __('How to take').':';
+                $instructionLines = $record?->fluid_instructions
+                    ? collect(explode("\n", wordwrap($instructionsLabel.' '.$record->fluid_instructions, 75)))
+                    : collect();
+                $remedyColumns = $remedies->count() + $instructionLines->count() > $backLineCount ? $remedies->split(2) : collect([$remedies]);
+                $writtenLineCount = $remedyColumns->first()->count() + $instructionLines->count();
+            @endphp
+            @if ($remedyColumns->count() > 1)
+                <table class="back-columns">
+                    @foreach ($remedyColumns->first()->zip($remedyColumns->last()) as [$leftRemedy, $rightRemedy])
+                        <tr>
+                            <td><div class="back-line filled">{{ $leftRemedy }}</div></td>
+                            <td><div class="back-line filled">{{ $rightRemedy }}</div></td>
+                        </tr>
+                    @endforeach
+                </table>
+            @else
+                @foreach ($remedies as $remedy)
+                    <div class="back-line filled">{{ $remedy }}</div>
+                @endforeach
+            @endif
+            @foreach ($instructionLines as $line)
+                <div class="back-line filled">
+                    @if ($loop->first)
+                        <span class="label">{{ $instructionsLabel }}</span>{{ mb_substr($line, mb_strlen($instructionsLabel)) }}
+                    @else
+                        {{ $line }}
+                    @endif
+                </div>
             @endforeach
+            @for ($line = $writtenLineCount; $line < $backLineCount; $line++)
+                <div class="back-line"></div>
+            @endfor
             <div class="back-footer">{{ $team->display_legal_name }}</div>
         </div>
     @endforeach

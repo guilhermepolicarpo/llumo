@@ -171,7 +171,19 @@ new class extends Component
         :subheading="$this->canUpdate ? __('Record what was done in this appointment') : __('See what was recorded in this appointment')"
         :back-href="route('appointments.index')"
         :back-label="__('Back to appointments')"
-    />
+    >
+        @if ($appointment->hasPrintableAttendanceSheet())
+            <flux:button
+                icon="printer"
+                icon:variant="outline"
+                :href="route('appointments.attendance-sheet', ['appointment' => $appointment])"
+                target="_blank"
+                data-test="appointment-record-print-button"
+                >
+                {{ __('Print attendance sheet') }}
+            </flux:button>
+        @endif
+    </x-page-header>
 
     <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         {{-- Sticks to the top while it fits the viewport; when taller, it scrolls with the page and sticks by its bottom. --}}

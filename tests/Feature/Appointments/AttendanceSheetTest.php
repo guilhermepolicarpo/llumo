@@ -1,10 +1,15 @@
 <?php
 
+use App\Enums\AppointmentMode;
 use App\Enums\TeamRole;
 use App\Models\Appointment;
+use App\Models\AppointmentRecord;
 use App\Models\AppointmentType;
 use App\Models\AssistedPerson;
+use App\Models\FluidicRemedy;
 use App\Models\Guidance;
+use App\Models\Mentor;
+use App\Models\PassPrescription;
 use App\Models\PassType;
 use App\Models\User;
 use Database\Factories\AppointmentFactory;
@@ -59,8 +64,65 @@ test('the attendance sheet is printable only once the assisted person arrived fo
     'waiting' => [fn (AppointmentFactory $factory) => $factory->waiting(), true, true],
     'in progress' => [fn (AppointmentFactory $factory) => $factory->inPerson()->inProgress(), true, true],
     'scheduled' => [fn (AppointmentFactory $factory) => $factory->inPerson(), true, false],
-    'completed' => [fn (AppointmentFactory $factory) => $factory->inPerson()->completed(), true, false],
+    'completed without a record' => [fn (AppointmentFactory $factory) => $factory->inPerson()->completed(), true, false],
+    'completed with a record' => [fn (AppointmentFactory $factory) => $factory->inPerson()->completed()->has(AppointmentRecord::factory(), 'record'), true, true],
     'waiting without a record' => [fn (AppointmentFactory $factory) => $factory->waiting(), false, false],
+]);
+
+test('the attendance sheet of a completed appointment is printed filled in with its record', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    Guidance::factory()->for($team)->create(['name' => 'Culto no lar']);
+    $appointment = Appointment::factory()->for($team)->inPerson()->completed()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+    $record = AppointmentRecord::factory()->for($appointment)->create([
+        'mentor_id' => Mentor::factory()->for($team)->create(['name' => 'Irmã Clara']),
+        'fluid_instructions' => 'Tomar em jejum',
+        'return_on' => '2026-10-24',
+        'observations' => 'Manter o tratamento com regularidade',
+    ]);
+    $record->fluidicRemedies()->attach(FluidicRemedy::factory()->for($team)->create(['name' => 'Serotonina']), ['position' => 0]);
+    $record->guidances()->attach(Guidance::factory()->for($team)->create(['name' => 'Tratamento do copo']), ['detail' => 'Por 21 dias']);
+    PassPrescription::factory()->for($record, 'appointmentRecord')->create([
+        'pass_type_id' => PassType::factory()->for($team)->create(['name' => 'Hidroterapia']),
+        'quantity' => 7,
+        'mode' => AppointmentMode::InPerson,
+    ]);
+
+    $this->get(route('appointments.attendance-sheet', ['current_team' => $team, 'appointment' => $appointment]));
+
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
+        expect($pdf->getHtml())->toContain(
+            'Culto no lar',
+            'Tratamento do copo',
+            'Por 21 dias',
+            'Hidroterapia',
+            '24/10/2026',
+            'Manter o tratamento com regularidade',
+            'Serotonina',
+            'Tomar em jejum',
+            'Irmã Clara',
+        );
+
+        return true;
+    });
+});
+
+test('the fluidic remedies of a filled sheet split into two columns when they would not fit one', function (int $remedyCount, bool $twoColumns) {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $appointment = Appointment::factory()->for($team)->inPerson()->completed()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+    $record = AppointmentRecord::factory()->for($appointment)->create(['fluid_instructions' => null]);
+    FluidicRemedy::factory()->for($team)->count($remedyCount)->create()
+        ->each(fn (FluidicRemedy $remedy, int $position) => $record->fluidicRemedies()->attach($remedy, ['position' => $position]));
+
+    $this->get(route('appointments.attendance-sheet', ['current_team' => $team, 'appointment' => $appointment]));
+
+    Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => str_contains($pdf->getHtml(), 'class="back-columns"') === $twoColumns);
+})->with([
+    'fitting one column' => [20, false],
+    'overflowing one column' => [21, true],
 ]);
 
 test('the attendance sheet of another team appointment is not found', function () {

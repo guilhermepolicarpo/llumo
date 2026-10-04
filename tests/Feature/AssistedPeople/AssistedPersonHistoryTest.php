@@ -42,7 +42,9 @@ test('the history splits the assisted person appointments into upcoming and prev
         ->assertSee(__('with :name', ['name' => 'Irmã Clara']))
         ->assertSee('Calmante')
         ->assertSee('Dormir mais cedo')
-        ->assertSee(route('appointments.attend', ['appointment' => $completed]));
+        ->assertSee(route('appointments.attend', ['appointment' => $completed]))
+        ->assertSee(route('appointments.attendance-sheet', ['appointment' => $completed]))
+        ->assertDontSee(route('appointments.attendance-sheet', ['appointment' => $completedToday]));
 
     expect($component->get('upcomingAppointments')->pluck('id')->all())->toBe([$nextWeek->id, $nextMonth->id])
         ->and($component->get('previousAppointments')->pluck('id')->all())->toBe([$completedToday->id, $completed->id, $noShow->id]);

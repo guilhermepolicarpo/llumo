@@ -400,7 +400,7 @@ new class extends Component
                                 $isMissed = in_array($appointment->status, [AppointmentStatus::NoShow, AppointmentStatus::Canceled], true);
                                 $isFirst = $loop->parent->first && $loop->first;
                                 $isLast = $isLastMonth && $loop->last && ! $hasMore;
-                                $record = $appointment->status === AppointmentStatus::Completed ? $appointment->record : null;
+                                $record = $appointment->filledRecord();
                             @endphp
                             <li class="flex gap-4" wire:key="previous-{{ $appointment->id }}" data-test="assisted-person-history-entry">
                                 <div @class(['flex w-14 shrink-0 flex-col items-center', 'pt-1.5' => $isMissed, 'pt-4' => ! $isMissed])>
@@ -435,6 +435,20 @@ new class extends Component
                                             </div>
 
                                             <div class="flex items-center gap-2">
+                                                @if ($record && $appointment->hasPrintableAttendanceSheet())
+                                                    <flux:button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        icon="printer"
+                                                        icon:variant="outline"
+                                                        :href="route('appointments.attendance-sheet', ['appointment' => $appointment])"
+                                                        target="_blank"
+                                                        data-test="assisted-person-history-print-record-button"
+                                                        >
+                                                        {{ __('Print attendance sheet') }}
+                                                    </flux:button>
+                                                @endif
+
                                                 @if ($appointment->status === AppointmentStatus::Completed && $appointment->usesRecord())
                                                     <flux:button
                                                         variant="ghost"

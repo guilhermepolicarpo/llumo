@@ -189,12 +189,25 @@ class Appointment extends Model
     }
 
     /**
-     * Determine whether an attendance sheet can be printed for this appointment: its type uses a record and the assisted person has already arrived.
+     * Determine whether an attendance sheet can be printed for this appointment: its type uses a record and the assisted person
+     * has already arrived, or it was completed with a record, whose sheet is printed filled in.
      */
     public function hasPrintableAttendanceSheet(): bool
     {
-        return $this->usesRecord()
-            && in_array($this->status, [AppointmentStatus::Waiting, AppointmentStatus::InProgress], true);
+        if (! $this->usesRecord()) {
+            return false;
+        }
+
+        return in_array($this->status, [AppointmentStatus::Waiting, AppointmentStatus::InProgress], true)
+            || $this->filledRecord() !== null;
+    }
+
+    /**
+     * Get the record filled in when the appointment was completed, or null while it is still open.
+     */
+    public function filledRecord(): ?AppointmentRecord
+    {
+        return $this->status === AppointmentStatus::Completed ? $this->record : null;
     }
 
     /**
