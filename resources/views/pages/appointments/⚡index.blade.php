@@ -834,6 +834,8 @@ new class extends Component
                 @if ($opensRecord || AppointmentAction::availableFor($selectedAppointment) !== [])
                     <x-slot:footer data-test="appointment-details-actions">
                         <div class="flex flex-wrap items-center justify-end gap-2">
+                            <x-pages::appointments.action-buttons :appointment="$selectedAppointment" edit-as="button" menu-first emphasize-main class="flex-wrap" />
+
                             @if ($opensRecord)
                                 <flux:button
                                     variant="primary"
@@ -846,8 +848,6 @@ new class extends Component
                                     {{ __('Open appointment record') }}
                                 </flux:button>
                             @endif
-
-                            <x-pages::appointments.action-buttons :appointment="$selectedAppointment" edit-as="button" menu-first emphasize-main class="flex-wrap" />
                         </div>
                     </x-slot:footer>
                 @endif
