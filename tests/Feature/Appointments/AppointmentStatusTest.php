@@ -46,6 +46,25 @@ test('members move an appointment through the attendance flow', function () {
         ->attendant_id->toBe($user->id);
 });
 
+test('completing an appointment someone else started records the member who completed it', function () {
+    $this->travelTo('2026-09-19 20:10:00');
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->inProgress()->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->call('perform', $appointment->id, 'complete');
+
+    expect($appointment->fresh())
+        ->status->toBe(AppointmentStatus::Completed)
+        ->attendant_id->toBe($user->id)
+        ->started_at->toDateTimeString()->toBe('2026-09-19 20:10:00')
+        ->finished_at->toDateTimeString()->toBe('2026-09-19 20:10:00');
+});
+
 test('each action moves the appointment to its next status', function (Closure $state, string $action, AppointmentStatus $expectedStatus, array $expectedAttributes) {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);

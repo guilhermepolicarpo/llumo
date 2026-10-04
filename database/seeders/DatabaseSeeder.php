@@ -239,6 +239,7 @@ class DatabaseSeeder extends Seeder
                 $appointment,
                 $appointment->attendant,
                 $this->recordAttributes($team, $appointment, $infiltrationRemoval),
+                $appointment->started_at,
             ));
 
         $this->fillHealingTreatmentDays($team, $healingTreatment, $assistedPeople, $memberIds);

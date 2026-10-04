@@ -78,7 +78,10 @@ test('members fill in the record of the appointment they attend', function () {
         ->and($record->infiltration_remove_on->toDateString())->toBe($appointment->scheduled_on->addDays(3)->toDateString())
         ->and($record->infiltration_removal_place)->toBe(InfiltrationRemovalPlace::AtHome)
         ->and($record->observations)->toBe('Observação')
-        ->and($appointment->fresh()->status)->toBe(AppointmentStatus::InProgress);
+        ->and($appointment->fresh())
+        ->status->toBe(AppointmentStatus::InProgress)
+        ->attendant_id->toBe($user->id)
+        ->started_at->toDateTimeString()->toBe($appointment->started_at->toDateTimeString());
 });
 
 test('completing the appointment saves the record and finishes it', function () {
@@ -102,6 +105,35 @@ test('completing the appointment saves the record and finishes it', function () 
     expect($appointment->fresh()->status)->toBe(AppointmentStatus::Completed)
         ->and($appointment->record->observations)->toBe('Tudo certo');
 });
+
+test('whoever records an appointment someone else attends takes it over from when they opened the record', function (string $method, AppointmentStatus $status) {
+    $this->travelTo('2026-09-20 19:00:00');
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->inProgress()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    $component = Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->assertSeeHtml('data-test="appointment-record-other-attendant"');
+
+    $this->travelTo('2026-09-20 19:20:00');
+
+    $component->set('mentorId', (string) Mentor::factory()->for($team)->create()->id)
+        ->call($method)
+        ->assertHasNoErrors();
+
+    expect($appointment->fresh())
+        ->status->toBe($status)
+        ->attendant_id->toBe($user->id)
+        ->started_at->toDateTimeString()->toBe('2026-09-20 19:00:00');
+})->with([
+    'saving' => ['save', AppointmentStatus::InProgress],
+    'completing' => ['complete', AppointmentStatus::Completed],
+]);
 
 test('returning to the queue keeps the unsaved record as a draft', function () {
     $user = User::factory()->create();
@@ -247,7 +279,9 @@ test('completed records stay editable and the index opens them', function () {
         ->assertHasNoErrors();
 
     expect($appointment->record->fresh()->observations)->toBe('Corrigida')
-        ->and($appointment->fresh()->status)->toBe(AppointmentStatus::Completed);
+        ->and($appointment->fresh())
+        ->status->toBe(AppointmentStatus::Completed)
+        ->attendant_id->not->toBe($user->id);
 });
 
 test('the index sends record appointments to the record screen instead of starting them inline', function () {

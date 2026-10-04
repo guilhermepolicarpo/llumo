@@ -124,9 +124,27 @@ enum AppointmentAction: string
             self::UndoReception => ['received_at' => null],
             self::Start => ['started_at' => now(), 'attendant_id' => $user->id],
             self::ReturnToQueue => ['started_at' => null, 'attendant_id' => null],
-            self::Complete => ['finished_at' => now()],
+            self::Complete => $this->completionAttributes($appointment, $user),
             self::MarkAsNoShow, self::Cancel, self::Reopen => [],
         };
+    }
+
+    /**
+     * Get the attributes written when the appointment is completed.
+     *
+     * Whoever completes an appointment someone else was attending becomes its attendant, entering it at that moment.
+     *
+     * @return array<string, mixed>
+     */
+    private function completionAttributes(Appointment $appointment, User $user): array
+    {
+        $completedAt = now();
+
+        if ($appointment->attendant_id === $user->id) {
+            return ['finished_at' => $completedAt];
+        }
+
+        return ['finished_at' => $completedAt, 'started_at' => $completedAt, 'attendant_id' => $user->id];
     }
 
     /**

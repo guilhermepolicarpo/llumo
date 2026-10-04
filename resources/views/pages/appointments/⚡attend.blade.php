@@ -13,11 +13,13 @@ use App\Models\Appointment;
 use App\Models\AppointmentRecord;
 use App\Models\User;
 use App\Rules\AppointmentRecordRules;
+use Carbon\CarbonImmutable;
 use Flux\Flux;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 new class extends Component
@@ -32,9 +34,17 @@ new class extends Component
 
     public Appointment $appointment;
 
+    /**
+     * When the current user opened the record, which becomes the start of the attendance if they take it over.
+     */
+    #[Locked]
+    public CarbonImmutable $openedAt;
+
     public function mount(Appointment $appointment, PerformAppointmentAction $performAppointmentAction): void
     {
         Gate::authorize('view', [AppointmentRecord::class, $appointment]);
+
+        $this->openedAt = now();
 
         if (Gate::allows('perform', $appointment) && $performAppointmentAction->handle($appointment, AppointmentAction::Start, Auth::user())) {
             $appointment->refresh();
@@ -61,6 +71,8 @@ new class extends Component
 
     /**
      * Save the record and finish the appointment.
+     *
+     * The record is saved first so that whoever fills it in takes the appointment over from when they opened it.
      */
     public function complete(SaveAppointmentRecord $saveAppointmentRecord, PerformAppointmentAction $performAppointmentAction): void
     {
@@ -150,7 +162,7 @@ new class extends Component
 
         $validated = $this->validate(AppointmentRecordRules::all($this->appointment));
 
-        $saveAppointmentRecord->handle($this->appointment, Auth::user(), $this->recordAttributes($validated));
+        $saveAppointmentRecord->handle($this->appointment, Auth::user(), $this->recordAttributes($validated), $this->openedAt);
 
         unset($this->record);
         $this->restoredDraft = null;

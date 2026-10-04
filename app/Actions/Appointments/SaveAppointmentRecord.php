@@ -6,17 +6,22 @@ use App\Concerns\NormalizesBlankStrings;
 use App\Models\Appointment;
 use App\Models\AppointmentRecord;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 class SaveAppointmentRecord
 {
     use NormalizesBlankStrings;
 
-    public function __construct(private SyncAppointmentRecordFollowUps $syncAppointmentRecordFollowUps) {}
+    public function __construct(
+        private SyncAppointmentRecordFollowUps $syncAppointmentRecordFollowUps,
+        private TakeOverAppointment $takeOverAppointment,
+    ) {}
 
     /**
      * Save the record filled while the assisted person was attended, scheduling the follow-ups it requests
-     * and discarding the draft kept while it was being filled.
+     * and discarding the draft kept while it was being filled. Whoever saves the record of an appointment
+     * someone else is attending takes it over, from the moment they opened the record.
      *
      * @param  array{
      *     mentor_id: ?int,
@@ -34,9 +39,9 @@ class SaveAppointmentRecord
      *     observations: ?string,
      * }  $attributes
      */
-    public function handle(Appointment $appointment, User $user, array $attributes): AppointmentRecord
+    public function handle(Appointment $appointment, User $user, array $attributes, CarbonImmutable $openedAt): AppointmentRecord
     {
-        return DB::transaction(function () use ($appointment, $user, $attributes): AppointmentRecord {
+        return DB::transaction(function () use ($appointment, $user, $attributes, $openedAt): AppointmentRecord {
             $record = $appointment->record()->firstOrNew();
 
             $record->fill([
@@ -65,6 +70,8 @@ class SaveAppointmentRecord
             $record->passPrescriptions()->createMany($attributes['pass_prescriptions']);
 
             $appointment->recordDraft()->delete();
+
+            $this->takeOverAppointment->handle($appointment, $user, $openedAt);
 
             return $record;
         });
