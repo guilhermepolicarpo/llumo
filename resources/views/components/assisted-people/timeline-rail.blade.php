@@ -1,3 +1,5 @@
+@blaze(memo: true)
+
 {{-- The history timeline's column beside an entry: a line from the previous entry, the entry's status dot, and a line to the next one. --}}
 {{-- The offset lines the dot up with the day in the date block: "card" for a full entry, "row" for a missed one, "upcoming" for one ahead (dashed). --}}
 @props([
