@@ -4,7 +4,7 @@
     <flux:input type="email" wire:model="email" :label="__('Email')" :placeholder="__('E.g. john.doe@example.com')" data-test="assisted-person-email-input" />
 
     <div class="grid gap-6 sm:grid-cols-2">
-        <flux:input type="date" wire:model="birthDate" :label="__('Birth date')" max="{{ today()->toDateString() }}" data-test="assisted-person-birth-date-input" />
+        <x-date-input wire:model="birthDate" :label="__('Birth date')" :max="today()->toDateString()" year-select data-test="assisted-person-birth-date-input" />
         <flux:input wire:model="phone" :label="__('Phone')" placeholder="(00) 00000-0000" inputmode="numeric" mask="(99) 99999-9999" data-test="assisted-person-phone-input" />
     </div>
 </flux:fieldset>

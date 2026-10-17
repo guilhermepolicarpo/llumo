@@ -68,7 +68,7 @@
                 },
             }"
         >
-            <flux:input type="date" wire:model="scheduledOn" :label="__('Date')" :min="today()->toDateString()" required data-test="appointment-scheduled-on-input" />
+            <x-date-input wire:model="scheduledOn" :label="__('Date')" :min="today()->toDateString()" required data-test="appointment-scheduled-on-input" />
 
             <template x-if="restrictedType && isOffered">
                 <flux:text class="text-sm" x-text="restrictedType.hint" data-test="appointment-scheduled-on-weekdays-hint" />

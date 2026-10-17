@@ -457,7 +457,7 @@ new class extends Component
 
                         <div class="grid gap-4 sm:grid-cols-2">
                             <flux:input wire:model.blur="infiltrationSite" :label="__('Site')" :placeholder="__('E.g. Right arm')" data-test="appointment-record-infiltration-site-input" />
-                            <flux:input type="date" wire:model.live="infiltrationRemoveOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Remove on')" data-test="appointment-record-infiltration-remove-on-input" />
+                            <x-date-input wire:model.live="infiltrationRemoveOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Remove on')" data-test="appointment-record-infiltration-remove-on-input" />
                         </div>
 
                         <flux:radio.group wire:model.live="infiltrationRemovalPlace" variant="segmented" :label="__('Where it is removed')" data-test="appointment-record-removal-place-radio">
@@ -496,7 +496,7 @@ new class extends Component
 
                         <div class="grid items-start gap-4 sm:grid-cols-2">
                             <div class="space-y-2">
-                                <flux:input type="date" wire:model.live="returnOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Return date')" data-test="appointment-record-return-on-input" />
+                                <x-date-input wire:model.live="returnOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Return date')" data-test="appointment-record-return-on-input" />
 
                                 <div class="flex flex-wrap gap-1">
                                     @foreach ([7, 15, 30, 60] as $days)
