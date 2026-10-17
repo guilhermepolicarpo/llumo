@@ -357,6 +357,41 @@ test('the index lists the current team appointments filtered by name and date', 
         ->assertDontSee('Maria Silva');
 });
 
+test('the index sorts the appointments by the clicked column and flips the direction', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    $appointmentFor = fn (string $name, string $typeName, string $day, ?string $state = null) => Appointment::factory()->for($team)->when($state, fn ($factory) => $factory->{$state}())->create([
+        'assisted_person_id' => AssistedPerson::factory()->for($team)->create(['name' => $name]),
+        'appointment_type_id' => AppointmentType::factory()->for($team)->create(['name' => $typeName]),
+        'scheduled_on' => $day,
+    ]);
+
+    $appointmentFor('Bruno Lima', 'Passe', '2026-09-10', 'canceled');
+    $appointmentFor('Ana Souza', 'Palestra', '2026-09-12');
+    $appointmentFor('Carla Dias', 'Atendimento', '2026-09-11', 'completed');
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.index')
+        ->set('date', '')
+        ->call('sort', 'assisted_person')
+        ->assertSeeInOrder(['Ana Souza', 'Bruno Lima', 'Carla Dias'])
+        ->call('sort', 'assisted_person')
+        ->assertSet('sortDirection', 'desc')
+        ->assertSeeInOrder(['Carla Dias', 'Bruno Lima', 'Ana Souza'])
+        ->call('sort', 'appointment_type')
+        ->assertSet('sortDirection', 'asc')
+        ->assertSeeInOrder(['Carla Dias', 'Ana Souza', 'Bruno Lima'])
+        ->call('sort', 'status')
+        ->assertSeeInOrder(['Ana Souza', 'Carla Dias', 'Bruno Lima'])
+        ->call('sort', 'date')
+        ->assertSeeInOrder(['Bruno Lima', 'Carla Dias', 'Ana Souza'])
+        ->call('sort', 'password')
+        ->assertSet('sortBy', 'date');
+});
+
 test('the day picker marks the days of the month with appointments of the current team', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);

@@ -1,5 +1,6 @@
 <?php
 
+use App\Concerns\InteractsWithTableSorting;
 use App\Models\AssistedPerson;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
@@ -11,12 +12,20 @@ use Livewire\WithPagination;
 
 new class extends Component
 {
+    use InteractsWithTableSorting;
     use WithPagination;
 
     /**
      * @var list<int>
      */
     public const array PER_PAGE_OPTIONS = [5, 10, 25, 50, 100];
+
+    /**
+     * The columns the table can be sorted by.
+     *
+     * @var list<string>
+     */
+    public const array SORTABLE_COLUMNS = ['name', 'address', 'age'];
 
     public string $search = '';
 
@@ -46,7 +55,13 @@ new class extends Component
     {
         return Auth::user()->currentTeam->assistedPeople()
             ->when($this->search !== '', fn ($query) => $query->whereLike('name', "%{$this->search}%"))
+            ->when($this->sortBy, fn ($query, string $column) => match ($column) {
+                'name' => $query->orderBy('name', $this->sortDirection),
+                'address' => $query->orderBy('city', $this->sortDirection)->orderBy('street', $this->sortDirection),
+                'age' => $query->orderByRaw('birth_date is null')->orderBy('birth_date', $this->sortDirection === 'asc' ? 'desc' : 'asc'),
+            })
             ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->paginate(in_array($this->perPage, self::PER_PAGE_OPTIONS, true) ? $this->perPage : self::PER_PAGE_OPTIONS[0]);
     }
 
@@ -85,9 +100,9 @@ new class extends Component
         @if ($this->assistedPeople->isNotEmpty())
             <flux:table bleed>
                 <flux:table.columns>
-                    <flux:table.column>{{ __('Name') }}</flux:table.column>
-                    <flux:table.column>{{ __('Address') }}</flux:table.column>
-                    <flux:table.column>{{ __('Age') }}</flux:table.column>
+                    <flux:table.column sortable :sorted="$sortBy === 'name'" :direction="$sortDirection" wire:click="sort('name')" data-test="assisted-people-sort-name">{{ __('Name') }}</flux:table.column>
+                    <flux:table.column sortable :sorted="$sortBy === 'address'" :direction="$sortDirection" wire:click="sort('address')" data-test="assisted-people-sort-address">{{ __('Address') }}</flux:table.column>
+                    <flux:table.column sortable :sorted="$sortBy === 'age'" :direction="$sortDirection" wire:click="sort('age')" data-test="assisted-people-sort-age">{{ __('Age') }}</flux:table.column>
                     <flux:table.column></flux:table.column>
                 </flux:table.columns>
 

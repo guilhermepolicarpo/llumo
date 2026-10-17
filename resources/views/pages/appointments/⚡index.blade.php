@@ -2,10 +2,12 @@
 
 use App\Actions\Appointments\PerformAppointmentAction;
 use App\Concerns\InteractsWithAppointmentActions;
+use App\Concerns\InteractsWithTableSorting;
 use App\Enums\AppointmentAction;
 use App\Enums\AppointmentMode;
 use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
+use App\Models\AssistedPerson;
 use App\Models\AppointmentType;
 use App\Models\Team;
 use App\Models\User;
@@ -30,6 +32,7 @@ use Livewire\WithPagination;
 new class extends Component
 {
     use InteractsWithAppointmentActions;
+    use InteractsWithTableSorting;
     use WithPagination;
 
     /**
@@ -48,6 +51,13 @@ new class extends Component
         'appointmentTypeIds' => 'appointment_type_id',
         'attendantIds' => 'attendant_id',
     ];
+
+    /**
+     * The columns the table can be sorted by.
+     *
+     * @var list<string>
+     */
+    public const array SORTABLE_COLUMNS = ['date', 'assisted_person', 'appointment_type', 'status'];
 
     public string $search = '';
 
@@ -415,8 +425,20 @@ new class extends Component
     {
         return $this->filteredAppointments()
             ->with(['appointmentType', 'assistedPerson', 'attendant', 'record.mentor'])
+            ->when($this->sortBy, fn ($query, string $column) => match ($column) {
+                'date' => $query->orderBy('scheduled_on', $this->sortDirection),
+                'assisted_person' => $query->orderBy(
+                    AssistedPerson::withTrashed()->select('name')->whereColumn('assisted_people.id', 'appointments.assisted_person_id'),
+                    $this->sortDirection,
+                ),
+                'appointment_type' => $query->orderBy(
+                    AppointmentType::withTrashed()->select('name')->whereColumn('appointment_types.id', 'appointments.appointment_type_id'),
+                    $this->sortDirection,
+                ),
+                'status' => $query->orderByStatus($this->sortDirection),
+            })
             ->when($this->statuses === [AppointmentStatus::Waiting->value], fn ($query) => $query->orderBy('received_at'))
-            ->orderBy('scheduled_on', $this->pending ? 'asc' : 'desc')
+            ->when($this->sortBy !== 'date', fn ($query) => $query->orderBy('scheduled_on', $this->pending ? 'asc' : 'desc'))
             ->orderBy('id', 'desc')
             ->paginate(in_array($this->perPage, self::PER_PAGE_OPTIONS, true) ? $this->perPage : self::PER_PAGE_OPTIONS[0]);
     }
@@ -559,11 +581,11 @@ new class extends Component
             <flux:table bleed>
                 <flux:table.columns>
                     @unless ($this->filteredDate)
-                        <flux:table.column data-test="appointments-date-column">{{ __('Date') }}</flux:table.column>
+                        <flux:table.column sortable :sorted="$sortBy === 'date'" :direction="$sortDirection" wire:click="sort('date')" data-test="appointments-date-column">{{ __('Date') }}</flux:table.column>
                     @endunless
-                    <flux:table.column>{{ __('Assisted person') }}</flux:table.column>
-                    <flux:table.column>{{ __('Appointment') }}</flux:table.column>
-                    <flux:table.column>{{ __('Status') }}</flux:table.column>
+                    <flux:table.column sortable :sorted="$sortBy === 'assisted_person'" :direction="$sortDirection" wire:click="sort('assisted_person')" data-test="appointments-sort-assisted-person">{{ __('Assisted person') }}</flux:table.column>
+                    <flux:table.column sortable :sorted="$sortBy === 'appointment_type'" :direction="$sortDirection" wire:click="sort('appointment_type')" data-test="appointments-sort-appointment-type">{{ __('Appointment') }}</flux:table.column>
+                    <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" data-test="appointments-sort-status">{{ __('Status') }}</flux:table.column>
                     <flux:table.column></flux:table.column>
                 </flux:table.columns>
 

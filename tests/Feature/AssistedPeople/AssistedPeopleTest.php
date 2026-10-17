@@ -590,3 +590,30 @@ test('the postal code lookup fills the blank address fields', function () {
         ->assertSet('city', 'São Paulo')
         ->assertSet('state', 'SP');
 });
+
+test('the index sorts the assisted people by the clicked column and flips the direction', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    AssistedPerson::factory()->for($team)->create(['name' => 'Bruno Lima', 'city' => 'Campinas', 'birth_date' => '1990-01-01']);
+    AssistedPerson::factory()->for($team)->create(['name' => 'Ana Souza', 'city' => 'Santos', 'birth_date' => '2000-01-01']);
+    AssistedPerson::factory()->for($team)->create(['name' => 'Carla Dias', 'city' => 'Bauru', 'birth_date' => null]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::assisted-people.index')
+        ->call('sort', 'name')
+        ->assertSeeInOrder(['Ana Souza', 'Bruno Lima', 'Carla Dias'])
+        ->call('sort', 'name')
+        ->assertSet('sortDirection', 'desc')
+        ->assertSeeInOrder(['Carla Dias', 'Bruno Lima', 'Ana Souza'])
+        ->call('sort', 'address')
+        ->assertSeeInOrder(['Carla Dias', 'Bruno Lima', 'Ana Souza'])
+        ->call('sort', 'age')
+        ->assertSeeInOrder(['Ana Souza', 'Bruno Lima', 'Carla Dias'])
+        ->call('sort', 'age')
+        ->assertSeeInOrder(['Bruno Lima', 'Ana Souza', 'Carla Dias'])
+        ->call('sort', 'password')
+        ->assertSet('sortBy', 'age');
+});

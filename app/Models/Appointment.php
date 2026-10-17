@@ -294,6 +294,22 @@ class Appointment extends Model
     }
 
     /**
+     * Order the query by the status, following the workflow order of the AppointmentStatus cases.
+     *
+     * @param  Builder<self>  $query
+     * @param  'asc'|'desc'  $direction
+     */
+    #[Scope]
+    protected function orderByStatus(Builder $query, string $direction = 'asc'): void
+    {
+        $positions = collect(AppointmentStatus::cases())
+            ->map(fn (AppointmentStatus $status, int $position): string => "when '{$status->value}' then {$position}")
+            ->implode(' ');
+
+        $query->orderByRaw("case status {$positions} end {$direction}");
+    }
+
+    /**
      * Get the assisted person's name and scheduled date, used to identify the appointment in confirmations.
      *
      * @return Attribute<string, never>

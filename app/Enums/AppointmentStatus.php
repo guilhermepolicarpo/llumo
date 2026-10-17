@@ -2,6 +2,9 @@
 
 namespace App\Enums;
 
+/**
+ * The cases are declared in workflow order, which sorting appointments by status relies on.
+ */
 enum AppointmentStatus: string
 {
     case Scheduled = 'scheduled';
