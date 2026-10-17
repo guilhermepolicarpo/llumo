@@ -521,7 +521,7 @@ new class extends Component
     @endif
 
     @if ($this->pending || $this->activeFilterChips !== [])
-        <div class="mt-4 flex flex-wrap items-center gap-2" data-test="appointments-active-filters">
+        <div class="mt-4 flex flex-wrap items-center gap-2 sm:justify-end" data-test="appointments-active-filters">
             @if ($this->pending)
                 <flux:badge size="sm" color="amber" data-test="appointments-pending-chip">
                     {{ __('Pending') }}
