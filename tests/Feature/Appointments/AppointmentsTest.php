@@ -357,6 +357,24 @@ test('the index lists the current team appointments filtered by name and date', 
         ->assertDontSee('Maria Silva');
 });
 
+test('the day picker marks the days of the month with appointments of the current team', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+
+    foreach (['2026-09-01', '2026-09-26', '2026-09-26', '2026-09-30', '2026-08-31', '2026-10-01'] as $day) {
+        Appointment::factory()->for($team)->create(['scheduled_on' => $day]);
+    }
+    Appointment::factory()->for(teamOwnedBy(User::factory()->create()))->create(['scheduled_on' => '2026-09-15']);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    $index = Livewire::test('pages::appointments.index')->instance();
+
+    expect($index->appointmentDatesIn('2026-09'))->toEqualCanonicalizing(['2026-09-01', '2026-09-26', '2026-09-30'])
+        ->and($index->appointmentDatesIn('setembro'))->toBe([]);
+});
+
 test('the index hides the date column while a date filter is applied', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
@@ -373,7 +391,6 @@ test('the index hides the date column while a date filter is applied', function 
     Livewire::test('pages::appointments.index')
         ->assertDontSeeHtml('appointments-date-column')
         ->assertSeeHtml('appointment-details-trigger')
-        ->assertSee(today()->translatedFormat('l'))
         ->set('date', '')
         ->assertSeeHtml('appointments-date-column')
         ->assertSeeHtml('appointment-details-trigger');

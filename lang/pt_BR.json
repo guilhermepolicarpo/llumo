@@ -372,9 +372,6 @@
   "Edit assisted person": "Editar assistido",
   "Welcome": "Bem-vindo",
   "Appointments": "Agendamentos",
-  "Appointments scheduled at this Spiritist Center": "Agendamentos deste Centro Espírita",
-  "Appointments on :weekday, :date": "Agendamentos de :weekday, :date",
-  "Appointments from previous days awaiting entry": "Atendimentos de dias anteriores aguardando lançamento",
   ":count appointment from previous days is still awaiting entry.|:count appointments from previous days are still awaiting entry.": ":count atendimento de dias anteriores ainda aguarda lançamento.|:count atendimentos de dias anteriores ainda aguardam lançamento.",
   "Show pending": "Ver pendentes",
   "Pending": "Pendentes",
@@ -653,5 +650,14 @@
   "Days it takes place": "Dias em que acontece",
   "A warning is shown when an appointment of this type falls on another day. Leave all unselected to allow any day.": "O sistema avisa quando um agendamento deste tipo cair em outro dia. Deixe todos desmarcados para permitir qualquer dia.",
   "Only on :weekdays.": "Somente em :weekdays.",
-  ":type appointments only take place on :weekdays.": ":type acontece somente em :weekdays."
+  ":type appointments only take place on :weekdays.": ":type acontece somente em :weekdays.",
+  "Previous day": "Dia anterior",
+  "Next day": "Próximo dia",
+  "Choose date": "Escolher data",
+  "Today": "Hoje",
+  "Go to today": "Ir para hoje",
+  "All dates": "Todas as datas",
+  "Previous month": "Mês anterior",
+  "Next month": "Próximo mês",
+  "Day with appointments": "Dia com agendamentos"
 }

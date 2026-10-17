@@ -267,8 +267,19 @@ class Appointment extends Model
     #[Scope]
     protected function scheduledOn(Builder $query, CarbonInterface $day): void
     {
-        $query->where('scheduled_on', '>=', $day->toDateString())
-            ->where('scheduled_on', '<', $day->addDay()->toDateString());
+        $this->scheduledBetween($query, $day, $day->addDay());
+    }
+
+    /**
+     * Scope the query to appointments scheduled from the given day up to, but not including, the other one.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function scheduledBetween(Builder $query, CarbonInterface $from, CarbonInterface $until): void
+    {
+        $query->where('scheduled_on', '>=', $from->toDateString())
+            ->where('scheduled_on', '<', $until->toDateString());
     }
 
     /**

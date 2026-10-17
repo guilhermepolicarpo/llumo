@@ -18,9 +18,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Js;
+use Livewire\Attributes\Async;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Renderless;
 use Livewire\Attributes\Session;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -266,6 +268,29 @@ new class extends Component
     }
 
     /**
+     * List the days of a month ('Y-m') that have appointments, for the day picker to mark them.
+     *
+     * @return list<string>
+     */
+    #[Async]
+    #[Renderless]
+    public function appointmentDatesIn(string $month): array
+    {
+        if (! preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month)) {
+            return [];
+        }
+
+        $start = Date::parse("{$month}-01");
+
+        return Auth::user()->currentTeam->appointments()
+            ->scheduledBetween($start, $start->copy()->addMonth())
+            ->distinct()
+            ->pluck('scheduled_on')
+            ->map(fn (CarbonInterface $scheduledOn): string => $scheduledOn->toDateString())
+            ->all();
+    }
+
+    /**
      * Get the appointment types available to filter on.
      *
      * @return Collection<int, AppointmentType>
@@ -427,19 +452,6 @@ new class extends Component
 
 <section class="w-full">
     <x-page-header :heading="__('Appointments')" :separator="false">
-        <x-slot:subheading>
-            @if ($this->pending)
-                {{ __('Appointments from previous days awaiting entry') }}
-            @elseif ($this->filteredDate)
-                {{ __('Appointments on :weekday, :date', [
-                    'weekday' => $this->filteredDate->translatedFormat('l'),
-                    'date' => $this->filteredDate->format('d/m/Y'),
-                ]) }}
-            @else
-                {{ __('Appointments scheduled at this Spiritist Center') }}
-            @endif
-        </x-slot:subheading>
-
         <div class="flex flex-wrap items-center gap-3">
             @if ($this->printableSheetCount > 0)
                 <flux:button
@@ -467,12 +479,12 @@ new class extends Component
     </x-page-header>
 
     <div class="-mt-2 flex flex-wrap items-center gap-3">
-        <flux:input
-            type="date"
+        <x-day-picker
             wire:model.live="date"
-            class="max-w-44"
-            :aria-label="__('Date')"
-            data-test="appointments-date-input"
+            allow-all
+            markers="appointmentDatesIn"
+            :marker-label="__('Day with appointments')"
+            data-test="appointments-day-picker"
         />
 
         <div class="flex w-full items-center gap-3 sm:ms-auto sm:w-auto">
