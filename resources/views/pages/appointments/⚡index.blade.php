@@ -426,7 +426,7 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <x-page-header :heading="__('Appointments')" :separator="false" stack-until="lg">
+    <x-page-header :heading="__('Appointments')" :separator="false">
         <x-slot:subheading>
             @if ($this->pending)
                 {{ __('Appointments from previous days awaiting entry') }}
@@ -440,33 +440,7 @@ new class extends Component
             @endif
         </x-slot:subheading>
 
-        <div class="flex flex-wrap md:flex-nowrap items-center gap-3">
-            <flux:input
-                wire:model.live.debounce.300ms="search"
-                icon="magnifying-glass"
-                :placeholder="__('Search by name...')"
-                clearable
-                class="w-full md:w-64"
-                data-test="appointments-search-input"
-            />
-
-            <flux:input
-                type="date"
-                wire:model.live="date"
-                class="max-w-44"
-                :aria-label="__('Date')"
-                data-test="appointments-date-input"
-            />
-
-            <flux:modal.trigger name="appointments-filters">
-                <flux:button icon="funnel" icon-variant="outline" data-test="appointments-filters-button">
-                    {{ __('Filters') }}
-                    @if ($this->activeFilterCount > 0)
-                        <flux:badge size="sm" color="blue" inset="top bottom" data-test="appointments-filters-count">{{ $this->activeFilterCount }}</flux:badge>
-                    @endif
-                </flux:button>
-            </flux:modal.trigger>
-
+        <div class="flex flex-wrap items-center gap-3">
             @if ($this->printableSheetCount > 0)
                 <flux:button
                     icon="printer"
@@ -491,6 +465,36 @@ new class extends Component
             </flux:button>
         </div>
     </x-page-header>
+
+    <div class="-mt-2 flex flex-wrap items-center gap-3">
+        <flux:input
+            type="date"
+            wire:model.live="date"
+            class="max-w-44"
+            :aria-label="__('Date')"
+            data-test="appointments-date-input"
+        />
+
+        <div class="flex w-full items-center gap-3 sm:ms-auto sm:w-auto">
+            <flux:input
+                wire:model.live.debounce.300ms="search"
+                icon="magnifying-glass"
+                :placeholder="__('Search by name...')"
+                clearable
+                class="min-w-0 flex-1 sm:w-72 sm:flex-none"
+                data-test="appointments-search-input"
+            />
+
+            <flux:modal.trigger name="appointments-filters">
+                <flux:button icon="funnel" icon-variant="outline" data-test="appointments-filters-button">
+                    {{ __('Filters') }}
+                    @if ($this->activeFilterCount > 0)
+                        <flux:badge size="sm" color="blue" inset="top bottom" data-test="appointments-filters-count">{{ $this->activeFilterCount }}</flux:badge>
+                    @endif
+                </flux:button>
+            </flux:modal.trigger>
+        </div>
+    </div>
 
     @if (! $this->pending && $this->pendingCount > 0)
         <flux:callout variant="warning" icon="exclamation-triangle" icon:variant="outline" inline class="mt-4" data-test="appointments-pending-callout">
