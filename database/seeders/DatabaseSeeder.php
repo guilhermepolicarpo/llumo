@@ -157,7 +157,7 @@ class DatabaseSeeder extends Seeder
     }
 
     /**
-     * Seed the catalogs, assisted people, and appointments of a team.
+     * Seed the catalogs, assisted people, appointments and library of a team.
      */
     private function seedTeam(Team $team): void
     {
@@ -243,6 +243,8 @@ class DatabaseSeeder extends Seeder
             ));
 
         $this->fillHealingTreatmentDays($team, $healingTreatment, $assistedPeople, $memberIds);
+
+        $this->callWith(LibrarySeeder::class, ['team' => $team, 'assistedPeople' => $assistedPeople, 'memberIds' => $memberIds]);
     }
 
     /**
