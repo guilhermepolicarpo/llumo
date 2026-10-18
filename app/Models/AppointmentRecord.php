@@ -136,7 +136,7 @@ class AppointmentRecord extends Model
     protected function guidanceSummary(): Attribute
     {
         return Attribute::make(get: fn (): string => $this->guidances
-            ->map(fn (Guidance $guidance): string => $guidance->pivot->detail ? "{$guidance->name} ({$guidance->pivot->detail})" : $guidance->name)
+            ->map(fn (Guidance $guidance): string => ($detail = $guidance->pivot->getAttribute('detail')) ? "{$guidance->name} ({$detail})" : $guidance->name)
             ->implode(', '));
     }
 

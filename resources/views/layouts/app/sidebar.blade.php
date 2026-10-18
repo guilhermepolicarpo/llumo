@@ -13,11 +13,11 @@
             <livewire:team-switcher />
 
             <flux:sidebar.nav>
-                <flux:sidebar.group :heading="__('Platform')" class="grid">
-                    <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
-                        {{ __('Dashboard') }}
-                    </flux:sidebar.item>
+                <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
+                    {{ __('Dashboard') }}
+                </flux:sidebar.item>
 
+                <flux:sidebar.group :heading="__('Attendance')" class="grid mt-2">
                     <flux:sidebar.item icon="calendar-days" :href="route('appointments.index')" :current="request()->routeIs('appointments.*')" wire:navigate>
                         {{ __('Appointments') }}
                     </flux:sidebar.item>
@@ -25,9 +25,15 @@
                     <flux:sidebar.item icon="users" :href="route('assisted-people.index')" :current="request()->routeIs('assisted-people.*')" wire:navigate>
                         {{ __('Assisted people') }}
                     </flux:sidebar.item>
+                </flux:sidebar.group>
 
-                    <flux:sidebar.item icon="rectangle-stack" :href="route('catalogs.appointment-types')" :current="request()->routeIs('catalogs.*')" wire:navigate>
-                        {{ __('Catalogs') }}
+                <flux:sidebar.group :heading="__('Library')" class="grid mt-2">
+                    <flux:sidebar.item icon="book-open" :href="route('library.books.index')" :current="request()->routeIs('library.books.*')" wire:navigate data-test="sidebar-library-books">
+                        {{ __('Books') }}
+                    </flux:sidebar.item>
+
+                    <flux:sidebar.item icon="arrows-right-left" :href="route('library.loans.index')" :current="request()->routeIs('library.loans.*')" wire:navigate data-test="sidebar-library-loans">
+                        {{ __('Loans') }}
                     </flux:sidebar.item>
                 </flux:sidebar.group>
             </flux:sidebar.nav>
@@ -35,7 +41,13 @@
             <flux:spacer />
 
             <flux:sidebar.nav>
-                <flux:sidebar.item icon="folder-git-2" href="https://github.com/laravel/livewire-starter-kit" target="_blank">
+                @can('update', auth()->user()->currentTeam)
+                    <flux:sidebar.item icon="cog-6-tooth" :href="route('team-settings.profile')" :current="request()->routeIs('team-settings.*')" wire:navigate data-test="sidebar-team-settings">
+                        {{ __('Spiritist Center settings') }}
+                    </flux:sidebar.item>
+                @endcan
+
+                <flux:sidebar.item icon="folder-git-2" href="https://github.com/guilhermepolicarpo/llumo" target="_blank">
                     {{ __('Repository') }}
                 </flux:sidebar.item>
 

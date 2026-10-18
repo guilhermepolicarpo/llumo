@@ -4,7 +4,6 @@ use App\Enums\Catalog;
 use App\Enums\TeamRole;
 use App\Models\AppointmentType;
 use App\Models\FluidicRemedy;
-use App\Models\Guidance;
 use App\Models\Mentor;
 use App\Models\PassType;
 use App\Models\User;
@@ -56,7 +55,7 @@ test('admins can create, rename and delete catalog entries', function (Catalog $
 })->with(Catalog::cases());
 
 test('catalog pages list only the current team non-deleted entries filtered by name', function () {
-    [, $team] = actingAsTeamMember(TeamRole::Member);
+    [, $team] = actingAsTeamMember(TeamRole::Admin);
     Mentor::factory()->for($team)->create(['name' => 'Bezerra de Menezes']);
     Mentor::factory()->for($team)->create(['name' => 'Joana de Ângelis']);
     Mentor::factory()->for($team)->trashed()->create(['name' => 'Mentor excluído']);
@@ -71,25 +70,10 @@ test('catalog pages list only the current team non-deleted entries filtered by n
         ->assertDontSee('Bezerra de Menezes');
 });
 
-test('members can view the catalogs but cannot change them', function () {
-    [, $team] = actingAsTeamMember(TeamRole::Member);
-    $entry = Guidance::factory()->for($team)->create(['name' => 'Evangelho no lar']);
+test('members cannot open the catalogs', function () {
+    actingAsTeamMember(TeamRole::Member);
 
-    $this->get(route('catalogs.index', ['current_team' => $team, 'catalog' => Catalog::Guidance->slug()]))
-        ->assertOk()
-        ->assertSee('Evangelho no lar')
-        ->assertDontSee('data-test="catalog-entry-new-button"', false)
-        ->assertDontSee('data-test="catalog-entry-actions-trigger"', false)
-        ->assertDontSee('data-test="catalog-entry-edit-row"', false);
-
-    $component = fn () => Livewire::test('pages::catalogs.index', ['catalog' => Catalog::Guidance]);
-
-    $component()->call('createEntry')->assertForbidden();
-    $component()->set('name', 'Nova')->call('saveEntry')->assertForbidden();
-    $component()->call('editEntry', $entry->id)->assertForbidden();
-    $component()->call('confirmDeleteEntry', $entry->id)->assertForbidden();
-
-    expect($team->guidances()->pluck('name')->all())->toBe(['Evangelho no lar']);
+    Livewire::test('pages::catalogs.index', ['catalog' => Catalog::Guidance])->assertForbidden();
 });
 
 test('entries of another team cannot be edited or deleted', function () {
@@ -134,9 +118,9 @@ test('catalog entry names must be unique among the team active entries', functio
 });
 
 test('catalog pages are addressed by their plural hyphenated slug', function (Catalog $catalog, string $slug) {
-    [, $team] = actingAsTeamMember(TeamRole::Member);
+    [, $team] = actingAsTeamMember(TeamRole::Admin);
 
-    $this->get("/{$team->slug}/catalogs/{$slug}")
+    $this->get("/{$team->slug}/settings/catalogs/{$slug}")
         ->assertOk()
         ->assertSee($catalog->label());
 })->with([
@@ -149,5 +133,19 @@ test('catalog pages are addressed by their plural hyphenated slug', function (Ca
 test('unknown catalogs are not found', function (string $slug) {
     [, $team] = actingAsTeamMember(TeamRole::Owner);
 
-    $this->get("/{$team->slug}/catalogs/{$slug}")->assertNotFound();
+    $this->get("/{$team->slug}/settings/catalogs/{$slug}")->assertNotFound();
 })->with(['unknown', 'fluidic_remedy']);
+
+test('catalog pages show 5 entries per page by default and let the admin show more', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Admin);
+    Mentor::factory()->for($team)->count(6)->create();
+
+    $component = Livewire::test('pages::catalogs.index', ['catalog' => Catalog::Mentor]);
+
+    expect($component->get('entries')->perPage())->toBe(5)
+        ->and($component->get('entries')->count())->toBe(5);
+
+    $component->set('perPage', 10);
+
+    expect($component->get('entries')->count())->toBe(6);
+});

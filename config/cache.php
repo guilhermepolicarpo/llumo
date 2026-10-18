@@ -1,5 +1,6 @@
 <?php
 
+use App\Data\BookLookup;
 use Illuminate\Support\Str;
 
 return [
@@ -127,10 +128,13 @@ return [
     |
     | This value determines the classes that can be unserialized from cache
     | storage. By default, no PHP classes will be unserialized from your
-    | cache to prevent gadget chain attacks if your APP_KEY is leaked.
+    | cache to prevent gadget chain attacks if your APP_KEY is leaked. Only
+    | plain data objects with no behavior are listed here.
     |
     */
 
-    'serializable_classes' => false,
+    'serializable_classes' => [
+        BookLookup::class,
+    ],
 
 ];

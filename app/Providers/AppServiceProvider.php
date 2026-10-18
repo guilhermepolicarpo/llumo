@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Enums\Catalog;
+use App\Enums\LibraryCatalog;
 use App\Models\Team;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -35,13 +36,15 @@ class AppServiceProvider extends ServiceProvider
 
     /**
      * Bind the {current_team} segment to its Team so scoped bindings resolve records through that team,
-     * and the {catalog} segment to the Catalog addressed by its slug.
+     * and the {catalog} and {libraryCatalog} segments to the catalog addressed by their slug.
      */
     protected function configureRouteBindings(): void
     {
         Route::model('current_team', Team::class);
 
         Route::bind('catalog', fn (string $slug): Catalog => Catalog::fromSlug($slug) ?? abort(404));
+
+        Route::bind('libraryCatalog', fn (string $slug): LibraryCatalog => LibraryCatalog::fromSlug($slug) ?? abort(404));
     }
 
     /**

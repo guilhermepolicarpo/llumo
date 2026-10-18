@@ -18,6 +18,10 @@ return [
         'url' => env('BRASIL_API_URL', 'https://brasilapi.com.br/api'),
     ],
 
+    'open_library' => [
+        'url' => env('OPEN_LIBRARY_URL', 'https://openlibrary.org'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

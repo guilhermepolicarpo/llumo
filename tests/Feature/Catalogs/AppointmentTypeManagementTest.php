@@ -98,25 +98,10 @@ test('admins can restrict an appointment type to the weekdays it takes place', f
     expect($appointmentType->fresh()->weekdays)->toBeNull();
 });
 
-test('members can view appointment types but cannot change them', function () {
-    [, $team] = actingAsTeamMember(TeamRole::Member);
-    $appointmentType = AppointmentType::factory()->for($team)->create(['name' => 'Passe']);
+test('members cannot open the appointment types', function () {
+    actingAsTeamMember(TeamRole::Member);
 
-    $this->get(route('catalogs.appointment-types', ['current_team' => $team]))
-        ->assertOk()
-        ->assertSee('Passe')
-        ->assertDontSee('data-test="appointment-type-new-button"', false)
-        ->assertDontSee('data-test="appointment-type-actions-trigger"', false)
-        ->assertDontSee('data-test="appointment-type-edit-row"', false);
-
-    $component = fn () => Livewire::test('pages::catalogs.appointment-types');
-
-    $component()->call('createAppointmentType')->assertForbidden();
-    $component()->set('name', 'Novo')->call('saveAppointmentType')->assertForbidden();
-    $component()->call('editAppointmentType', $appointmentType->id)->assertForbidden();
-    $component()->call('confirmDeleteAppointmentType', $appointmentType->id)->assertForbidden();
-
-    expect($team->appointmentTypes()->pluck('name')->all())->toBe(['Passe']);
+    Livewire::test('pages::catalogs.appointment-types')->assertForbidden();
 });
 
 test('appointment types of another team cannot be edited', function () {

@@ -48,8 +48,25 @@ Route::prefix('{current_team}')
             return $buildAttendanceSheets->handle($current_team, $appointment->newCollection([$appointment]));
         })->name('appointments.attendance-sheet');
 
-        Route::livewire('catalogs/appointment-types', 'pages::catalogs.appointment-types')->name('catalogs.appointment-types');
-        Route::livewire('catalogs/{catalog}', 'pages::catalogs.index')->name('catalogs.index');
+        Route::livewire('library/books', 'pages::library.books.index')->name('library.books.index');
+        Route::livewire('library/books/create', 'pages::library.books.create')->name('library.books.create');
+        Route::livewire('library/books/{book}', 'pages::library.books.show')->name('library.books.show');
+        Route::livewire('library/books/{book}/edit', 'pages::library.books.edit')->name('library.books.edit');
+
+        Route::livewire('library/loans', 'pages::library.loans.index')->name('library.loans.index');
+        Route::livewire('library/loans/create', 'pages::library.loans.create')->name('library.loans.create');
+
+        Route::middleware(EnsureTeamMembership::class.':admin')
+            ->prefix('settings')
+            ->name('team-settings.')
+            ->group(function () {
+                Route::livewire('center', 'pages::team-settings.profile')->name('profile');
+                Route::livewire('members', 'pages::team-settings.members')->name('members');
+                Route::livewire('appointment-types', 'pages::catalogs.appointment-types')->name('appointment-types');
+                Route::livewire('catalogs/{catalog}', 'pages::catalogs.index')->name('catalogs');
+                Route::livewire('library/{libraryCatalog}', 'pages::catalogs.index')->name('library-catalogs');
+                Route::livewire('loan-rules', 'pages::library.settings')->name('loan-rules');
+            });
     });
 
 require __DIR__.'/settings.php';

@@ -68,14 +68,14 @@ test('team slug uses next available suffix', function () {
     ]);
 });
 
-test('team edit page can be rendered', function () {
+test('the center details page can be rendered by owners', function () {
     $user = User::factory()->create();
     $team = Team::factory()->create();
     $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
 
     $response = $this
         ->actingAs($user)
-        ->get(route('teams.edit', $team));
+        ->get(route('team-settings.profile', ['current_team' => $team]));
 
     $response->assertOk();
 });
@@ -88,7 +88,9 @@ test('teams can be updated by owners', function () {
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->set('teamName', 'Updated Name')
         ->call('updateTeam')
         ->assertHasNoErrors();
@@ -109,10 +111,11 @@ test('teams cannot be updated by members', function () {
 
     $this->actingAs($member);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
-        ->set('teamName', 'Updated Name')
-        ->call('updateTeam')
-        ->assertForbidden();
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')->assertForbidden();
+
+    expect($team->fresh()->name)->not->toBe('Updated Name');
 });
 
 test('teams can be deleted by owners', function () {

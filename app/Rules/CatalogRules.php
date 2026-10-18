@@ -3,6 +3,7 @@
 namespace App\Rules;
 
 use App\Enums\Catalog;
+use App\Enums\LibraryCatalog;
 use App\Models\Team;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +16,7 @@ class CatalogRules
      *
      * @return array<int, ValidationRule|array<mixed>|string|object>
      */
-    public static function name(Team $team, Catalog $catalog, ?Model $ignore = null): array
+    public static function name(Team $team, Catalog|LibraryCatalog $catalog, ?Model $ignore = null): array
     {
         return [
             'required',
@@ -30,7 +31,7 @@ class CatalogRules
      *
      * @return array<int, ValidationRule|array<mixed>|string|object>
      */
-    public static function entryId(Team $team, Catalog $catalog): array
+    public static function entryId(Team $team, Catalog|LibraryCatalog $catalog): array
     {
         return [
             'integer',

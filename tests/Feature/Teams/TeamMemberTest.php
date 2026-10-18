@@ -39,7 +39,9 @@ test('team member role can be updated by owner', function () {
 
     $this->actingAs($owner);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.members')
         ->call('updateMember', $member->id, TeamRole::Admin->value)
         ->assertHasNoErrors();
 
@@ -58,7 +60,9 @@ test('team member role cannot be updated by non owner', function () {
 
     $this->actingAs($admin);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.members')
         ->call('updateMember', $member->id, TeamRole::Admin->value)
         ->assertForbidden();
 });
@@ -127,7 +131,9 @@ test('owner cannot promote a member to owner via updateMember', function () {
 
     $this->actingAs($owner);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.members')
         ->call('updateMember', $member->id, TeamRole::Owner->value)
         ->assertHasErrors(['role']);
 
@@ -142,7 +148,9 @@ test('owner role cannot be changed via updateMember even with a tampered role va
 
     $this->actingAs($owner);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.members')
         ->call('updateMember', $owner->id, TeamRole::Admin->value)
         ->assertForbidden();
 
@@ -185,4 +193,11 @@ test('removed members current team is set to personal team', function () {
         ->assertHasNoErrors();
 
     expect($member->fresh()->current_team_id)->toEqual($personalTeam->id);
+});
+
+test('the members page shows an empty state when there are no pending invitations', function () {
+    actingAsTeamMember(TeamRole::Owner);
+
+    Livewire::test('pages::team-settings.members')
+        ->assertSeeHtml('data-test="invitations-empty"');
 });

@@ -21,7 +21,7 @@ new class extends Component {
 
         Flux::toast(variant: 'success', text: __('Spiritist Center created.'));
 
-        $this->redirectRoute('teams.edit', ['team' => $team->slug], navigate: true);
+        $this->redirectRoute('team-settings.profile', ['current_team' => $team->slug], navigate: true);
     }
 }; ?>
 
