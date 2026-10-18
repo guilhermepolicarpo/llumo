@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\BookLoanStatus;
 use Database\Factories\BookLoanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -107,7 +108,8 @@ class BookLoan extends Model
      *
      * @param  Builder<BookLoan>  $query
      */
-    public function scopeOpen(Builder $query): void
+    #[Scope]
+    protected function open(Builder $query): void
     {
         $query->whereNull('returned_on');
     }
@@ -117,7 +119,8 @@ class BookLoan extends Model
      *
      * @param  Builder<BookLoan>  $query
      */
-    public function scopeOverdue(Builder $query): void
+    #[Scope]
+    protected function overdue(Builder $query): void
     {
         $query->open()->where('due_on', '<', today()->toDateString());
     }
@@ -127,7 +130,8 @@ class BookLoan extends Model
      *
      * @param  Builder<BookLoan>  $query
      */
-    public function scopeReturned(Builder $query): void
+    #[Scope]
+    protected function returned(Builder $query): void
     {
         $query->whereNotNull('returned_on');
     }

@@ -6,6 +6,7 @@ use App\Enums\AuthorRole;
 use App\Enums\BookCopyStatus;
 use Database\Factories\BookFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
@@ -158,7 +159,8 @@ class Book extends Model
      *
      * @param  Builder<Book>  $query
      */
-    public function scopeAvailable(Builder $query): void
+    #[Scope]
+    protected function available(Builder $query): void
     {
         $query->whereHas('copies', fn (Builder $copies) => $copies->available());
     }
@@ -168,7 +170,8 @@ class Book extends Model
      *
      * @param  Builder<Book>  $query
      */
-    public function scopeWithCopyCounts(Builder $query): void
+    #[Scope]
+    protected function withCopyCounts(Builder $query): void
     {
         $query->withCount([
             'copies as active_copies_count' => fn (Builder $copies) => $copies->where('status', BookCopyStatus::Active),

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\BookCopyStatus;
 use Database\Factories\BookCopyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
@@ -106,7 +107,8 @@ class BookCopy extends Model
      *
      * @param  Builder<BookCopy>  $query
      */
-    public function scopeAvailable(Builder $query): void
+    #[Scope]
+    protected function available(Builder $query): void
     {
         $query->where('status', BookCopyStatus::Active)->whereDoesntHave('openLoan');
     }
