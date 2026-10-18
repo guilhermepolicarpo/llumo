@@ -1,7 +1,6 @@
 <?php
 
 use App\Actions\Library\UpdateLibrarySettings;
-use App\Models\BookLoan;
 use App\Models\Team;
 use App\Rules\LibrarySettingsRules;
 use Flux\Flux;
@@ -22,7 +21,7 @@ new class extends Component
     {
         $team = $this->team();
 
-        Gate::authorize('viewAny', [BookLoan::class, $team]);
+        Gate::authorize('update', $team);
 
         $this->loanPeriodDays = (string) $team->loan_period_days;
         $this->loanMaxRenewals = (string) ($team->loan_max_renewals ?? '');
@@ -46,10 +45,24 @@ new class extends Component
         Flux::toast(variant: 'success', text: __('Loan rules updated.'));
     }
 
+    /**
+     * Describe, with the saved rules, until when a book lent today would stay with the assisted person.
+     */
     #[Computed]
-    public function canUpdate(): bool
+    public function example(): string
     {
-        return Auth::user()->toTeamPermissions($this->team())->canUpdateTeam;
+        $team = $this->team();
+        $dueOn = today()->addDays($team->loan_period_days);
+        $dates = ['today' => today()->format('d/m/Y'), 'due' => $dueOn->format('d/m/Y')];
+
+        return match ($team->loan_max_renewals) {
+            null => __('In practice: a book lent today (:today) is due by :due and can be renewed with no limit.', $dates),
+            0 => __('In practice: a book lent today (:today) is due by :due and cannot be renewed.', $dates),
+            default => trans_choice('In practice: a book lent today (:today) is due by :due and, with :count renewal, can stay until :last.|In practice: a book lent today (:today) is due by :due and, with :count renewals, can stay until :last.', $team->loan_max_renewals, [
+                ...$dates,
+                'last' => $dueOn->addDays($team->loan_max_renewals * $team->loan_period_days)->format('d/m/Y'),
+            ]),
+        };
     }
 
     private function team(): Team
@@ -64,50 +77,45 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    @include('partials.library-heading')
+    @include('partials.team-settings-heading')
 
-    <x-pages::library.layout :heading="__('Loan rules')" :subheading="__('How long books are lent for and the limits applied to each assisted person.')">
+    <x-pages::team-settings.layout :heading="__('Loan rules')" :subheading="__('How long books are lent for and the limits applied to each assisted person.')">
         <form wire:submit="saveSettings" class="space-y-6">
-            <flux:fieldset :disabled="! $this->canUpdate">
-                <flux:input
-                    type="number"
-                    min="1"
-                    max="365"
-                    wire:model="loanPeriodDays"
-                    :label="__('Loan period (days)')"
-                    :description="__('Suggested due date for new loans and how much each renewal adds.')"
-                    required
-                    data-test="library-loan-period-days-input"
-                />
+            <flux:field>
+                <flux:label>{{ __('Loan period') }}</flux:label>
+                <flux:description>{{ __('Suggested due date for new loans and how much each renewal adds.') }}</flux:description>
+                <flux:input.group class="max-w-48">
+                    <flux:input type="number" min="1" max="365" wire:model="loanPeriodDays" required data-test="library-loan-period-days-input" />
+                    <flux:input.group.suffix>{{ __('days') }}</flux:input.group.suffix>
+                </flux:input.group>
+                <flux:error name="loanPeriodDays" />
+            </flux:field>
 
-                <flux:input
-                    type="number"
-                    min="0"
-                    max="99"
-                    wire:model="loanMaxRenewals"
-                    :label="__('Maximum renewals per loan')"
-                    :description="__('Leave blank for no limit.')"
-                    data-test="library-loan-max-renewals-input"
-                />
+            <flux:field>
+                <flux:label>{{ __('Maximum renewals per loan') }}</flux:label>
+                <flux:description>{{ __('Leave blank for no limit.') }}</flux:description>
+                <flux:input.group class="max-w-48">
+                    <flux:input type="number" min="0" max="99" wire:model="loanMaxRenewals" data-test="library-loan-max-renewals-input" />
+                    <flux:input.group.suffix>{{ __('renewals') }}</flux:input.group.suffix>
+                </flux:input.group>
+                <flux:error name="loanMaxRenewals" />
+            </flux:field>
 
-                <flux:input
-                    type="number"
-                    min="1"
-                    max="99"
-                    wire:model="loanMaxActivePerPerson"
-                    :label="__('Maximum open loans per assisted person')"
-                    :description="__('Leave blank for no limit. Assisted people with an overdue book cannot borrow another one.')"
-                    data-test="library-loan-max-active-input"
-                />
-            </flux:fieldset>
+            <flux:field>
+                <flux:label>{{ __('Maximum open loans per assisted person') }}</flux:label>
+                <flux:description>{{ __('Leave blank for no limit. Assisted people with an overdue book cannot borrow another one.') }}</flux:description>
+                <flux:input.group class="max-w-48">
+                    <flux:input type="number" min="1" max="99" wire:model="loanMaxActivePerPerson" data-test="library-loan-max-active-input" />
+                    <flux:input.group.suffix>{{ __('books') }}</flux:input.group.suffix>
+                </flux:input.group>
+                <flux:error name="loanMaxActivePerPerson" />
+            </flux:field>
 
-            @if ($this->canUpdate)
-                <div class="flex justify-end">
-                    <flux:button variant="primary" type="submit" wire:loading.attr="disabled" data-test="library-settings-save-button">{{ __('Save') }}</flux:button>
-                </div>
-            @else
-                <flux:text>{{ __('Only the team\'s owner and admins can change the loan rules.') }}</flux:text>
-            @endif
+            <flux:callout icon="information-circle" icon:variant="outline" color="blue" data-test="loan-rules-example">
+                <flux:callout.text>{{ $this->example }}</flux:callout.text>
+            </flux:callout>
+
+            <flux:button variant="primary" type="submit" wire:loading.attr="disabled" data-test="library-settings-save-button">{{ __('Save rules') }}</flux:button>
         </form>
-    </x-pages::library.layout>
+    </x-pages::team-settings.layout>
 </section>

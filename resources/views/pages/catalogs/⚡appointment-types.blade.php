@@ -28,7 +28,7 @@ new class extends Component
 
     public function mount(): void
     {
-        Gate::authorize('viewAny', [AppointmentType::class, $this->team()]);
+        Gate::authorize('manage', [AppointmentType::class, $this->team()]);
     }
 
     public function createAppointmentType(): void
@@ -121,12 +121,6 @@ new class extends Component
         return $this->team()->appointmentTypes()->orderBy('name')->get();
     }
 
-    #[Computed]
-    public function canManage(): bool
-    {
-        return Auth::user()->toTeamPermissions($this->team())->canManageCatalogs;
-    }
-
     /**
      * Find one of the current team's appointment types, with the team already set for the policy checks.
      */
@@ -149,16 +143,14 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    @include('partials.catalogs-heading')
+    @include('partials.team-settings-heading')
 
-    <x-pages::catalogs.layout :heading="__('Appointment types')" :subheading="__('Types of appointment offered by this Spiritist Center.')">
-        @if ($this->canManage)
-            <x-slot:actions>
-                <flux:button variant="primary" icon="plus" wire:click="createAppointmentType" class="shrink-0" data-test="appointment-type-new-button">
-                    {{ __('New appointment type') }}
-                </flux:button>
-            </x-slot:actions>
-        @endif
+    <x-pages::team-settings.layout :heading="__('Appointment types')" :subheading="__('Types of appointment offered by this Spiritist Center.')">
+        <x-slot:actions>
+            <flux:button variant="primary" icon="plus" wire:click="createAppointmentType" class="shrink-0" data-test="appointment-type-new-button">
+                {{ __('New appointment type') }}
+            </flux:button>
+        </x-slot:actions>
 
         <flux:card class="[--flux-card-padding:1rem]">
             @if ($this->appointmentTypes->isNotEmpty())
@@ -167,24 +159,20 @@ new class extends Component
                         <flux:table.column>{{ __('Name') }}</flux:table.column>
                         <flux:table.column>{{ __('Days') }}</flux:table.column>
                         <flux:table.column>{{ __('Daily limit') }}</flux:table.column>
-                        @if ($this->canManage)
-                            <flux:table.column></flux:table.column>
-                        @endif
+                        <flux:table.column></flux:table.column>
                     </flux:table.columns>
 
                     <flux:table.rows>
                         @foreach ($this->appointmentTypes as $appointmentType)
-                            <flux:table.row :key="$appointmentType->id" :class="$this->canManage ? 'relative cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800' : null" data-test="appointment-type-row">
+                            <flux:table.row :key="$appointmentType->id" class="relative cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800" data-test="appointment-type-row">
                                 <flux:table.cell>
-                                    @if ($this->canManage)
-                                        <button
-                                            type="button"
-                                            wire:click="editAppointmentType({{ $appointmentType->id }})"
-                                            class="absolute inset-0 cursor-pointer"
-                                            aria-label="{{ __('Edit :name', ['name' => $appointmentType->name]) }}"
-                                            data-test="appointment-type-edit-row"
-                                        ></button>
-                                    @endif
+                                    <button
+                                        type="button"
+                                        wire:click="editAppointmentType({{ $appointmentType->id }})"
+                                        class="absolute inset-0 cursor-pointer"
+                                        aria-label="{{ __('Edit :name', ['name' => $appointmentType->name]) }}"
+                                        data-test="appointment-type-edit-row"
+                                    ></button>
 
                                     <div class="flex flex-wrap items-center gap-2">
                                         <span class="text-[15px] text-zinc-900 dark:text-white">{{ $appointmentType->name }}</span>
@@ -198,21 +186,19 @@ new class extends Component
 
                                 <flux:table.cell>{{ $appointmentType->daily_limit ?? __('No limit') }}</flux:table.cell>
 
-                                @if ($this->canManage)
-                                    <flux:table.cell align="end" class="relative z-10">
-                                        <flux:dropdown position="bottom" align="end">
-                                            <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" icon:variant="outline" :aria-label="__('More actions')" data-test="appointment-type-actions-trigger" />
-                                            <flux:menu>
-                                                <flux:menu.item icon="pencil" icon:variant="outline" wire:click="editAppointmentType({{ $appointmentType->id }})" data-test="appointment-type-edit-menu-item">
-                                                    {{ __('Edit') }}
-                                                </flux:menu.item>
-                                                <flux:menu.item variant="danger" icon="trash" icon:variant="outline" wire:click="confirmDeleteAppointmentType({{ $appointmentType->id }})" data-test="appointment-type-delete-menu-item">
-                                                    {{ __('Delete') }}
-                                                </flux:menu.item>
-                                            </flux:menu>
-                                        </flux:dropdown>
-                                    </flux:table.cell>
-                                @endif
+                                <flux:table.cell align="end" class="relative z-10">
+                                    <flux:dropdown position="bottom" align="end">
+                                        <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" icon:variant="outline" :aria-label="__('More actions')" data-test="appointment-type-actions-trigger" />
+                                        <flux:menu>
+                                            <flux:menu.item icon="pencil" icon:variant="outline" wire:click="editAppointmentType({{ $appointmentType->id }})" data-test="appointment-type-edit-menu-item">
+                                                {{ __('Edit') }}
+                                            </flux:menu.item>
+                                            <flux:menu.item variant="danger" icon="trash" icon:variant="outline" wire:click="confirmDeleteAppointmentType({{ $appointmentType->id }})" data-test="appointment-type-delete-menu-item">
+                                                {{ __('Delete') }}
+                                            </flux:menu.item>
+                                        </flux:menu>
+                                    </flux:dropdown>
+                                </flux:table.cell>
                             </flux:table.row>
                         @endforeach
                     </flux:table.rows>
@@ -223,7 +209,7 @@ new class extends Component
                 </flux:text>
             @endif
         </flux:card>
-    </x-pages::catalogs.layout>
+    </x-pages::team-settings.layout>
 
     <flux:modal name="appointment-type" flyout variant="floating" :show="$errors->isNotEmpty()" class="md:w-lg">
         <form wire:submit="saveAppointmentType" class="space-y-6">

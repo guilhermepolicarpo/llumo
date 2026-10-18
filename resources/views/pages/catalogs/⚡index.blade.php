@@ -51,7 +51,7 @@ new class extends Component
     {
         $this->catalog = $catalog ?? $libraryCatalog ?? abort(404);
 
-        Gate::authorize('viewAny', [$this->catalog->modelClass(), $this->team()]);
+        Gate::authorize('manage', [$this->catalog->modelClass(), $this->team()]);
     }
 
     public function updatedSearch(): void
@@ -154,14 +154,18 @@ new class extends Component
     {
         return $this->team()->{$this->catalog->relationName()}()
             ->when($this->search !== '', fn ($query) => $query->whereLike('name', "%{$this->search}%"))
+            ->when($this->countsBooks, fn ($query) => $query->withCount('books'))
             ->orderBy('name')
             ->paginate(in_array($this->perPage, self::PER_PAGE_OPTIONS, true) ? $this->perPage : self::PER_PAGE_OPTIONS[0]);
     }
 
+    /**
+     * Whether the list shows how many books each entry is linked to.
+     */
     #[Computed]
-    public function canManage(): bool
+    public function countsBooks(): bool
     {
-        return Auth::user()->toTeamPermissions($this->team())->canManageCatalogs;
+        return $this->catalog === LibraryCatalog::Author;
     }
 
     /**
@@ -186,16 +190,14 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    @include($catalog->headingView())
+    @include('partials.team-settings-heading')
 
-    <x-dynamic-component :component="$catalog->layoutComponent()" :heading="$catalog->label()" :subheading="$catalog->description()">
-        @if ($this->canManage)
-            <x-slot:actions>
-                <flux:button variant="primary" icon="plus" wire:click="createEntry" class="shrink-0" data-test="catalog-entry-new-button">
-                    {{ $catalog->newEntryTitle() }}
-                </flux:button>
-            </x-slot:actions>
-        @endif
+    <x-pages::team-settings.layout :heading="$catalog->label()" :subheading="$catalog->description()">
+        <x-slot:actions>
+            <flux:button variant="primary" icon="plus" wire:click="createEntry" class="shrink-0" data-test="catalog-entry-new-button">
+                {{ $catalog->newEntryTitle() }}
+            </flux:button>
+        </x-slot:actions>
 
         <flux:input
             wire:model.live.debounce.300ms="search"
@@ -210,43 +212,44 @@ new class extends Component
                 <flux:table bleed>
                     <flux:table.columns>
                         <flux:table.column>{{ __('Name') }}</flux:table.column>
-                        @if ($this->canManage)
-                            <flux:table.column></flux:table.column>
+                        @if ($this->countsBooks)
+                            <flux:table.column align="end">{{ __('Books') }}</flux:table.column>
                         @endif
+                        <flux:table.column></flux:table.column>
                     </flux:table.columns>
 
                     <flux:table.rows>
                         @foreach ($this->entries as $entry)
-                            <flux:table.row :key="$entry->id" :class="$this->canManage ? 'relative cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800' : null" data-test="catalog-entry-row">
+                            <flux:table.row :key="$entry->id" class="relative cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800" data-test="catalog-entry-row">
                                 <flux:table.cell class="text-[15px] text-zinc-900 dark:text-white">
-                                    @if ($this->canManage)
-                                        <button
-                                            type="button"
-                                            wire:click="editEntry({{ $entry->id }})"
-                                            class="absolute inset-0 cursor-pointer"
-                                            aria-label="{{ __('Edit :name', ['name' => $entry->name]) }}"
-                                            data-test="catalog-entry-edit-row"
-                                        ></button>
-                                    @endif
+                                    <button
+                                        type="button"
+                                        wire:click="editEntry({{ $entry->id }})"
+                                        class="absolute inset-0 cursor-pointer"
+                                        aria-label="{{ __('Edit :name', ['name' => $entry->name]) }}"
+                                        data-test="catalog-entry-edit-row"
+                                    ></button>
 
                                     {{ $entry->name }}
                                 </flux:table.cell>
 
-                                @if ($this->canManage)
-                                    <flux:table.cell align="end" class="relative z-10">
-                                        <flux:dropdown position="bottom" align="end">
-                                            <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" icon:variant="outline" :aria-label="__('More actions')" data-test="catalog-entry-actions-trigger" />
-                                            <flux:menu>
-                                                <flux:menu.item icon="pencil" icon:variant="outline" wire:click="editEntry({{ $entry->id }})" data-test="catalog-entry-edit-menu-item">
-                                                    {{ __('Edit') }}
-                                                </flux:menu.item>
-                                                <flux:menu.item variant="danger" icon="trash" icon:variant="outline" wire:click="confirmDeleteEntry({{ $entry->id }})" data-test="catalog-entry-delete-menu-item">
-                                                    {{ __('Delete') }}
-                                                </flux:menu.item>
-                                            </flux:menu>
-                                        </flux:dropdown>
-                                    </flux:table.cell>
+                                @if ($this->countsBooks)
+                                    <flux:table.cell align="end" class="tabular-nums" data-test="catalog-entry-books-count">{{ $entry->books_count }}</flux:table.cell>
                                 @endif
+
+                                <flux:table.cell align="end" class="relative z-10">
+                                    <flux:dropdown position="bottom" align="end">
+                                        <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" icon:variant="outline" :aria-label="__('More actions')" data-test="catalog-entry-actions-trigger" />
+                                        <flux:menu>
+                                            <flux:menu.item icon="pencil" icon:variant="outline" wire:click="editEntry({{ $entry->id }})" data-test="catalog-entry-edit-menu-item">
+                                                {{ __('Edit') }}
+                                            </flux:menu.item>
+                                            <flux:menu.item variant="danger" icon="trash" icon:variant="outline" wire:click="confirmDeleteEntry({{ $entry->id }})" data-test="catalog-entry-delete-menu-item">
+                                                {{ __('Delete') }}
+                                            </flux:menu.item>
+                                        </flux:menu>
+                                    </flux:dropdown>
+                                </flux:table.cell>
                             </flux:table.row>
                         @endforeach
                     </flux:table.rows>
@@ -274,7 +277,7 @@ new class extends Component
                 </flux:text>
             @endif
         </flux:card>
-    </x-dynamic-component>
+    </x-pages::team-settings.layout>
 
     <flux:modal name="catalog-entry" flyout variant="floating" :show="$errors->isNotEmpty()" class="md:w-lg">
         <form wire:submit="saveEntry" class="space-y-6">

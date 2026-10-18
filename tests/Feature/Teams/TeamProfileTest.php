@@ -21,7 +21,9 @@ test('owners can update the full team address', function () {
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->set('postalCode', '01310-100')
         ->set('street', 'Avenida Paulista')
         ->set('number', '1578')
@@ -50,7 +52,9 @@ test('owners can set the full legal name and phone printed on the attendance she
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->set('legalName', 'Casa Espírita Missionários da Luz')
         ->set('phone', '(34) 99729-2235')
         ->call('updateTeam')
@@ -69,7 +73,9 @@ test('phone must be a valid brazilian phone number', function () {
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->set('phone', '1234')
         ->call('updateTeam')
         ->assertHasErrors('phone');
@@ -81,7 +87,9 @@ test('the display legal name falls back to the team name when the legal name is 
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->set('legalName', '')
         ->call('updateTeam')
         ->assertHasNoErrors();
@@ -97,11 +105,13 @@ test('renaming the team redirects to the new slug url', function () {
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->set('teamName', 'New Name')
         ->call('updateTeam')
         ->assertHasNoErrors()
-        ->assertRedirectToRoute('teams.edit', ['team' => $team->fresh()->slug]);
+        ->assertRedirectToRoute('team-settings.profile', ['current_team' => $team->fresh()->slug]);
 });
 
 test('updating the address without renaming the team does not redirect', function () {
@@ -110,7 +120,9 @@ test('updating the address without renaming the team does not redirect', functio
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->set('city', 'São Paulo')
         ->call('updateTeam')
         ->assertHasNoErrors()
@@ -123,7 +135,9 @@ test('blank address fields are stored as null', function () {
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->set('city', '')
         ->call('updateTeam')
         ->assertHasNoErrors();
@@ -137,7 +151,9 @@ test('owners can upload a team logo', function () {
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->set('logo', UploadedFile::fake()->image('logo.png', 400, 400))
         ->call('updateTeam')
         ->assertHasNoErrors();
@@ -158,7 +174,9 @@ test('uploading a new logo deletes the previous one', function () {
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->set('logo', UploadedFile::fake()->image('new.png', 400, 400))
         ->call('updateTeam')
         ->assertHasNoErrors();
@@ -180,7 +198,9 @@ test('owners can remove the team logo', function () {
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->call('removeLogo')
         ->assertHasNoErrors();
 
@@ -201,7 +221,9 @@ test('removing the logo keeps the rest of the profile intact', function () {
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->call('removeLogo')
         ->assertHasNoErrors();
 
@@ -219,7 +241,9 @@ test('logo must be an image within the size limit', function (UploadedFile $file
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->set('logo', $file)
         ->call('updateTeam')
         ->assertHasErrors('logo');
@@ -237,7 +261,9 @@ test('postal code must be a valid brazilian postal code', function () {
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->set('postalCode', '123')
         ->call('updateTeam')
         ->assertHasErrors('postalCode');
@@ -249,13 +275,15 @@ test('state must be a known brazilian state', function () {
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->set('state', 'XX')
         ->call('updateTeam')
         ->assertHasErrors('state');
 });
 
-test('members cannot update the team profile or remove the logo', function (string $method) {
+test('members cannot open the center details', function () {
     $owner = User::factory()->create();
     $member = User::factory()->create();
     $team = teamOwnedBy($owner);
@@ -263,10 +291,10 @@ test('members cannot update the team profile or remove the logo', function (stri
 
     $this->actingAs($member);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
-        ->call($method)
-        ->assertForbidden();
-})->with(['updateTeam', 'removeLogo']);
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')->assertForbidden();
+});
 
 test('the postal code lookup fills the blank address fields', function () {
     Http::fake([
@@ -284,7 +312,9 @@ test('the postal code lookup fills the blank address fields', function () {
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->set('postalCode', '01310-100')
         ->assertSet('street', 'Avenida Paulista')
         ->assertSet('district', 'Bela Vista')
@@ -307,7 +337,9 @@ test('the postal code lookup does not overwrite fields the user already filled',
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->set('street', 'Rua da Casa')
         ->set('postalCode', '01310-100')
         ->assertSet('street', 'Rua da Casa')
@@ -324,7 +356,9 @@ test('an unknown postal code leaves the address fields untouched', function () {
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->set('postalCode', '00000-000')
         ->assertHasNoErrors()
         ->assertSet('street', '')
@@ -339,7 +373,9 @@ test('an unreachable postal code service leaves the address fields untouched', f
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->set('postalCode', '01310-100')
         ->assertHasNoErrors()
         ->assertSet('street', '');
@@ -350,7 +386,9 @@ test('personal teams also show the logo and address sections', function () {
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $user->personalTeam()])
+    auth()->user()->switchTeam($user->personalTeam());
+
+    Livewire::test('pages::team-settings.profile')
         ->assertSeeHtml('data-test="team-logo-input"')
         ->assertSeeHtml('data-test="team-postal-code-input"');
 });
@@ -361,7 +399,9 @@ test('owners can set a logo and address on their personal team', function () {
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.edit', ['team' => $team])
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.profile')
         ->set('logo', UploadedFile::fake()->image('logo.png', 400, 400))
         ->set('city', 'São Paulo')
         ->set('state', 'SP')
@@ -373,25 +413,6 @@ test('owners can set a logo and address on their personal team', function () {
     expect($team->logo_path)->not->toBeNull()
         ->and($team->city)->toBe('São Paulo')
         ->and($team->state)->toBe(BrazilianState::SaoPaulo);
-});
-
-test('members see the team logo and address in read only mode', function () {
-    $owner = User::factory()->create();
-    $member = User::factory()->create();
-    $team = teamOwnedBy($owner, [
-        'street' => 'Avenida Paulista',
-        'number' => '1578',
-        'city' => 'São Paulo',
-        'state' => BrazilianState::SaoPaulo,
-    ]);
-    $team->members()->attach($member, ['role' => TeamRole::Member->value]);
-
-    $this->actingAs($member);
-
-    Livewire::test('pages::teams.edit', ['team' => $team])
-        ->assertDontSeeHtml('data-test="team-postal-code-input"')
-        ->assertSeeHtml('data-test="team-formatted-address"')
-        ->assertSee('Avenida Paulista, 1578');
 });
 
 test('the formatted address skips the parts that are not filled in', function () {

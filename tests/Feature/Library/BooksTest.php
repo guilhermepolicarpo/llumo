@@ -319,7 +319,7 @@ test('non members cannot open the library', function (string $routeName) {
     'new book' => 'library.books.create',
     'loans' => 'library.loans.index',
     'new loan' => 'library.loans.create',
-    'loan rules' => 'library.settings',
+    'loan rules' => 'team-settings.loan-rules',
 ]);
 
 test('a book cannot be opened under another team the user belongs to', function () {
@@ -347,7 +347,6 @@ test('the library pages render for members', function (string $routeName) {
     'book' => 'library.books.show',
     'loans' => 'library.loans.index',
     'new loan' => 'library.loans.create',
-    'loan rules' => 'library.settings',
 ]);
 
 test('the books can be searched by title, author or isbn and filtered by availability', function () {

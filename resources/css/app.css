@@ -62,3 +62,9 @@ select:focus[data-flux-control] {
 [data-flux-sidebar-brand] div {
     @apply font-bold;
 }
+
+/* Settings navigation: the current item and the hovered ones share the table rows' hover tint */
+[data-flux-navlist-item]:hover,
+[data-flux-navlist-item][data-current] {
+    @apply bg-zinc-50 dark:bg-zinc-800;
+}

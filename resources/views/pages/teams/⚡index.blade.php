@@ -26,7 +26,7 @@ new class extends Component {
 
         Flux::toast(variant: 'success', text: __('Spiritist Center created.'));
 
-        $this->redirectRoute('teams.edit', ['team' => $team->slug], navigate: true);
+        $this->redirectRoute('team-settings.profile', ['current_team' => $team->slug], navigate: true);
     }
 
     public function leaveTeam(int $teamId): void
@@ -113,16 +113,19 @@ new class extends Component {
                             </flux:modal.trigger>
                         @endif
 
-                        <flux:tooltip :content="$team->role === 'member' ? __('View Spiritist Center') : __('Edit Spiritist Center')">
-                            <flux:button
-                                variant="ghost"
-                                size="sm"
-                                :icon="$team->role === 'member' ? 'eye' : 'pencil'"
-                                :href="route('teams.edit', $team->slug)"
-                                wire:navigate
-                                :data-test="$team->role === 'member' ? 'team-view-button' : 'team-edit-button'"
-                            />
-                        </flux:tooltip>
+                        @if ($team->role !== 'member')
+                            <flux:tooltip :content="__('Edit Spiritist Center')">
+                                <flux:button
+                                    variant="ghost"
+                                    size="sm"
+                                    icon="pencil"
+                                    :aria-label="__('Edit Spiritist Center')"
+                                    :href="route('team-settings.profile', ['current_team' => $team->slug])"
+                                    wire:navigate
+                                    data-test="team-edit-button"
+                                />
+                            </flux:tooltip>
+                        @endif
                     </div>
                 </div>
 

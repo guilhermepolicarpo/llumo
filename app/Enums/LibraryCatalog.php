@@ -27,23 +27,7 @@ enum LibraryCatalog: string
      */
     public function url(): string
     {
-        return route('library.catalogs', ['libraryCatalog' => $this->slug()]);
-    }
-
-    /**
-     * Get the layout component of the catalog's management page, which lists the catalogs of its group.
-     */
-    public function layoutComponent(): string
-    {
-        return 'pages::library.layout';
-    }
-
-    /**
-     * Get the partial that heads the catalog's management page.
-     */
-    public function headingView(): string
-    {
-        return 'partials.library-heading';
+        return route('team-settings.library-catalogs', ['libraryCatalog' => $this->slug()]);
     }
 
     /**

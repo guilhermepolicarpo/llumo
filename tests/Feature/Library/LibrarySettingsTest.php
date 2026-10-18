@@ -29,10 +29,22 @@ test('the loan period must be at least one day', function () {
         ->assertHasErrors('loanPeriodDays');
 });
 
-test('members cannot change the loan rules', function () {
+test('members cannot open the loan rules', function () {
     actingAsTeamMember(TeamRole::Member);
 
-    Livewire::test('pages::library.settings')
-        ->call('saveSettings')
-        ->assertForbidden();
+    Livewire::test('pages::library.settings')->assertForbidden();
 });
+
+test('the loan rules show until when a book lent today would stay out', function (?int $maxRenewals, string $example) {
+    $this->travelTo('2026-10-18 10:00:00');
+    [, $team] = actingAsTeamMember(TeamRole::Admin);
+    $team->update(['loan_period_days' => 14, 'loan_max_renewals' => $maxRenewals]);
+
+    Livewire::test('pages::library.settings')
+        ->assertSeeHtml('data-test="loan-rules-example"')
+        ->assertSee($example);
+})->with([
+    'limited renewals' => [2, 'Na prática: um livro emprestado hoje (18/10/2026) deve voltar até 01/11/2026 e, com 2 renovações, pode ficar até 29/11/2026.'],
+    'no renewals' => [0, 'Na prática: um livro emprestado hoje (18/10/2026) deve voltar até 01/11/2026 e não pode ser renovado.'],
+    'unlimited renewals' => [null, 'Na prática: um livro emprestado hoje (18/10/2026) deve voltar até 01/11/2026 e pode ser renovado sem limite.'],
+]);
