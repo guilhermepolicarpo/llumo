@@ -294,7 +294,9 @@ new class extends Component
             @if ($book->synopsis)
                 <div>
                     <flux:heading>{{ __('Synopsis') }}</flux:heading>
-                    <flux:text class="mt-2 whitespace-pre-line">{{ $book->synopsis }}</flux:text>
+                    <x-expandable-text class="mt-2" data-test="book-synopsis">
+                        <flux:text class="whitespace-pre-line">{{ $book->synopsis }}</flux:text>
+                    </x-expandable-text>
                 </div>
             @endif
 
