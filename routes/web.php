@@ -50,6 +50,17 @@ Route::prefix('{current_team}')
 
         Route::livewire('catalogs/appointment-types', 'pages::catalogs.appointment-types')->name('catalogs.appointment-types');
         Route::livewire('catalogs/{catalog}', 'pages::catalogs.index')->name('catalogs.index');
+
+        Route::livewire('library/books', 'pages::library.books.index')->name('library.books.index');
+        Route::livewire('library/books/create', 'pages::library.books.create')->name('library.books.create');
+        Route::livewire('library/books/{book}', 'pages::library.books.show')->name('library.books.show');
+        Route::livewire('library/books/{book}/edit', 'pages::library.books.edit')->name('library.books.edit');
+
+        Route::livewire('library/loans', 'pages::library.loans.index')->name('library.loans.index');
+        Route::livewire('library/loans/create', 'pages::library.loans.create')->name('library.loans.create');
+
+        Route::livewire('library/catalogs/{libraryCatalog}', 'pages::catalogs.index')->name('library.catalogs');
+        Route::livewire('library/settings', 'pages::library.settings')->name('library.settings');
     });
 
 require __DIR__.'/settings.php';

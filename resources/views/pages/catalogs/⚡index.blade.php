@@ -3,6 +3,7 @@
 use App\Actions\Catalogs\CreateCatalogEntry;
 use App\Actions\Catalogs\UpdateCatalogEntry;
 use App\Enums\Catalog;
+use App\Enums\LibraryCatalog;
 use App\Models\Team;
 use App\Rules\CatalogRules;
 use Flux\Flux;
@@ -26,7 +27,7 @@ new class extends Component
     public const array PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
     #[Locked]
-    public Catalog $catalog;
+    public Catalog|LibraryCatalog $catalog;
 
     public string $search = '';
 
@@ -43,11 +44,14 @@ new class extends Component
 
     public string $deletingName = '';
 
-    public function mount(Catalog $catalog): void
+    /**
+     * Open the catalog addressed by the route: one of the appointment catalogs or one of the library's.
+     */
+    public function mount(?Catalog $catalog = null, ?LibraryCatalog $libraryCatalog = null): void
     {
-        $this->catalog = $catalog;
+        $this->catalog = $catalog ?? $libraryCatalog ?? abort(404);
 
-        Gate::authorize('viewAny', [$catalog->modelClass(), $this->team()]);
+        Gate::authorize('viewAny', [$this->catalog->modelClass(), $this->team()]);
     }
 
     public function updatedSearch(): void
@@ -182,9 +186,9 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    @include('partials.catalogs-heading')
+    @include($catalog->headingView())
 
-    <x-pages::catalogs.layout :heading="$catalog->label()" :subheading="$catalog->description()">
+    <x-dynamic-component :component="$catalog->layoutComponent()" :heading="$catalog->label()" :subheading="$catalog->description()">
         @if ($this->canManage)
             <x-slot:actions>
                 <flux:button variant="primary" icon="plus" wire:click="createEntry" class="shrink-0" data-test="catalog-entry-new-button">
@@ -270,7 +274,7 @@ new class extends Component
                 </flux:text>
             @endif
         </flux:card>
-    </x-pages::catalogs.layout>
+    </x-dynamic-component>
 
     <flux:modal name="catalog-entry" flyout variant="floating" :show="$errors->isNotEmpty()" class="md:w-lg">
         <form wire:submit="saveEntry" class="space-y-6">
@@ -295,7 +299,7 @@ new class extends Component
             <div>
                 <flux:heading size="lg">{{ $catalog->deleteEntryTitle() }}</flux:heading>
                 <flux:subheading>
-                    {{ __('Are you sure you want to delete :name? It will no longer be offered in new appointments, but will remain on the records that already use it.', ['name' => $deletingName]) }}
+                    {{ $catalog->deleteEntryWarning($deletingName) }}
                 </flux:subheading>
             </div>
             <div class="flex justify-end space-x-2 rtl:space-x-reverse">

@@ -1,3 +1,4 @@
+@use('App\Enums\LibraryCatalog')
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
     <head>
@@ -28,6 +29,20 @@
 
                     <flux:sidebar.item icon="rectangle-stack" :href="route('catalogs.appointment-types')" :current="request()->routeIs('catalogs.*')" wire:navigate>
                         {{ __('Catalogs') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.group>
+
+                <flux:sidebar.group :heading="__('Library')" class="grid">
+                    <flux:sidebar.item icon="book-open" :href="route('library.books.index')" :current="request()->routeIs('library.books.*')" wire:navigate data-test="sidebar-library-books">
+                        {{ __('Books') }}
+                    </flux:sidebar.item>
+
+                    <flux:sidebar.item icon="arrows-right-left" :href="route('library.loans.index')" :current="request()->routeIs('library.loans.*')" wire:navigate data-test="sidebar-library-loans">
+                        {{ __('Loans') }}
+                    </flux:sidebar.item>
+
+                    <flux:sidebar.item icon="tag" :href="LibraryCatalog::Author->url()" :current="request()->routeIs('library.catalogs', 'library.settings')" wire:navigate data-test="sidebar-library-catalogs">
+                        {{ __('Library settings') }}
                     </flux:sidebar.item>
                 </flux:sidebar.group>
             </flux:sidebar.nav>

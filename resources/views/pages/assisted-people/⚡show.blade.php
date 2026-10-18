@@ -5,6 +5,7 @@ use App\Models\Appointment;
 use App\Models\AppointmentRecord;
 use App\Models\AppointmentType;
 use App\Models\AssistedPerson;
+use App\Models\BookLoan;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -19,6 +20,11 @@ new class extends Component
      * How many previous appointments the history shows at first, and how many more each "load more" adds.
      */
     public const int PER_PAGE = 10;
+
+    /**
+     * How many returned books the loans section shows below the ones still to be returned.
+     */
+    public const int RETURNED_LOANS_SHOWN = 5;
 
     public AssistedPerson $assistedPerson;
 
@@ -197,6 +203,20 @@ new class extends Component
     public function appointmentTypes(): Collection
     {
         return AppointmentType::query()->where('team_id', $this->assistedPerson->team_id)->orderBy('name')->get(['id', 'name']);
+    }
+
+    /**
+     * Get the books the assisted person still has to return, the soonest due first, followed by the last ones returned.
+     *
+     * @return Collection<int, BookLoan>
+     */
+    #[Computed]
+    public function bookLoans(): Collection
+    {
+        $loans = fn () => $this->assistedPerson->bookLoans()->with('copy.book');
+
+        return $loans()->open()->orderBy('due_on')->get()
+            ->concat($loans()->returned()->orderByDesc('returned_on')->orderByDesc('id')->limit(self::RETURNED_LOANS_SHOWN)->get());
     }
 
     /**
@@ -543,5 +563,39 @@ new class extends Component
                 </div>
             @endif
         @endif
+    </section>
+    <section class="mt-10" data-test="assisted-person-book-loans">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <flux:heading size="lg" level="2">{{ __('Library loans') }}</flux:heading>
+
+            <flux:button size="sm" icon="book-open" icon:variant="outline" :href="route('library.loans.create', ['assisted_person' => $assistedPerson->id])" wire:navigate data-test="assisted-person-lend-book-button">
+                {{ __('Lend a book') }}
+            </flux:button>
+        </div>
+
+        <flux:card class="px-4 [--flux-bleed:1rem]">
+            @if ($this->bookLoans->isNotEmpty())
+                <flux:table bleed>
+                    <flux:table.rows>
+                        @foreach ($this->bookLoans as $loan)
+                            <flux:table.row :key="'book-loan-'.$loan->id" data-test="assisted-person-book-loan-row">
+                                <flux:table.cell class="whitespace-normal">
+                                    <div class="text-[15px] text-zinc-900 dark:text-white">{{ $loan->copy->book->title }}</div>
+                                    <div class="font-mono">{{ $loan->copy->formatted_code }}</div>
+                                </flux:table.cell>
+                                <flux:table.cell>
+                                    {{ $loan->loaned_on->format('d/m/Y') }} – {{ ($loan->returned_on ?? $loan->due_on)->format('d/m/Y') }}
+                                </flux:table.cell>
+                                <flux:table.cell align="end">
+                                    <flux:badge size="sm" :color="$loan->status->color()">{{ $loan->status->label() }}</flux:badge>
+                                </flux:table.cell>
+                            </flux:table.row>
+                        @endforeach
+                    </flux:table.rows>
+                </flux:table>
+            @else
+                <flux:text class="py-6 text-center text-zinc-500 dark:text-zinc-400">{{ __('No books have been lent to this assisted person.') }}</flux:text>
+            @endif
+        </flux:card>
     </section>
 </section>

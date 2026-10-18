@@ -2,35 +2,21 @@
 
 namespace App\Enums;
 
+use App\Concerns\AddressedBySlug;
 use App\Models\FluidicRemedy;
 use App\Models\Guidance;
 use App\Models\Mentor;
 use App\Models\PassType;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 
 enum Catalog: string
 {
+    use AddressedBySlug;
+
     case Mentor = 'mentor';
     case FluidicRemedy = 'fluidic_remedy';
     case Guidance = 'guidance';
     case PassType = 'pass_type';
-
-    /**
-     * Find the catalog addressed by the given URL segment.
-     */
-    public static function fromSlug(string $slug): ?self
-    {
-        return collect(self::cases())->first(fn (self $catalog) => $catalog->slug() === $slug);
-    }
-
-    /**
-     * Get the URL segment of the catalog's management page, derived from its team relationship name.
-     */
-    public function slug(): string
-    {
-        return Str::kebab($this->relationName());
-    }
 
     /**
      * Get the URL of the catalog's management page, so callers never build it from the enum's backing value.
@@ -38,6 +24,30 @@ enum Catalog: string
     public function url(): string
     {
         return route('catalogs.index', ['catalog' => $this->slug()]);
+    }
+
+    /**
+     * Get the layout component of the catalog's management page, which lists the catalogs of its group.
+     */
+    public function layoutComponent(): string
+    {
+        return 'pages::catalogs.layout';
+    }
+
+    /**
+     * Get the partial that heads the catalog's management page.
+     */
+    public function headingView(): string
+    {
+        return 'partials.catalogs-heading';
+    }
+
+    /**
+     * Get the warning shown before an entry of the catalog is deleted.
+     */
+    public function deleteEntryWarning(string $name): string
+    {
+        return __('Are you sure you want to delete :name? It will no longer be offered in new appointments, but will remain on the records that already use it.', ['name' => $name]);
     }
 
     /**

@@ -1,13 +1,18 @@
+{{-- The two-column shell of the catalog pages: their navigation, which defaults to the appointment catalogs, beside the page content. --}}
 @use('App\Enums\Catalog')
 
 <div class="flex items-start max-md:flex-col">
     <div class="me-10 w-full pb-4 md:w-[220px]">
-        <flux:navlist aria-label="{{ __('Catalogs') }}">
-            <flux:navlist.item :href="route('catalogs.appointment-types')" wire:navigate data-test="catalogs-nav-appointment-types">{{ __('Appointment types') }}</flux:navlist.item>
-            @foreach (Catalog::cases() as $catalog)
-                <flux:navlist.item :href="$catalog->url()" wire:navigate data-test="catalogs-nav-{{ $catalog->value }}">{{ $catalog->label() }}</flux:navlist.item>
-            @endforeach
-        </flux:navlist>
+        @isset($nav)
+            {{ $nav }}
+        @else
+            <flux:navlist aria-label="{{ __('Catalogs') }}">
+                <flux:navlist.item :href="route('catalogs.appointment-types')" wire:navigate data-test="catalogs-nav-appointment-types">{{ __('Appointment types') }}</flux:navlist.item>
+                @foreach (Catalog::cases() as $catalog)
+                    <flux:navlist.item :href="$catalog->url()" wire:navigate data-test="catalogs-nav-{{ $catalog->value }}">{{ $catalog->label() }}</flux:navlist.item>
+                @endforeach
+            </flux:navlist>
+        @endisset
     </div>
 
     <flux:separator class="md:hidden" />

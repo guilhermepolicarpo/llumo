@@ -47,6 +47,7 @@ use Illuminate\Support\Carbon;
  * @property-read Team $team
  * @property-read Collection<int, Appointment> $appointments
  * @property-read Collection<int, AppointmentRecord> $appointmentRecords
+ * @property-read Collection<int, BookLoan> $bookLoans
  */
 #[Fillable([
     'team_id',
@@ -85,6 +86,16 @@ class AssistedPerson extends Model
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);
+    }
+
+    /**
+     * Get the books lent to this assisted person.
+     *
+     * @return HasMany<BookLoan, $this>
+     */
+    public function bookLoans(): HasMany
+    {
+        return $this->hasMany(BookLoan::class);
     }
 
     /**

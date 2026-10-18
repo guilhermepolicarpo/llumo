@@ -17,4 +17,12 @@ trait NormalizesBlankStrings
 
         return $trimmed === '' ? null : $trimmed;
     }
+
+    /**
+     * Normalize a numeric value, treating blanks as absent.
+     */
+    protected function blankToNullInteger(mixed $value): ?int
+    {
+        return $value === null || $value === '' ? null : (int) $value;
+    }
 }

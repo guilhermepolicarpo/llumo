@@ -5,7 +5,6 @@ namespace App\Concerns;
 use App\Enums\AppointmentMode;
 use App\Enums\Weekday;
 use App\Models\AppointmentType;
-use App\Models\AssistedPerson;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -13,13 +12,11 @@ use Livewire\Attributes\On;
 
 trait InteractsWithAppointmentForm
 {
+    use InteractsWithAssistedPersonPicker;
+
     public string $appointmentTypeId = '';
 
     public string $mode = AppointmentMode::InPerson->value;
-
-    public ?int $assistedPersonId = null;
-
-    public string $assistedPersonSearch = '';
 
     public string $scheduledOn = '';
 
@@ -61,65 +58,6 @@ trait InteractsWithAppointmentForm
     public function modes(): array
     {
         return AppointmentMode::options();
-    }
-
-    /**
-     * Get the assisted person currently selected in the form.
-     */
-    #[Computed]
-    public function selectedAssistedPerson(): ?AssistedPerson
-    {
-        if ($this->assistedPersonId === null) {
-            return null;
-        }
-
-        return Auth::user()->currentTeam->assistedPeople()->find($this->assistedPersonId);
-    }
-
-    /**
-     * Get the assisted people whose name matches the search term, or null when the term is too short to search.
-     *
-     * @return Collection<int, AssistedPerson>|null
-     */
-    #[Computed]
-    public function assistedPersonSuggestions(): ?Collection
-    {
-        $search = trim($this->assistedPersonSearch);
-
-        if (mb_strlen($search) < 2) {
-            return null;
-        }
-
-        return Auth::user()->currentTeam->assistedPeople()
-            ->whereLike('name', "%{$search}%")
-            ->orderBy('name')
-            ->limit(10)
-            ->get();
-    }
-
-    /**
-     * Select the given assisted person for the appointment, including one just created from the create modal.
-     */
-    #[On('assisted-person-created')]
-    public function selectAssistedPerson(int $assistedPersonId): void
-    {
-        $assistedPerson = Auth::user()->currentTeam->assistedPeople()->findOrFail($assistedPersonId);
-
-        $this->assistedPersonId = $assistedPerson->id;
-        $this->assistedPersonSearch = '';
-
-        unset($this->selectedAssistedPerson);
-        $this->resetValidation('assistedPersonId');
-    }
-
-    /**
-     * Clear the selected assisted person so another one can be searched.
-     */
-    public function clearAssistedPerson(): void
-    {
-        $this->assistedPersonId = null;
-
-        unset($this->selectedAssistedPerson);
     }
 
     /**

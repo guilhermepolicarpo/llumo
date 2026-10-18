@@ -35,6 +35,9 @@ use Illuminate\Support\Facades\Storage;
  * @property string|null $district
  * @property string|null $city
  * @property BrazilianState|null $state
+ * @property int $loan_period_days
+ * @property int|null $loan_max_renewals
+ * @property int|null $loan_max_active_per_person
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -52,6 +55,13 @@ use Illuminate\Support\Facades\Storage;
  * @property-read Collection<int, FluidicRemedy> $fluidicRemedies
  * @property-read Collection<int, Guidance> $guidances
  * @property-read Collection<int, PassType> $passTypes
+ * @property-read Collection<int, Author> $authors
+ * @property-read Collection<int, Publisher> $publishers
+ * @property-read Collection<int, BookCategory> $bookCategories
+ * @property-read Collection<int, BookCollection> $bookCollections
+ * @property-read Collection<int, Book> $books
+ * @property-read Collection<int, BookCopy> $bookCopies
+ * @property-read Collection<int, BookLoan> $bookLoans
  */
 #[Fillable([
     'name',
@@ -67,12 +77,29 @@ use Illuminate\Support\Facades\Storage;
     'district',
     'city',
     'state',
+    'loan_period_days',
+    'loan_max_renewals',
+    'loan_max_active_per_person',
 ])]
 #[RouteKey('slug')]
 class Team extends Model
 {
     /** @use HasFactory<TeamFactory> */
     use GeneratesUniqueTeamSlugs, HasFactory, HasFormattedAddress, HasFormattedPhone, SoftDeletes;
+
+    /**
+     * How many days a book is lent for when the team has not chosen otherwise.
+     */
+    public const int DEFAULT_LOAN_PERIOD_DAYS = 14;
+
+    /**
+     * The model's default values for attributes, matching the database defaults.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'loan_period_days' => self::DEFAULT_LOAN_PERIOD_DAYS,
+    ];
 
     /**
      * Bootstrap the model and its traits.
@@ -208,6 +235,76 @@ class Team extends Model
     }
 
     /**
+     * Get all authors belonging to this team.
+     *
+     * @return HasMany<Author, $this>
+     */
+    public function authors(): HasMany
+    {
+        return $this->hasMany(Author::class);
+    }
+
+    /**
+     * Get all publishers belonging to this team.
+     *
+     * @return HasMany<Publisher, $this>
+     */
+    public function publishers(): HasMany
+    {
+        return $this->hasMany(Publisher::class);
+    }
+
+    /**
+     * Get all book categories belonging to this team.
+     *
+     * @return HasMany<BookCategory, $this>
+     */
+    public function bookCategories(): HasMany
+    {
+        return $this->hasMany(BookCategory::class);
+    }
+
+    /**
+     * Get all book collections belonging to this team.
+     *
+     * @return HasMany<BookCollection, $this>
+     */
+    public function bookCollections(): HasMany
+    {
+        return $this->hasMany(BookCollection::class);
+    }
+
+    /**
+     * Get all books in the library belonging to this team.
+     *
+     * @return HasMany<Book, $this>
+     */
+    public function books(): HasMany
+    {
+        return $this->hasMany(Book::class);
+    }
+
+    /**
+     * Get all book copies belonging to this team.
+     *
+     * @return HasMany<BookCopy, $this>
+     */
+    public function bookCopies(): HasMany
+    {
+        return $this->hasMany(BookCopy::class);
+    }
+
+    /**
+     * Get all book loans belonging to this team.
+     *
+     * @return HasMany<BookLoan, $this>
+     */
+    public function bookLoans(): HasMany
+    {
+        return $this->hasMany(BookLoan::class);
+    }
+
+    /**
      * Get the publicly accessible URL for the team's logo.
      *
      * @return Attribute<string|null, never>
@@ -239,6 +336,9 @@ class Team extends Model
         return [
             'is_personal' => 'boolean',
             'state' => BrazilianState::class,
+            'loan_period_days' => 'integer',
+            'loan_max_renewals' => 'integer',
+            'loan_max_active_per_person' => 'integer',
         ];
     }
 }
