@@ -384,3 +384,17 @@ test('the books can be filtered by collection', function () {
         ->assertSee('Nosso Lar')
         ->assertDontSee('Paulo e Estêvão');
 });
+
+test('the book list shows 5 books per page by default and lets the member show more', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+    Book::factory()->for($team)->count(6)->create();
+
+    $component = Livewire::test('pages::library.books.index');
+
+    expect($component->get('books')->perPage())->toBe(5)
+        ->and($component->get('books')->count())->toBe(5);
+
+    $component->set('perPage', 10);
+
+    expect($component->get('books')->count())->toBe(6);
+});

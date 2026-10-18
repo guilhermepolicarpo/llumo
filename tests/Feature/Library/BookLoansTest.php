@@ -234,3 +234,17 @@ test('loans of another team cannot be returned or renewed', function () {
 
     expect($foreignLoan->fresh()->renewals_count)->toBe(0);
 });
+
+test('the loan list shows 5 loans per page by default and lets the member show more', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+    BookLoan::factory()->count(6)->sequence(fn () => ['book_copy_id' => availableCopy($team)->id])->create();
+
+    $component = Livewire::test('pages::library.loans.index');
+
+    expect($component->get('loans')->perPage())->toBe(5)
+        ->and($component->get('loans')->count())->toBe(5);
+
+    $component->set('perPage', 10);
+
+    expect($component->get('loans')->count())->toBe(6);
+});

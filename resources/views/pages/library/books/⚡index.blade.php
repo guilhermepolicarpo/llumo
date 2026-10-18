@@ -25,7 +25,7 @@ new class extends Component
     /**
      * @var list<int>
      */
-    public const array PER_PAGE_OPTIONS = [10, 25, 50, 100];
+    public const array PER_PAGE_OPTIONS = [5, 10, 25, 50, 100];
 
     /**
      * The columns the table can be sorted by.
@@ -46,7 +46,7 @@ new class extends Component
     public bool $availableOnly = false;
 
     #[Session('library-books-per-page')]
-    public int $perPage = 10;
+    public int $perPage = 5;
 
     public function mount(): void
     {

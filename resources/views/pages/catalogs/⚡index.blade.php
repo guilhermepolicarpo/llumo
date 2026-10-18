@@ -24,7 +24,7 @@ new class extends Component
     /**
      * @var list<int>
      */
-    public const array PER_PAGE_OPTIONS = [10, 25, 50, 100];
+    public const array PER_PAGE_OPTIONS = [5, 10, 25, 50, 100];
 
     #[Locked]
     public Catalog|LibraryCatalog $catalog;
@@ -32,7 +32,7 @@ new class extends Component
     public string $search = '';
 
     #[Session('catalogs-per-page')]
-    public int $perPage = 25;
+    public int $perPage = 5;
 
     public string $name = '';
 
