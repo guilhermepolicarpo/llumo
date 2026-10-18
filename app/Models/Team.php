@@ -42,6 +42,7 @@ use Illuminate\Support\Facades\Storage;
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  * @property-read string|null $logo_url
+ * @property-read Membership|null $pivot The user's membership, when the team was loaded through a user's teams.
  * @property-read string $display_legal_name
  * @property-read string|null $formatted_phone
  * @property-read string|null $formatted_address

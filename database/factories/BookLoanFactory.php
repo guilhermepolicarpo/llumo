@@ -21,7 +21,7 @@ class BookLoanFactory extends Factory
     {
         return [
             'book_copy_id' => BookCopy::factory(),
-            'team_id' => fn (array $attributes) => BookCopy::find($attributes['book_copy_id'])->team_id,
+            'team_id' => fn (array $attributes) => BookCopy::query()->whereKey($attributes['book_copy_id'])->value('team_id'),
             'assisted_person_id' => fn (array $attributes) => AssistedPerson::factory()->state(['team_id' => $attributes['team_id']]),
             'loaned_on' => today()->toDateString(),
             'due_on' => today()->addDays(14)->toDateString(),

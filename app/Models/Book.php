@@ -175,7 +175,7 @@ class Book extends Model
     {
         $query->withCount([
             'copies as active_copies_count' => fn (Builder $copies) => $copies->where('status', BookCopyStatus::Active),
-            'copies as available_copies_count' => fn (Builder $copies) => $copies->available(),
+            'copies as available_copies_count' => fn (Builder $copies) => $copies->scopes('available'),
         ]);
     }
 

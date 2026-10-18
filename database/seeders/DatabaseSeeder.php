@@ -239,7 +239,7 @@ class DatabaseSeeder extends Seeder
                 $appointment,
                 $appointment->attendant,
                 $this->recordAttributes($team, $appointment, $infiltrationRemoval),
-                $appointment->started_at,
+                ($appointment->started_at ?? now())->toImmutable(),
             ));
 
         $this->fillHealingTreatmentDays($team, $healingTreatment, $assistedPeople, $memberIds);
@@ -292,7 +292,21 @@ class DatabaseSeeder extends Seeder
     /**
      * Build the record a medium would fill while attending the appointment.
      *
-     * @return array<string, mixed>
+     * @return array{
+     *     mentor_id: ?int,
+     *     fluidic_remedy_ids: array<int, int>,
+     *     fluid_instructions: ?string,
+     *     guidances: array<int, array{guidance_id: int, detail: ?string}>,
+     *     pass_prescriptions: array<int, array{pass_type_id: int, quantity: int, mode: string}>,
+     *     infiltration_site: ?string,
+     *     infiltration_remove_on: ?string,
+     *     infiltration_removal_place: ?string,
+     *     removal_appointment_type_id: ?int,
+     *     return_on: ?string,
+     *     schedules_return: bool,
+     *     return_appointment_type_id: ?int,
+     *     observations: ?string,
+     * }
      */
     private function recordAttributes(Team $team, Appointment $appointment, AppointmentType $infiltrationRemoval): array
     {

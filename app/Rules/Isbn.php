@@ -42,16 +42,16 @@ class Isbn implements ValidationRule
         }
 
         if (strlen($digits) === 13) {
-            return static::isbn13CheckDigit(substr($digits, 0, 12)) === $digits[12] ? $digits : null;
+            return self::isbn13CheckDigit(substr($digits, 0, 12)) === $digits[12] ? $digits : null;
         }
 
-        if (static::isbn10CheckDigit(substr($digits, 0, 9)) !== $digits[9]) {
+        if (self::isbn10CheckDigit(substr($digits, 0, 9)) !== $digits[9]) {
             return null;
         }
 
         $prefixed = '978'.substr($digits, 0, 9);
 
-        return $prefixed.static::isbn13CheckDigit($prefixed);
+        return $prefixed.self::isbn13CheckDigit($prefixed);
     }
 
     /**

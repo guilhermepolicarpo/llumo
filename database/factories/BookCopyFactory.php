@@ -21,7 +21,7 @@ class BookCopyFactory extends Factory
     {
         return [
             'book_id' => Book::factory(),
-            'team_id' => fn (array $attributes) => Book::find($attributes['book_id'])->team_id,
+            'team_id' => fn (array $attributes) => Book::query()->whereKey($attributes['book_id'])->value('team_id'),
             'code' => fn (array $attributes) => (int) BookCopy::withTrashed()->where('team_id', $attributes['team_id'])->max('code') + 1,
             'status' => BookCopyStatus::Active,
         ];

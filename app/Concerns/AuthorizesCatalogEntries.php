@@ -42,7 +42,7 @@ trait AuthorizesCatalogEntries
      */
     public function update(User $user, Model $entry): bool
     {
-        return $this->manage($user, $entry->team);
+        return $this->managesTeamOf($user, $entry);
     }
 
     /**
@@ -50,6 +50,16 @@ trait AuthorizesCatalogEntries
      */
     public function delete(User $user, Model $entry): bool
     {
-        return $this->manage($user, $entry->team);
+        return $this->managesTeamOf($user, $entry);
+    }
+
+    /**
+     * Determine whether the user can manage the catalog of the team the entry belongs to.
+     */
+    private function managesTeamOf(User $user, Model $entry): bool
+    {
+        $team = $entry->getRelationValue('team');
+
+        return $team instanceof Team && $this->manage($user, $team);
     }
 }

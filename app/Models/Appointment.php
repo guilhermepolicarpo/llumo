@@ -302,11 +302,13 @@ class Appointment extends Model
     #[Scope]
     protected function orderByStatus(Builder $query, string $direction = 'asc'): void
     {
-        $positions = collect(AppointmentStatus::cases())
-            ->map(fn (AppointmentStatus $status, int $position): string => "when '{$status->value}' then {$position}")
-            ->implode(' ');
+        $positions = '';
 
-        $query->orderByRaw("case status {$positions} end {$direction}");
+        foreach (AppointmentStatus::cases() as $position => $status) {
+            $positions .= " when '{$status->value}' then {$position}";
+        }
+
+        $query->orderByRaw("case status{$positions} end {$direction}");
     }
 
     /**

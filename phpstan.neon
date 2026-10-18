@@ -12,7 +12,7 @@ parameters:
 
     level: 7
 
-    # These traits are only used by Volt single-file components in resources/views,
+    # These traits are only used by the Livewire single-file components in resources/views,
     # which fall outside the analysed paths above, so Larastan can't see their usage.
     ignoreErrors:
         -
@@ -24,3 +24,21 @@ parameters:
         -
             identifier: trait.unused
             path: app/Concerns/InteractsWithAssistedPersonForm.php
+        -
+            identifier: trait.unused
+            path: app/Concerns/InteractsWithAppointmentActions.php
+        -
+            identifier: trait.unused
+            path: app/Concerns/InteractsWithAppointmentRecordForm.php
+        -
+            identifier: trait.unused
+            path: app/Concerns/InteractsWithAppointmentTypeForm.php
+        -
+            identifier: trait.unused
+            path: app/Concerns/InteractsWithAssistedPersonPicker.php
+        -
+            identifier: trait.unused
+            path: app/Concerns/InteractsWithBookForm.php
+        -
+            identifier: trait.unused
+            path: app/Concerns/InteractsWithTableSorting.php
