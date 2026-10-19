@@ -16,8 +16,8 @@
         .shrink { white-space: nowrap; width: 1%; }
 
         .header td { vertical-align: middle; }
-        .header .logo { width: 18mm; }
-        .header .logo img { width: 15.5mm; height: 15.5mm; }
+        .header .logo { padding-right: 2.5mm; }
+        .header .logo img { max-width: 32mm; max-height: 15.5mm; }
         .team-name { font-size: 10pt; font-weight: bold; text-transform: uppercase; }
         .team-detail { font-size: 7.5pt; color: #333; margin-top: 0.7mm; }
         .header .badge-cell { width: 26mm; text-align: center; }
@@ -30,7 +30,7 @@
         .identification td { border-bottom: 0.8pt solid #141414; padding-bottom: 0.7mm; }
         .identification td.label { padding-right: 1.4mm; }
         .identification td.gap { border-bottom: 0; width: 4.2mm; }
-        .identification .value { font-size: 9.5pt; font-weight: bold; }
+        .identification .value { font-size: 9.5pt; }
 
         .section-label { margin: 5mm 0 1.8mm; }
         .item { margin-bottom: 2mm; }
@@ -96,7 +96,7 @@
             <table class="header">
                 <tr>
                     @if ($logo)
-                        <td class="logo"><img src="{{ $logo }}" alt=""></td>
+                        <td class="logo shrink"><img src="{{ $logo }}" alt=""></td>
                     @endif
                     <td>
                         <div class="team-name">{{ $team->display_legal_name }}</div>
