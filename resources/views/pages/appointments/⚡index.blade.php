@@ -473,20 +473,25 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <x-page-header :heading="__('Appointments')" :separator="false">
+    <x-page-header :heading="__('Appointments')" :subheading="__('Appointments scheduled for the assisted people')" :separator="false">
         <div class="flex flex-wrap items-center gap-3">
-            @if ($this->printableSheetCount > 0)
-                <flux:button
-                    icon="printer"
-                    icon:variant="outline"
-                    :href="route('appointments.attendance-sheets', ['date' => $this->filteredDate->toDateString()])"
-                    target="_blank"
-                    data-test="appointments-print-sheets-button"
-                    >
-                    {{ __('Print sheets') }}
-                    <flux:badge size="sm" color="amber" inset="top bottom" data-test="appointments-print-sheets-count">{{ $this->printableSheetCount }}</flux:badge>
+            <flux:input
+                wire:model.live.debounce.300ms="search"
+                icon="magnifying-glass"
+                :placeholder="__('Search by name...')"
+                clearable
+                class="min-w-0 max-sm:flex-1 sm:w-72"
+                data-test="appointments-search-input"
+            />
+
+            <flux:modal.trigger name="appointments-filters">
+                <flux:button icon="funnel" icon:variant="outline" class="shrink-0" data-test="appointments-filters-button">
+                    {{ __('Filters') }}
+                    @if ($this->activeFilterCount > 0)
+                        <flux:badge size="sm" color="blue" inset="top bottom" data-test="appointments-filters-count">{{ $this->activeFilterCount }}</flux:badge>
+                    @endif
                 </flux:button>
-            @endif
+            </flux:modal.trigger>
 
             <flux:button
                 variant="primary"
@@ -500,38 +505,8 @@ new class extends Component
         </div>
     </x-page-header>
 
-    <div class="-mt-2 flex flex-wrap items-center gap-3">
-        <x-day-picker
-            wire:model.live="date"
-            allow-all
-            markers="appointmentDatesIn"
-            :marker-label="__('Day with appointments')"
-            data-test="appointments-day-picker"
-        />
-
-        <div class="flex w-full items-center gap-3 sm:ms-auto sm:w-auto">
-            <flux:input
-                wire:model.live.debounce.300ms="search"
-                icon="magnifying-glass"
-                :placeholder="__('Search by name...')"
-                clearable
-                class="min-w-0 flex-1 sm:w-72 sm:flex-none"
-                data-test="appointments-search-input"
-            />
-
-            <flux:modal.trigger name="appointments-filters">
-                <flux:button icon="funnel" icon-variant="outline" data-test="appointments-filters-button">
-                    {{ __('Filters') }}
-                    @if ($this->activeFilterCount > 0)
-                        <flux:badge size="sm" color="blue" inset="top bottom" data-test="appointments-filters-count">{{ $this->activeFilterCount }}</flux:badge>
-                    @endif
-                </flux:button>
-            </flux:modal.trigger>
-        </div>
-    </div>
-
     @if (! $this->pending && $this->pendingCount > 0)
-        <flux:callout variant="warning" icon="exclamation-triangle" icon:variant="outline" inline class="mt-4" data-test="appointments-pending-callout">
+        <flux:callout variant="warning" icon="exclamation-triangle" icon:variant="outline" inline class="mb-6" data-test="appointments-pending-callout">
             <flux:callout.heading>
                 {{ trans_choice(':count appointment from previous days is still awaiting entry.|:count appointments from previous days are still awaiting entry.', $this->pendingCount) }}
             </flux:callout.heading>
@@ -543,7 +518,7 @@ new class extends Component
     @endif
 
     @if ($this->pending || $this->activeFilterChips !== [])
-        <div class="mt-4 flex flex-wrap items-center gap-2 sm:justify-end" data-test="appointments-active-filters">
+        <div class="mb-4 flex flex-wrap items-center gap-2" data-test="appointments-active-filters">
             @if ($this->pending)
                 <flux:badge size="sm" color="amber" data-test="appointments-pending-chip">
                     {{ __('Pending') }}
@@ -576,7 +551,31 @@ new class extends Component
         </div>
     @endif
 
-    <flux:card class="mt-6 scroll-mt-6 px-4 pb-4 [--flux-bleed:1rem]" id="appointments-table">
+    <div class="flex flex-wrap items-center gap-3">
+        <x-day-picker
+            wire:model.live="date"
+            allow-all
+            markers="appointmentDatesIn"
+            :marker-label="__('Day with appointments')"
+            data-test="appointments-day-picker"
+        />
+
+        @if ($this->printableSheetCount > 0)
+            <flux:button
+                icon="printer"
+                icon:variant="outline"
+                :href="route('appointments.attendance-sheets', ['date' => $this->filteredDate->toDateString()])"
+                target="_blank"
+                class="sm:ms-auto"
+                data-test="appointments-print-sheets-button"
+                >
+                {{ __('Print sheets') }}
+                <flux:badge size="sm" color="amber" inset="top bottom" data-test="appointments-print-sheets-count">{{ $this->printableSheetCount }}</flux:badge>
+            </flux:button>
+        @endif
+    </div>
+
+    <flux:card class="mt-4 scroll-mt-6 px-4 pb-4 [--flux-bleed:1rem]" id="appointments-table">
         @if ($this->appointments->isNotEmpty())
             <flux:table bleed>
                 <flux:table.columns>
@@ -692,7 +691,7 @@ new class extends Component
         @endif
     </flux:card>
 
-    <flux:modal name="appointments-filters" flyout variant="floating" class="flex flex-col md:w-100">
+    <flux:modal name="appointments-filters" flyout variant="floating" class="flex flex-col md:w-112">
         <x-flyout-layout :more-label="__('More filters')">
             <div class="pe-8">
                 <flux:heading size="lg">{{ __('Filters') }}</flux:heading>

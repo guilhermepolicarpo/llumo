@@ -99,6 +99,6 @@
     />
 
     <div class="mt-6">
-        <flux:textarea wire:model="notes" :label="__('Notes')" rows="4" data-test="appointment-notes-input" />
+        <flux:textarea wire:model="notes" :label="__('Notes')" rows="auto" data-test="appointment-notes-input" />
     </div>
 </flux:fieldset>

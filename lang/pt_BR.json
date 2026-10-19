@@ -886,5 +886,6 @@
   "Show :count book|Show :count books": "Mostrar :count livro|Mostrar :count livros",
   "Refine the books shown in the list.": "Refine os livros exibidos na lista.",
   "Hide the books with no copy to lend now.": "Oculta os livros sem exemplar para emprestar agora.",
+  "Appointments scheduled for the assisted people": "Atendimentos agendados para os assistidos",
   ":available of :total available": ":available de :total disponíveis"
 }
