@@ -50,9 +50,11 @@ The core domain flow is: **assisted person → scheduling → session**. The ass
 
 ## Screenshots
 
-<!-- TODO: add screenshots -->
+<p align="center">
+  <img src="art/screenshots/agendamentos.png" alt="llumo's scheduling screen: the day's schedule with search, filters, a notice about sessions awaiting a record, and the list of assisted persons with the Check in and Attend actions">
+</p>
 
-Coming soon.
+<p align="center"><em>Scheduling: the day's schedule, with check-in and the session for each assisted person (interface in Brazilian Portuguese).</em></p>
 
 ## Stack
 

@@ -50,9 +50,11 @@ O fluxo central do domínio é: **assistido → agendamento → atendimento**. O
 
 ## Screenshots
 
-<!-- TODO: adicionar capturas de tela -->
+<p align="center">
+  <img src="art/screenshots/agendamentos.png" alt="Tela de agendamentos do llumo: agenda do dia com busca, filtros, aviso de atendimentos pendentes e a lista de assistidos com as ações Receber e Atender">
+</p>
 
-Em breve.
+<p align="center"><em>Agendamentos: a agenda do dia, com a recepção e o atendimento dos assistidos.</em></p>
 
 ## Stack
 
