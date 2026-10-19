@@ -253,30 +253,30 @@ new class extends Component
 
                 <flux:table.rows>
                     @foreach ($this->loans as $loan)
-                        <flux:table.row :key="$loan->id" data-test="loan-row">
-                            <flux:table.cell class="text-zinc-900 dark:text-white">
+                        <flux:table.row :key="$loan->id" class="hover:bg-zinc-50 dark:hover:bg-zinc-800" data-test="loan-row">
+                            <flux:table.cell class="font-medium text-zinc-800 dark:text-white">
                                 @if ($loan->assistedPerson->trashed())
                                     {{ $loan->assistedPerson->name }}
                                 @else
-                                    <flux:link :href="route('assisted-people.show', ['assistedPerson' => $loan->assistedPerson])" wire:navigate variant="ghost" class="text-zinc-900 dark:text-white">{{ $loan->assistedPerson->name }}</flux:link>
+                                    <flux:link :href="route('assisted-people.show', ['assistedPerson' => $loan->assistedPerson])" wire:navigate variant="ghost" class="text-zinc-800 dark:text-white">{{ $loan->assistedPerson->name }}</flux:link>
                                 @endif
                             </flux:table.cell>
 
                             <flux:table.cell class="max-w-80">
                                 <div class="min-w-0">
                                     @if ($loan->copy->book->trashed())
-                                        <div class="truncate text-zinc-900 dark:text-white">{{ $loan->copy->book->title }}</div>
+                                        <div class="truncate font-medium text-zinc-800 dark:text-white">{{ $loan->copy->book->title }}</div>
                                     @else
-                                        <flux:link :href="route('library.books.show', ['book' => $loan->copy->book])" wire:navigate variant="ghost" class="block truncate text-zinc-900 dark:text-white">{{ $loan->copy->book->title }}</flux:link>
+                                        <flux:link :href="route('library.books.show', ['book' => $loan->copy->book])" wire:navigate variant="ghost" class="block truncate font-medium text-zinc-800 dark:text-white">{{ $loan->copy->book->title }}</flux:link>
                                     @endif
                                     <div>{{ $loan->copy->formatted_code }}</div>
                                 </div>
                             </flux:table.cell>
 
-                            <flux:table.cell>{{ $loan->loaned_on->format('d/m/Y') }}</flux:table.cell>
+                            <flux:table.cell class="text-zinc-800 dark:text-white">{{ $loan->loaned_on->format('d/m/Y') }}</flux:table.cell>
 
                             <flux:table.cell>
-                                <div class="text-zinc-900 dark:text-white">{{ $loan->due_on->format('d/m/Y') }}</div>
+                                <div class="text-zinc-800 dark:text-white">{{ $loan->due_on->format('d/m/Y') }}</div>
                                 <div @class([
                                     'text-red-600 dark:text-red-400' => $loan->status === BookLoanStatus::Overdue,
                                     'text-amber-700 dark:text-amber-400' => $loan->isDueSoon(),

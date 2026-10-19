@@ -221,7 +221,7 @@ new class extends Component
                     <flux:table.rows>
                         @foreach ($this->entries as $entry)
                             <flux:table.row :key="$entry->id" class="relative cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800" data-test="catalog-entry-row">
-                                <flux:table.cell class="text-zinc-900 dark:text-white">
+                                <flux:table.cell class="text-zinc-800 dark:text-white">
                                     <button
                                         type="button"
                                         wire:click="editEntry({{ $entry->id }})"
@@ -234,7 +234,7 @@ new class extends Component
                                 </flux:table.cell>
 
                                 @if ($this->countsBooks)
-                                    <flux:table.cell align="end" class="tabular-nums" data-test="catalog-entry-books-count">{{ $entry->books_count }}</flux:table.cell>
+                                    <flux:table.cell align="end" class="tabular-nums text-zinc-800 dark:text-white" data-test="catalog-entry-books-count">{{ $entry->books_count }}</flux:table.cell>
                                 @endif
 
                                 <flux:table.cell align="end" class="relative z-10">

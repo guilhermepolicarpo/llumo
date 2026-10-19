@@ -593,8 +593,8 @@ new class extends Component
                         <flux:table.row :key="$appointment->id" class="relative cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800" data-test="appointment-row">
                             @unless ($this->filteredDate)
                                 <flux:table.cell>
-                                    <div class="text-zinc-900 dark:text-white">{{ $appointment->scheduled_on->format('d/m/Y') }}</div>
-                                    <div class="mt-1 text-zinc-600 dark:text-zinc-400">{{ $appointment->scheduled_on->translatedFormat('l') }}</div>
+                                    <div class="text-zinc-800 dark:text-white">{{ $appointment->scheduled_on->format('d/m/Y') }}</div>
+                                    <div class="mt-1">{{ $appointment->scheduled_on->translatedFormat('l') }}</div>
                                 </flux:table.cell>
                             @endunless
 
@@ -608,14 +608,14 @@ new class extends Component
                                 ></button>
 
                                 <div class="flex min-w-0 flex-col gap-0.5">
-                                    <div class="font-medium text-zinc-900 dark:text-white">{{ $appointment->assistedPerson->name }}</div>
-                                    <div class="text-zinc-600 dark:text-zinc-400">{{ collect([$appointment->assistedPerson->formatted_age, $appointment->assistedPerson->address_city_line])->filter()->implode(' · ') }}</div>
+                                    <div class="font-medium text-zinc-800 dark:text-white">{{ $appointment->assistedPerson->name }}</div>
+                                    <div>{{ collect([$appointment->assistedPerson->formatted_age, $appointment->assistedPerson->address_city_line])->filter()->implode(' · ') }}</div>
                                 </div>
                             </flux:table.cell>
 
                             <flux:table.cell>
-                                <div class="text-zinc-900 dark:text-white">{{ $appointment->appointmentType->name }}</div>
-                                <div class="mt-1 flex items-center gap-1 text-zinc-600 dark:text-zinc-400">
+                                <div class="text-zinc-800 dark:text-white">{{ $appointment->appointmentType->name }}</div>
+                                <div class="mt-1 flex items-center gap-1">
                                     <flux:icon :icon="$appointment->mode->icon()" variant="outline" class="size-3.5" />
                                     {{ $appointment->mode->label() }}
                                 </div>
@@ -641,9 +641,8 @@ new class extends Component
                                 @endphp
                                 @if ($statusContext)
                                     <div @class([
-                                        'mt-1 text-[13px]',
+                                        'mt-1',
                                         'text-amber-800 dark:text-amber-400' => $appointment->status === AppointmentStatus::Waiting,
-                                        'text-zinc-600 dark:text-zinc-400' => $appointment->status !== AppointmentStatus::Waiting,
                                     ]) data-test="appointment-status-context">{{ $statusContext }}</div>
                                 @endif
                             </flux:table.cell>

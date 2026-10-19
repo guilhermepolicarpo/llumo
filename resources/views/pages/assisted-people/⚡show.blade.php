@@ -576,10 +576,10 @@ new class extends Component
                         @foreach ($this->bookLoans as $loan)
                             <flux:table.row :key="'book-loan-'.$loan->id" data-test="assisted-person-book-loan-row">
                                 <flux:table.cell class="whitespace-normal">
-                                    <div class="text-zinc-900 dark:text-white">{{ $loan->copy->book->title }}</div>
+                                    <div class="text-zinc-800 dark:text-white">{{ $loan->copy->book->title }}</div>
                                     <div>{{ $loan->copy->formatted_code }}</div>
                                 </flux:table.cell>
-                                <flux:table.cell>
+                                <flux:table.cell class="text-zinc-800 dark:text-white">
                                     {{ $loan->loaned_on->format('d/m/Y') }} – {{ ($loan->returned_on ?? $loan->due_on)->format('d/m/Y') }}
                                 </flux:table.cell>
                                 <flux:table.cell align="end">
