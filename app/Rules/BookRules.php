@@ -21,6 +21,11 @@ class BookRules
     public const int COVER_MAX_DIMENSION = 2000;
 
     /**
+     * The largest cover file, in kilobytes, uploaded or downloaded.
+     */
+    public const int COVER_MAX_KILOBYTES = 2048;
+
+    /**
      * Get the validation rules used to validate a book of the given team, ignoring the book being edited.
      *
      * @return array<string, array<int, ValidationRule|array<mixed>|string|object>>
@@ -163,7 +168,7 @@ class BookRules
      */
     public static function cover(): array
     {
-        return ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048', 'dimensions:max_width='.static::COVER_MAX_DIMENSION.',max_height='.static::COVER_MAX_DIMENSION];
+        return ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:'.static::COVER_MAX_KILOBYTES, 'dimensions:max_width='.static::COVER_MAX_DIMENSION.',max_height='.static::COVER_MAX_DIMENSION];
     }
 
     /**

@@ -244,6 +244,86 @@ test('the cover found by the lookup is downloaded and stored with the book', fun
     Storage::disk('public')->assertExists($book->cover_path);
 });
 
+test('the lookup asks the browser to download the found cover, and only when there is one', function () {
+    Storage::fake('public');
+    actingAsTeamMember(TeamRole::Member);
+
+    fakeNossoLarLookup();
+
+    Livewire::test('pages::library.books.create')
+        ->set('isbn', '9788573289442')
+        ->call('lookUpIsbn')
+        ->assertJs('$wire.downloadFoundCover()');
+
+    Http::fake([
+        'https://brasilapi.com.br/api/isbn/v1/9788573287523' => Http::response(['title' => 'O Livro dos Espíritos']),
+        'https://openlibrary.org/api/books*' => Http::response([]),
+    ]);
+
+    Livewire::test('pages::library.books.create')
+        ->set('isbn', '9788573287523')
+        ->call('lookUpIsbn')
+        ->assertNoJs();
+});
+
+test('the found cover is downloaded while the book is reviewed, so saving it does not download it again', function () {
+    Storage::fake('public');
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+
+    fakeNossoLarLookup();
+
+    $component = Livewire::test('pages::library.books.create')
+        ->set('isbn', '9788573289442')
+        ->call('lookUpIsbn')
+        ->call('downloadFoundCover');
+
+    expect(Storage::disk('public')->files('book-covers/downloads'))->toHaveCount(1);
+
+    $component->call('createBook')->assertHasNoErrors();
+
+    $book = $team->books()->sole();
+
+    expect($book->cover_path)->toStartWith('book-covers/')
+        ->and(Storage::disk('public')->files('book-covers/downloads'))->toBe([])
+        ->and(Http::recorded(fn ($request) => $request->url() === 'https://covers.openlibrary.org/b/id/10545010-L.jpg'))->toHaveCount(1);
+    Storage::disk('public')->assertExists($book->cover_path);
+});
+
+test('a found cover that cannot be downloaded is dropped from the form right away', function () {
+    Storage::fake('public');
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+
+    fakeNossoLarLookup('<html>not an image</html>');
+
+    Livewire::test('pages::library.books.create')
+        ->set('isbn', '9788573289442')
+        ->call('lookUpIsbn')
+        ->call('downloadFoundCover')
+        ->assertSet('foundCoverUrl', null)
+        ->assertSet('downloadedCoverPath', null)
+        ->call('createBook')
+        ->assertHasNoErrors();
+
+    expect($team->books()->sole()->cover_path)->toBeNull()
+        ->and(Storage::disk('public')->allFiles())->toBe([]);
+});
+
+test('a downloaded cover is deleted when it is removed or another lookup replaces it', function (string $action) {
+    Storage::fake('public');
+    actingAsTeamMember(TeamRole::Member);
+
+    fakeNossoLarLookup();
+
+    Livewire::test('pages::library.books.create')
+        ->set('isbn', '9788573289442')
+        ->call('lookUpIsbn')
+        ->call('downloadFoundCover')
+        ->call($action)
+        ->assertSet('downloadedCoverPath', null);
+
+    expect(Storage::disk('public')->files('book-covers/downloads'))->toBe([]);
+})->with(['removeCoverImage', 'lookUpIsbn']);
+
 test('a found cover that is not an image is not stored, and the book is saved without one', function () {
     Storage::fake('public');
     [, $team] = actingAsTeamMember(TeamRole::Member);

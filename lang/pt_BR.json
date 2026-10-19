@@ -669,6 +669,7 @@
   "No public catalog knows this ISBN. Please fill in the book by hand.": "Nenhum catálogo público conhece este ISBN. Preencha os dados do livro manualmente.",
   "Book found. Please review the details before saving.": "Livro encontrado. Confira os dados antes de salvar.",
   "The cover found could not be downloaded. You can upload one by editing the book.": "Não foi possível baixar a capa encontrada. Você pode enviar uma editando o livro.",
+  "The cover found could not be downloaded. You can upload one instead.": "Não foi possível baixar a capa encontrada. Você pode enviar uma imagem.",
   "Incarnate authors": "Autores encarnados",
   "Spiritual authors": "Autores espirituais",
   "Active": "Ativo",

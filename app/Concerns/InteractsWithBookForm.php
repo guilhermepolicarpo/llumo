@@ -6,6 +6,7 @@ use App\Actions\Catalogs\CreateCatalogEntry;
 use App\Actions\Library\DownloadBookCover;
 use App\Actions\Library\LookUpBookByIsbn;
 use App\Actions\Library\StoreBookCover;
+use App\Actions\Library\StoreDownloadedBookCover;
 use App\Enums\AuthorRole;
 use App\Enums\LibraryCatalog;
 use App\Models\Book;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
@@ -78,6 +80,12 @@ trait InteractsWithBookForm
      */
     #[Locked]
     public ?string $foundCoverUrl = null;
+
+    /**
+     * Where the found cover was downloaded to while the book is being filled in, so saving does not wait for it.
+     */
+    #[Locked]
+    public ?string $downloadedCoverPath = null;
 
     /**
      * Whether the book's current cover is to be removed when saving.
@@ -146,6 +154,7 @@ trait InteractsWithBookForm
         $this->pageCount = $this->pageCount !== '' ? $this->pageCount : (string) $lookup->pageCount;
         $this->synopsis = $this->synopsis !== '' ? $this->synopsis : (string) $lookup->synopsis;
 
+        $this->discardDownloadedCover();
         $this->foundCoverUrl = $this->hasCover() ? null : $lookup->coverUrl;
 
         $this->suggestAuthors($lookup->authorNames, $lookup->spiritualAuthorNames);
@@ -153,6 +162,31 @@ trait InteractsWithBookForm
         $this->suggestedCollectionName = $this->selectOrSuggestEntry(LibraryCatalog::Collection, 'collectionId', $lookup->collectionName);
 
         Flux::toast(variant: 'success', text: __('Book found. Please review the details before saving.'));
+
+        if ($this->foundCoverUrl !== null) {
+            $this->js('$wire.downloadFoundCover()');
+        }
+    }
+
+    /**
+     * Download the cover found by the lookup while the book is being reviewed, as the catalogs take seconds
+     * to serve it. Saving waits for a download still under way, as the component's requests run in turn.
+     */
+    public function downloadFoundCover(DownloadBookCover $downloadBookCover): void
+    {
+        Gate::authorize('create', [Book::class, $this->team()]);
+
+        if ($this->foundCoverUrl === null || $this->downloadedCoverPath !== null) {
+            return;
+        }
+
+        $this->downloadedCoverPath = $downloadBookCover->handle($this->foundCoverUrl);
+
+        if ($this->downloadedCoverPath === null) {
+            $this->foundCoverUrl = null;
+
+            Flux::toast(variant: 'warning', text: __('The cover found could not be downloaded. You can upload one instead.'));
+        }
     }
 
     /**
@@ -241,6 +275,7 @@ trait InteractsWithBookForm
             $this->removeCover = true;
         }
 
+        $this->discardDownloadedCover();
         $this->reset('cover', 'foundCoverUrl');
     }
 
@@ -383,10 +418,14 @@ trait InteractsWithBookForm
     /**
      * Store the cover chosen for the book, the uploaded one first, otherwise the one found by the lookup,
      * returning its path, or null when there is none or the found one could not be downloaded.
+     *
+     * The found cover is usually downloaded already; it is downloaded now only when it was not, or was pruned.
      */
-    protected function storeChosenCover(StoreBookCover $storeBookCover, DownloadBookCover $downloadBookCover): ?string
+    protected function storeChosenCover(StoreBookCover $storeBookCover, DownloadBookCover $downloadBookCover, StoreDownloadedBookCover $storeDownloadedBookCover): ?string
     {
         if ($this->cover !== null) {
+            $this->discardDownloadedCover();
+
             return $storeBookCover->handle($this->cover);
         }
 
@@ -394,7 +433,10 @@ trait InteractsWithBookForm
             return null;
         }
 
-        $path = $downloadBookCover->handle($this->foundCoverUrl);
+        $path = $storeDownloadedBookCover->handle($this->downloadedCoverPath)
+            ?? $storeDownloadedBookCover->handle($downloadBookCover->handle($this->foundCoverUrl));
+
+        $this->downloadedCoverPath = null;
 
         if ($path === null) {
             Flux::toast(variant: 'warning', text: __('The cover found could not be downloaded. You can upload one by editing the book.'));
@@ -409,6 +451,18 @@ trait InteractsWithBookForm
     protected function currentCoverUrl(): ?string
     {
         return null;
+    }
+
+    /**
+     * Delete the found cover downloaded ahead of saving, when the book will not use it.
+     */
+    private function discardDownloadedCover(): void
+    {
+        if ($this->downloadedCoverPath !== null) {
+            Storage::disk('public')->delete($this->downloadedCoverPath);
+        }
+
+        $this->downloadedCoverPath = null;
     }
 
     /**
