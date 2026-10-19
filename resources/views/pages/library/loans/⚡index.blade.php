@@ -52,6 +52,9 @@ new class extends Component
     #[Locked]
     public ?int $returningLoanId = null;
 
+    #[Locked]
+    public ?int $renewingLoanId = null;
+
     public string $returnedOn = '';
 
     public function mount(): void
@@ -96,6 +99,17 @@ new class extends Component
         Flux::toast(variant: 'success', text: __('Return registered.'));
     }
 
+    public function confirmRenew(int $loanId): void
+    {
+        $loan = $this->findLoan($loanId);
+
+        Gate::authorize('renew', $loan);
+
+        $this->renewingLoanId = $loan->id;
+
+        Flux::modal('renew-book-loan')->show();
+    }
+
     public function renewLoan(RenewBookLoan $renewBookLoan, int $loanId): void
     {
         $loan = $this->findLoan($loanId);
@@ -108,6 +122,9 @@ new class extends Component
             Flux::toast(variant: 'danger', text: $exception->getMessage());
 
             return;
+        } finally {
+            $this->reset('renewingLoanId');
+            Flux::modal('renew-book-loan')->close();
         }
 
         Flux::toast(variant: 'success', text: __('Loan renewed until :date.', ['date' => $loan->due_on->format('d/m/Y')]));
@@ -170,6 +187,12 @@ new class extends Component
         return $this->returningLoanId === null ? null : $this->team()->bookLoans()->with(['assistedPerson', 'copy.book'])->find($this->returningLoanId);
     }
 
+    #[Computed]
+    public function renewingLoan(): ?BookLoan
+    {
+        return $this->renewingLoanId === null ? null : $this->team()->bookLoans()->with(['assistedPerson', 'copy.book'])->find($this->renewingLoanId);
+    }
+
     /**
      * Find one of the team's loans, with the team already set for the policy checks.
      */
@@ -194,14 +217,14 @@ new class extends Component
 @use('App\Enums\BookLoanStatus')
 
 <section class="w-full">
-    <x-page-header :heading="__('Loans')" :subheading="__('Books lent to the assisted people')" :separator="false" stack-until="lg">
-        <div class="flex flex-wrap items-center gap-3">
+    <x-page-header :heading="__('Loans')" :subheading="__('Books lent to the assisted people')" :separator="false">
+        <div class="flex items-center gap-3">
             <flux:input
                 wire:model.live.debounce.300ms="search"
                 icon="magnifying-glass"
                 :placeholder="__('Search by person, title or code...')"
                 clearable
-                class="max-sm:w-full sm:w-72"
+                class="max-sm:flex-1 sm:w-80"
                 data-test="loans-search-input"
             />
 
@@ -211,7 +234,7 @@ new class extends Component
         </div>
     </x-page-header>
 
-    <flux:radio.group wire:model.live="status" variant="segmented" class="mb-4 max-sm:w-full" data-test="loans-status-filter">
+    <flux:radio.group wire:model.live="status" variant="segmented" class="mb-4 w-full sm:w-fit" data-test="loans-status-filter">
         <flux:radio value="" :label="__('To return (:count)', ['count' => $this->counts['open']])" />
         <flux:radio :value="BookLoanStatus::Overdue->value" :label="__('Overdue (:count)', ['count' => $this->counts['overdue']])" />
         <flux:radio :value="BookLoanStatus::Returned->value" :label="__('Returned')" />
@@ -225,7 +248,6 @@ new class extends Component
                     <flux:table.column>{{ __('Book') }}</flux:table.column>
                     <flux:table.column sortable :sorted="$sortBy === 'loaned_on'" :direction="$sortDirection" wire:click="sort('loaned_on')" data-test="loans-sort-loaned-on">{{ __('Lent on') }}</flux:table.column>
                     <flux:table.column sortable :sorted="$sortBy === 'due_on'" :direction="$sortDirection" wire:click="sort('due_on')" data-test="loans-sort-due-on">{{ __('Due on') }}</flux:table.column>
-                    <flux:table.column>{{ __('Status') }}</flux:table.column>
                     <flux:table.column></flux:table.column>
                 </flux:table.columns>
 
@@ -236,43 +258,43 @@ new class extends Component
                                 @if ($loan->assistedPerson->trashed())
                                     {{ $loan->assistedPerson->name }}
                                 @else
-                                    <flux:link :href="route('assisted-people.show', ['assistedPerson' => $loan->assistedPerson])" wire:navigate variant="ghost">{{ $loan->assistedPerson->name }}</flux:link>
+                                    <flux:link :href="route('assisted-people.show', ['assistedPerson' => $loan->assistedPerson])" wire:navigate variant="ghost" class="text-zinc-900 dark:text-white">{{ $loan->assistedPerson->name }}</flux:link>
                                 @endif
                             </flux:table.cell>
 
-                            <flux:table.cell class="whitespace-normal">
-                                @if ($loan->copy->book->trashed())
-                                    <div class="text-zinc-900 dark:text-white">{{ $loan->copy->book->title }}</div>
-                                @else
-                                    <flux:link :href="route('library.books.show', ['book' => $loan->copy->book])" wire:navigate variant="ghost" class="text-zinc-900 dark:text-white">{{ $loan->copy->book->title }}</flux:link>
-                                @endif
-                                <div class="font-mono">{{ $loan->copy->formatted_code }}</div>
+                            <flux:table.cell class="max-w-80">
+                                <div class="min-w-0">
+                                    @if ($loan->copy->book->trashed())
+                                        <div class="truncate text-zinc-900 dark:text-white">{{ $loan->copy->book->title }}</div>
+                                    @else
+                                        <flux:link :href="route('library.books.show', ['book' => $loan->copy->book])" wire:navigate variant="ghost" class="block truncate text-zinc-900 dark:text-white">{{ $loan->copy->book->title }}</flux:link>
+                                    @endif
+                                    <div class="font-mono text-xs">{{ $loan->copy->formatted_code }}</div>
+                                </div>
                             </flux:table.cell>
 
                             <flux:table.cell>{{ $loan->loaned_on->format('d/m/Y') }}</flux:table.cell>
 
                             <flux:table.cell>
-                                <div>{{ $loan->due_on->format('d/m/Y') }}</div>
-                                @if ($loan->renewals_count > 0)
-                                    <div class="text-xs">{{ trans_choice('Renewed :count time|Renewed :count times', $loan->renewals_count) }}</div>
-                                @endif
-                            </flux:table.cell>
-
-                            <flux:table.cell>
-                                <flux:badge size="sm" :color="$loan->status->color()">{{ $loan->status->label() }}</flux:badge>
-                                @if ($loan->returned_on)
-                                    <div class="mt-1 text-xs">{{ $loan->returned_on->format('d/m/Y') }}</div>
-                                @endif
+                                <div class="text-zinc-900 dark:text-white">{{ $loan->due_on->format('d/m/Y') }}</div>
+                                <div @class([
+                                    'text-xs',
+                                    'font-medium text-red-600 dark:text-red-400' => $loan->status === BookLoanStatus::Overdue,
+                                    'text-amber-700 dark:text-amber-400' => $loan->isDueSoon(),
+                                ]) data-test="loan-due-hint">
+                                    {{ $loan->dueHint() }}
+                                    @if (! $loan->returned_on && $loan->renewals_count > 0)
+                                        <span>· {{ trans_choice('Renewed :count time|Renewed :count times', $loan->renewals_count) }}</span>
+                                    @endif
+                                </div>
                             </flux:table.cell>
 
                             <flux:table.cell align="end">
                                 @if (! $loan->returned_on)
                                     <div class="flex items-center justify-end gap-1">
-                                        <flux:button size="sm" variant="ghost" icon="arrow-path" icon:variant="outline" wire:click="renewLoan({{ $loan->id }})" wire:confirm="{{ __('Renew this loan?') }}" data-test="loan-renew-button">
-                                            {{ __('Renew') }}
-                                        </flux:button>
+                                        <flux:button size="sm" variant="ghost" icon="arrow-path" icon:variant="outline" :tooltip="__('Renew')" :aria-label="__('Renew')" wire:click="confirmRenew({{ $loan->id }})" data-test="loan-renew-button" />
                                         <flux:button size="sm" icon="arrow-uturn-left" icon:variant="outline" wire:click="confirmReturn({{ $loan->id }})" data-test="loan-return-button">
-                                            {{ __('Return') }}
+                                            {{ __('Return book') }}
                                         </flux:button>
                                     </div>
                                 @endif
@@ -304,6 +326,34 @@ new class extends Component
             </flux:text>
         @endif
     </flux:card>
+
+    <flux:modal name="renew-book-loan" class="md:w-md">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">{{ __('Renew loan') }}</flux:heading>
+                @if ($this->renewingLoan)
+                    <flux:subheading>
+                        {{ __(':title (:code), lent to :name', ['title' => $this->renewingLoan->copy->book->title, 'code' => $this->renewingLoan->copy->formatted_code, 'name' => $this->renewingLoan->assistedPerson->name]) }}
+                    </flux:subheading>
+                @endif
+            </div>
+
+            @if ($this->renewingLoan)
+                <flux:text data-test="loan-renew-new-due-on">
+                    {{ __('The book will be due on :date.', ['date' => $this->renewingLoan->dueOnAfterRenewal(auth()->user()->currentTeam->loan_period_days)->format('d/m/Y')]) }}
+                </flux:text>
+            @endif
+
+            <div class="flex justify-end gap-2">
+                <flux:modal.close>
+                    <flux:button variant="ghost">{{ __('Cancel') }}</flux:button>
+                </flux:modal.close>
+                @if ($this->renewingLoan)
+                    <flux:button variant="primary" wire:click="renewLoan({{ $this->renewingLoan->id }})" wire:loading.attr="disabled" data-test="loan-renew-confirm">{{ __('Renew') }}</flux:button>
+                @endif
+            </div>
+        </div>
+    </flux:modal>
 
     <flux:modal name="return-book-loan" class="md:w-md">
         <form wire:submit="returnLoan" class="space-y-6">

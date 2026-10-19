@@ -1,7 +1,6 @@
 <?php
 
 use App\Actions\Library\AddBookCopies;
-use App\Actions\Library\DeleteBook;
 use App\Actions\Library\DeleteBookCopy;
 use App\Actions\Library\UpdateBookCopy;
 use App\Enums\AuthorRole;
@@ -153,24 +152,6 @@ new class extends Component
         Flux::toast(variant: 'success', text: __('Copy deleted.'));
     }
 
-    public function deleteBook(DeleteBook $deleteBook): void
-    {
-        Gate::authorize('delete', $this->book);
-
-        try {
-            $deleteBook->handle($this->book);
-        } catch (ValidationException $exception) {
-            Flux::modal('delete-book')->close();
-            Flux::toast(variant: 'danger', text: $exception->getMessage());
-
-            return;
-        }
-
-        Flux::toast(variant: 'success', text: __('Book deleted.'));
-
-        $this->redirectRoute('library.books.index', navigate: true);
-    }
-
     public function loadMoreLoans(): void
     {
         $this->loansLimit += self::LOANS_PER_PAGE;
@@ -186,6 +167,20 @@ new class extends Component
             ->with('openLoan.assistedPerson')
             ->orderBy('code')
             ->get();
+    }
+
+    /**
+     * Count the copies that can be lent now among the ones still in circulation.
+     *
+     * @return array{available: int, total: int}
+     */
+    #[Computed]
+    public function copiesSummary(): array
+    {
+        return [
+            'available' => $this->copies->filter->isAvailable()->count(),
+            'total' => $this->copies->where('status', BookCopyStatus::Active)->count(),
+        ];
     }
 
     /**
@@ -233,76 +228,83 @@ new class extends Component
                     {{ __('Edit') }}
                 </flux:button>
 
-                <flux:modal.trigger name="delete-book">
-                    <flux:button variant="danger" icon="trash" icon:variant="outline" data-test="book-delete-button">{{ __('Delete') }}</flux:button>
-                </flux:modal.trigger>
+                <flux:dropdown position="bottom" align="end">
+                    <flux:button icon="ellipsis-horizontal" icon:variant="outline" :aria-label="__('More actions')" data-test="book-actions-trigger" />
+                    <flux:menu>
+                        <flux:menu.item variant="danger" icon="trash" icon:variant="outline" wire:click="$dispatch('confirm-delete-book', { bookId: {{ $book->id }}, bookTitle: @js($book->title) })" data-test="book-delete-menu-item">{{ __('Delete') }}</flux:menu.item>
+                    </flux:menu>
+                </flux:dropdown>
             </div>
         @endif
     </x-page-header>
 
-    <div class="grid gap-8 lg:grid-cols-[12rem_1fr]">
-        <div class="flex aspect-2/3 w-full max-w-48 items-center justify-center overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 dark:border-white/10 dark:bg-white/5">
-            @if ($book->cover_url)
-                <img src="{{ $book->cover_url }}" alt="{{ __('Cover of :name', ['name' => $book->title]) }}" class="size-full object-cover" data-test="book-cover" />
-            @else
-                <flux:icon name="book-open" class="size-12 text-zinc-300 dark:text-zinc-600" />
-            @endif
-        </div>
+    <div class="space-y-8">
+        <div class="flex flex-wrap items-start gap-6">
+            <div class="flex aspect-2/3 w-26 shrink-0 items-center justify-center overflow-hidden rounded-md border border-zinc-200 bg-zinc-50 dark:border-white/10 dark:bg-white/5">
+                @if ($book->cover_url)
+                    <img src="{{ $book->cover_url }}" alt="{{ __('Cover of :name', ['name' => $book->title]) }}" class="size-full object-cover" data-test="book-cover" />
+                @else
+                    <flux:icon name="book-open" class="size-8 text-zinc-300 dark:text-zinc-600" />
+                @endif
+            </div>
 
-        <div class="min-w-0 space-y-8">
-            <dl class="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+            <div class="min-w-0 flex-1 basis-96 space-y-3">
+                @php($spiritualAuthors = $book->authorsWithRole(AuthorRole::Spiritual)->pluck('name'))
+
                 <div>
-                    <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ AuthorRole::Incarnate->pluralLabel() }}</dt>
-                    <dd class="text-zinc-900 dark:text-white" data-test="book-incarnate-authors">{{ $book->authorsWithRole(AuthorRole::Incarnate)->pluck('name')->join(', ') ?: '—' }}</dd>
+                    <div class="text-[15px] text-zinc-900 dark:text-white" data-test="book-incarnate-authors">{{ $book->authorsWithRole(AuthorRole::Incarnate)->pluck('name')->join(', ') ?: '—' }}</div>
+                    @if ($spiritualAuthors->isNotEmpty())
+                        <flux:text data-test="book-spiritual-authors">{{ __('By the spirit :names', ['names' => $spiritualAuthors->join(', ')]) }}</flux:text>
+                    @endif
                 </div>
-                <div>
-                    <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ AuthorRole::Spiritual->pluralLabel() }}</dt>
-                    <dd class="text-zinc-900 dark:text-white" data-test="book-spiritual-authors">{{ $book->authorsWithRole(AuthorRole::Spiritual)->pluck('name')->join(', ') ?: '—' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Publisher') }}</dt>
-                    <dd class="text-zinc-900 dark:text-white">{{ $book->publisher?->name ?? '—' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Category') }}</dt>
-                    <dd class="text-zinc-900 dark:text-white">{{ $book->category?->name ?? '—' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Collection') }}</dt>
-                    <dd class="text-zinc-900 dark:text-white">
-                        @if ($book->collection)
-                            {{ $book->collection->name }}@if ($book->collection_volume), {{ __('vol. :number', ['number' => $book->collection_volume]) }}@endif
-                        @else
-                            —
+
+                @if ($book->category || $book->collection || $book->publisher)
+                    <div class="flex flex-wrap gap-1.5">
+                        @if ($book->category)
+                            <flux:badge size="sm" color="blue">{{ $book->category->name }}</flux:badge>
                         @endif
-                    </dd>
-                </div>
-                <div>
-                    <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('ISBN') }}</dt>
-                    <dd class="text-zinc-900 dark:text-white">{{ $book->formatted_isbn ?? '—' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Edition') }}</dt>
-                    <dd class="text-zinc-900 dark:text-white">{{ collect([$book->edition, $book->published_year])->filter()->join(' · ') ?: '—' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Pages') }}</dt>
-                    <dd class="text-zinc-900 dark:text-white">{{ $book->page_count ?? '—' }}</dd>
-                </div>
-            </dl>
+                        @if ($book->collection)
+                            <flux:badge size="sm">{{ $book->collection_label }}</flux:badge>
+                        @endif
+                        @if ($book->publisher)
+                            <flux:badge size="sm">{{ $book->publisher->name }}</flux:badge>
+                        @endif
+                    </div>
+                @endif
 
-            @if ($book->synopsis)
-                <div>
-                    <flux:heading>{{ __('Synopsis') }}</flux:heading>
-                    <x-expandable-text class="mt-2" data-test="book-synopsis">
+                @if ($book->synopsis)
+                    <x-expandable-text class="max-w-3xl" data-test="book-synopsis">
                         <flux:text class="whitespace-pre-line">{{ $book->synopsis }}</flux:text>
                     </x-expandable-text>
-                </div>
-            @endif
+                @endif
 
-            <div>
+                <dl class="flex flex-wrap gap-x-7 gap-y-1 text-sm">
+                    @foreach ([
+                        'year' => [__('Year'), $book->published_year],
+                        'edition' => [__('Edition'), $book->edition],
+                        'pages' => [__('Pages'), $book->page_count],
+                        'isbn' => [__('ISBN'), $book->formatted_isbn],
+                    ] as $key => [$label, $value])
+                        <div class="flex gap-1.5" data-test="book-detail-{{ $key }}">
+                            <dt class="text-zinc-500 dark:text-zinc-400">{{ $label }}</dt>
+                            <dd class="text-zinc-900 dark:text-white">{{ $value ?? '—' }}</dd>
+                        </div>
+                    @endforeach
+                </dl>
+            </div>
+        </div>
+
+        <flux:separator />
+
+        <div class="grid items-start gap-8 xl:grid-cols-5">
+            <div class="min-w-0 xl:col-span-3">
                 <div class="mb-3 flex items-center justify-between gap-4">
-                    <flux:heading size="lg">{{ __('Copies') }}</flux:heading>
+                    <flux:heading size="lg">
+                        {{ __('Copies') }}
+                        @if ($this->copies->isNotEmpty())
+                            <span class="font-normal text-zinc-500 dark:text-zinc-400" data-test="book-copies-summary">· {{ __(':available of :total available', $this->copiesSummary) }}</span>
+                        @endif
+                    </flux:heading>
 
                     <flux:modal.trigger name="add-book-copies">
                         <flux:button size="sm" icon="plus" icon:variant="outline" data-test="book-add-copies-button">{{ __('Add copies') }}</flux:button>
@@ -372,38 +374,35 @@ new class extends Component
                 </flux:card>
             </div>
 
-            <div>
-                <flux:heading size="lg" class="mb-3">{{ __('Loan history') }}</flux:heading>
+            <div class="min-w-0 xl:col-span-2">
+                <div class="mb-3 flex min-h-8 items-center">
+                    <flux:heading size="lg">{{ __('Loan history') }}</flux:heading>
+                </div>
 
-                <flux:card class="px-4 [--flux-bleed:1rem]">
+                <flux:card class="p-0">
                     @if ($this->loans->isNotEmpty())
-                        <flux:table bleed>
-                            <flux:table.columns>
-                                <flux:table.column>{{ __('Assisted person') }}</flux:table.column>
-                                <flux:table.column>{{ __('Copy') }}</flux:table.column>
-                                <flux:table.column>{{ __('Period') }}</flux:table.column>
-                                <flux:table.column>{{ __('Status') }}</flux:table.column>
-                            </flux:table.columns>
+                        <div class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                            @foreach ($this->loans->take($loansLimit) as $loan)
+                                <div wire:key="loan-{{ $loan->id }}" class="flex items-center justify-between gap-3 px-4 py-3" data-test="book-loan-row">
+                                    <div class="min-w-0">
+                                        <div class="truncate text-zinc-900 dark:text-white">{{ $loan->assistedPerson->name }}</div>
+                                        <flux:text class="text-sm">
+                                            <span class="font-mono">{{ $loan->copy->formatted_code }}</span> · {{ $loan->loaned_on->format('d/m/Y') }} – {{ ($loan->returned_on ?? $loan->due_on)->format('d/m/Y') }}
+                                        </flux:text>
+                                    </div>
 
-                            <flux:table.rows>
-                                @foreach ($this->loans->take($loansLimit) as $loan)
-                                    <flux:table.row :key="$loan->id" data-test="book-loan-row">
-                                        <flux:table.cell class="text-zinc-900 dark:text-white">{{ $loan->assistedPerson->name }}</flux:table.cell>
-                                        <flux:table.cell class="font-mono">{{ $loan->copy->formatted_code }}</flux:table.cell>
-                                        <flux:table.cell>{{ $loan->loaned_on->format('d/m/Y') }} – {{ ($loan->returned_on ?? $loan->due_on)->format('d/m/Y') }}</flux:table.cell>
-                                        <flux:table.cell><flux:badge size="sm" :color="$loan->status->color()">{{ $loan->status->label() }}</flux:badge></flux:table.cell>
-                                    </flux:table.row>
-                                @endforeach
-                            </flux:table.rows>
-                        </flux:table>
+                                    <flux:badge size="sm" :color="$loan->status->color()" class="shrink-0">{{ $loan->status->label() }}</flux:badge>
+                                </div>
+                            @endforeach
+                        </div>
 
                         @if ($this->loans->count() > $loansLimit)
-                            <div class="border-t border-zinc-800/10 py-3 text-center dark:border-white/20">
+                            <div class="border-t border-zinc-200 py-3 text-center dark:border-zinc-700">
                                 <flux:button size="sm" variant="ghost" wire:click="loadMoreLoans" data-test="book-loans-load-more">{{ __('Load more') }}</flux:button>
                             </div>
                         @endif
                     @else
-                        <flux:text class="py-6 text-center text-zinc-500 dark:text-zinc-400">{{ __('This book has never been lent.') }}</flux:text>
+                        <flux:text class="px-4 py-6 text-center text-zinc-500 dark:text-zinc-400">{{ __('This book has never been lent.') }}</flux:text>
                     @endif
                 </flux:card>
             </div>
@@ -471,18 +470,7 @@ new class extends Component
         </form>
     </flux:modal>
 
-    <flux:modal name="delete-book" focusable class="max-w-lg">
-        <form wire:submit="deleteBook" class="space-y-6">
-            <div>
-                <flux:heading size="lg">{{ __('Delete book') }}</flux:heading>
-                <flux:subheading>{{ __('Are you sure you want to delete :name and all its copies? Their loans stay in the history.', ['name' => $book->title]) }}</flux:subheading>
-            </div>
-            <div class="flex justify-end gap-2">
-                <flux:modal.close>
-                    <flux:button variant="ghost">{{ __('Cancel') }}</flux:button>
-                </flux:modal.close>
-                <flux:button variant="danger" type="submit" wire:loading.attr="disabled" data-test="book-delete-confirm">{{ __('Delete') }}</flux:button>
-            </div>
-        </form>
-    </flux:modal>
+    @if ($this->canManage)
+        <livewire:library.delete-book-modal :redirect-to="route('library.books.index')" />
+    @endif
 </section>

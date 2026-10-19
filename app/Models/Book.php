@@ -41,6 +41,7 @@ use Illuminate\Support\Facades\Storage;
  * @property Carbon|null $deleted_at
  * @property-read string|null $cover_url
  * @property-read string|null $formatted_isbn
+ * @property-read string|null $collection_label
  * @property-read Team $team
  * @property-read Publisher|null $publisher
  * @property-read BookCategory|null $category
@@ -201,6 +202,20 @@ class Book extends Model
         return Attribute::make(get: fn (): ?string => $this->isbn === null
             ? null
             : substr($this->isbn, 0, 3).'-'.substr($this->isbn, 3));
+    }
+
+    /**
+     * Get the book's collection with its volume, e.g. "Pentateuco Kardequiano, vol. 2", or null when it has none.
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function collectionLabel(): Attribute
+    {
+        return Attribute::make(get: fn (): ?string => match (true) {
+            $this->collection === null => null,
+            $this->collection_volume === null => $this->collection->name,
+            default => $this->collection->name.', '.__('vol. :number', ['number' => $this->collection_volume]),
+        });
     }
 
     /**

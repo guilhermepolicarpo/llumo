@@ -1,26 +1,60 @@
-{{-- Shows a long text collapsed to a few lines with a fade, and smoothly reveals the rest; short texts show whole. --}}
-{{-- The 160 below is the collapsed height of max-h-40. --}}
-<div x-data="{ expanded: false, fullHeight: 0, get overflows() { return this.fullHeight > 160 } }" {{ $attributes }}>
+{{-- Shows a long text as a two-line summary, with a link that smoothly reveals the rest; short texts show whole. --}}
+{{-- While collapsed the text is line-clamped (for the ellipsis); toggling animates max-height between the clamped and the full height. --}}
+<div
+    x-data="{
+        expanded: false,
+        clamped: true,
+        overflows: false,
+        collapsedHeight: 0,
+        measure() {
+            this.collapsedHeight = this.$refs.text.clientHeight;
+            this.overflows = this.$refs.text.scrollHeight > this.collapsedHeight + 1;
+        },
+        toggle() {
+            const box = this.$refs.box;
+
+            if (! this.expanded) {
+                box.style.maxHeight = this.collapsedHeight + 'px';
+                this.clamped = false;
+                this.expanded = true;
+                this.$nextTick(() => requestAnimationFrame(() => box.style.maxHeight = this.$refs.text.scrollHeight + 'px'));
+            } else {
+                box.style.maxHeight = this.$refs.text.scrollHeight + 'px';
+                this.expanded = false;
+                requestAnimationFrame(() => requestAnimationFrame(() => box.style.maxHeight = this.collapsedHeight + 'px'));
+            }
+        },
+        settle() {
+            if (! this.expanded) {
+                this.clamped = true;
+            }
+
+            this.$refs.box.style.maxHeight = '';
+        },
+    }"
+    x-init="$nextTick(() => measure())"
+    x-resize="if (! expanded) measure()"
+    {{ $attributes }}
+>
     <div
-        x-bind:style="expanded && { maxHeight: fullHeight + 'px' }"
-        x-bind:class="overflows && ! expanded && 'mask-b-from-[calc(100%-4rem)]'"
-        class="max-h-40 overflow-hidden transition-[max-height] duration-300 ease-in-out motion-reduce:transition-none"
-        >
-        <div x-resize="fullHeight = $height">
+        x-ref="box"
+        x-on:transitionend.self="settle()"
+        class="overflow-hidden transition-[max-height] duration-300 ease-in-out motion-reduce:transition-none"
+    >
+        <div x-ref="text" x-bind:class="! clamped && 'line-clamp-none'" class="line-clamp-2">
             {{ $slot }}
         </div>
     </div>
 
-    <div x-show="overflows" style="display: none" class="mt-2 flex justify-center">
-        <flux:button
-            size="xs"
-            class="rounded-full! shadow-sm"
-            x-on:click="expanded = ! expanded"
-            x-bind:aria-expanded="expanded"
-            data-test="expandable-text-toggle"
-            >
-            <span x-text="expanded ? @js(__('See less')) : @js(__('See more'))">{{ __('See more') }}</span>
-            <flux:icon.chevron-down class="size-4 transition-transform duration-300 motion-reduce:transition-none" x-bind:class="expanded && 'rotate-180'" />
-        </flux:button>
-    </div>
+    <button
+        type="button"
+        x-show="overflows || expanded"
+        style="display: none"
+        x-on:click="toggle()"
+        x-bind:aria-expanded="expanded"
+        class="mt-1 text-sm font-medium text-(--color-accent-content) hover:underline"
+        data-test="expandable-text-toggle"
+    >
+        <span x-text="expanded ? @js(__('See less')) : @js(__('See more'))">{{ __('See more') }}</span>
+    </button>
 </div>

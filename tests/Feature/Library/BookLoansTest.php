@@ -248,3 +248,52 @@ test('the loan list shows 5 loans per page by default and lets the member show m
 
     expect($component->get('loans')->count())->toBe(6);
 });
+
+test('the loan list tells how long each open loan has until it is due', function () {
+    $this->travelTo('2026-10-18');
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+    BookLoan::factory()->for(availableCopy($team), 'copy')->create(['loaned_on' => '2026-10-01', 'due_on' => '2026-10-15']);
+    BookLoan::factory()->for(availableCopy($team), 'copy')->create(['loaned_on' => '2026-10-04', 'due_on' => '2026-10-18']);
+    BookLoan::factory()->for(availableCopy($team), 'copy')->create(['loaned_on' => '2026-10-06', 'due_on' => '2026-10-20', 'renewals_count' => 1]);
+
+    Livewire::test('pages::library.loans.index')
+        ->assertSeeInOrder([
+            trans_choice('Overdue by :count day|Overdue by :count days', 3),
+            __('Due today'),
+            trans_choice('Due in :count day|Due in :count days', 2),
+            trans_choice('Renewed :count time|Renewed :count times', 1),
+        ]);
+});
+
+test('the new loan page shows the books the chosen person still holds against the open loans limit', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+    $team->update(['loan_max_active_per_person' => 3]);
+    $person = AssistedPerson::factory()->for($team)->create(['name' => 'Taís Fernandes']);
+    $copy = BookCopy::factory()->for(Book::factory()->for($team)->create(['title' => 'Nosso Lar']))->create();
+    BookLoan::factory()->for($copy, 'copy')->for($person)->create();
+
+    Livewire::test('pages::library.loans.create')
+        ->assertSeeHtml('data-test="loan-open-loans-empty"')
+        ->call('selectAssistedPerson', $person->id)
+        ->assertSeeHtml('data-test="loan-open-loans"')
+        ->assertSee(__('With :name now', ['name' => 'Taís Fernandes']), false)
+        ->assertSee(__(':count of :max open', ['count' => 1, 'max' => 3]))
+        ->assertSee('Nosso Lar');
+});
+
+test('renewing a loan asks for confirmation in a modal that shows the new due date', function () {
+    $this->travelTo('2026-10-18');
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+    $team->update(['loan_period_days' => 14]);
+    $loan = BookLoan::factory()->for(availableCopy($team), 'copy')->create(['loaned_on' => '2026-10-06', 'due_on' => '2026-10-20']);
+
+    Livewire::test('pages::library.loans.index')
+        ->call('confirmRenew', $loan->id)
+        ->assertSet('renewingLoanId', $loan->id)
+        ->assertSeeHtml('data-test="loan-renew-new-due-on"')
+        ->assertSee('03/11/2026')
+        ->call('renewLoan', $loan->id)
+        ->assertSet('renewingLoanId', null);
+
+    expect($loan->fresh()->due_on->toDateString())->toBe('2026-11-03');
+});
