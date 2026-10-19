@@ -28,21 +28,23 @@ Duas premissas guiam o projeto:
 - **Os dados da casa pertencem à casa.** O llumo é self-hosted: você o instala no seu próprio servidor e mantém o controle total das informações dos assistidos.
 - **Software livre, sem mensalidade.** Código aberto sob licença MIT, sem custo de licença e sem dependência de um fornecedor.
 
-> [!WARNING]
-> O llumo está em desenvolvimento inicial. A base técnica — autenticação e multi-tenancy — já está pronta e testada, mas **nenhum módulo de domínio foi implementado ainda**. Consulte a tabela abaixo e o [roadmap](#roadmap) para ver o que existe hoje e o que está planejado.
+> [!NOTE]
+> O llumo está em desenvolvimento ativo. Os módulos do dia a dia da casa — assistidos, agendamentos, atendimentos e biblioteca — já funcionam e são cobertos por testes, mas ainda não há uma versão estável lançada. Veja o [roadmap](#roadmap) para o que vem a seguir.
 
 ## Funcionalidades
 
 | Módulo | Descrição | Status |
 |---|---|---|
-| Casas (multi-tenancy) | Uma instância do llumo hospeda várias casas, cada uma com dados isolados, membros e papéis (Owner/Admin/Member). Convite por e-mail com expiração. | ✅ Pronto |
+| Casas (multi-tenancy) | Uma instância do llumo hospeda várias casas, cada uma com dados isolados, membros e papéis (Proprietário/Administrador/Membro). Convites por e-mail com expiração. Em **Configurações do centro**, os administradores cuidam dos dados da casa (nome, logotipo, telefone, endereço preenchido pelo CEP), dos membros e dos cadastros. | ✅ Pronto |
 | Contas e acesso | Cadastro, login, verificação de e-mail, recuperação de senha, 2FA (TOTP + códigos de recuperação) e passkeys/WebAuthn. | ✅ Pronto |
-| Assistidos | Cadastro das pessoas atendidas, com histórico de atendimentos. | 🚧 Planejado |
-| Agendamento | Agenda de atendimentos, com controle de horários e presença. | 🚧 Planejado |
-| Atendimentos | Registro do atendimento, vinculando o mentor que atuou e os fluídicos prescritos. | 🚧 Planejado |
-| Mentores | Cadastro dos mentores espirituais, vinculados aos atendimentos. | 🚧 Planejado |
-| Fluídicos | Cadastro de fluídicos (nome e descrição), prescritos pelo mentor durante o atendimento. | 🚧 Planejado |
-| Biblioteca | Catálogo de livros da casa, com controle de empréstimos e devoluções. | 🚧 Planejado |
+| Assistidos | Cadastro das pessoas atendidas, com contato e endereço (preenchido pelo CEP), busca e o histórico de atendimentos e empréstimos de cada uma. | ✅ Pronto |
+| Agendamentos | Agenda por dia, atendimentos presenciais ou a distância, recepção da chegada e fila de espera, filtros por status, tipo e atendente, e faltas marcadas automaticamente. Tipos de atendimento com dias da semana e limite diário. | ✅ Pronto |
+| Atendimentos | Registro do atendimento: mentor, fluídicos (quantidade e posologia), passes, orientações recomendadas, retirada de infiltração, retorno agendado e observações, com rascunho salvo enquanto se preenche. Impressão das fichas de atendimento do dia em PDF. | ✅ Pronto |
+| Cadastros | Tipos de atendimento, mentores, fluídicos, orientações e tipos de passe; na biblioteca, autores, editoras, categorias e coleções. | ✅ Pronto |
+| Biblioteca | Acervo da casa com busca pelo ISBN nos catálogos públicos (BrasilAPI e Open Library, com capa), exemplares com tombo, empréstimos, renovações e devoluções, controle de atrasos e regras de empréstimo definidas por cada casa. | ✅ Pronto |
+| Painel de controle | Visão geral do dia na casa. | 🚧 Planejado |
+| Financeiro | Controle de receitas e despesas da casa. | 🚧 Planejado |
+| Assistência social | Gestão de doações e ações assistenciais aos assistidos. | 🚧 Planejado |
 
 O fluxo central do domínio é: **assistido → agendamento → atendimento**. O assistido é cadastrado, tem um atendimento agendado e, no registro desse atendimento, anotam-se o mentor espiritual que atuou através do médium e os fluídicos prescritos por ele. Os mentores são espíritos protetores e guias — espíritos mais evoluídos que orientam, protegem e auxiliam na evolução moral e espiritual, realizando o tratamento espiritual e de cura durante o atendimento. Os fluídicos ficam vinculados ao atendimento em que foram prescritos, formando o histórico do assistido.
 
@@ -50,11 +52,11 @@ O fluxo central do domínio é: **assistido → agendamento → atendimento**. O
 
 <!-- TODO: adicionar capturas de tela -->
 
-Serão adicionadas conforme os módulos de domínio ficarem prontos.
+Em breve.
 
 ## Stack
 
-PHP 8.3+ · Laravel 13 · Livewire 4 (single-file components) · Flux UI 2 · Tailwind CSS 4 · Laravel Fortify · Pest 5 · PHPStan level 7 · Pint · SQLite (padrão) · Vite 8 / vite-plus
+PHP 8.3+ · Laravel 13 · Livewire 4 (single-file components) · Flux UI 2 · Tailwind CSS 4 · Laravel Fortify · Laravel PDF (DomPDF) · Pest 5 · PHPStan level 7 · Pint · SQLite (padrão) · Vite 8 / vite-plus
 
 ## Requisitos
 
@@ -80,6 +82,17 @@ O `composer dev` sobe servidor, filas, logs e Vite juntos (via `php artisan dev`
 
 Se você usa [Herd](https://herd.laravel.com), pode dispensar o servidor embutido: aponte o Herd para o diretório do projeto, ajuste o `APP_URL` no `.env` e rode apenas o Vite.
 
+### Dados de demonstração
+
+Para explorar o llumo com dados de exemplo, rode `php artisan db:seed`. Ele cria o usuário `test@example.com` (senha `password`) com uma casa já preenchida: assistidos, agendamentos, atendimentos, cadastros e a biblioteca com livros e empréstimos.
+
+### Em produção
+
+- **Agendador:** configure o cron do Laravel (`* * * * * php artisan schedule:run`). Ele marca como falta os agendamentos de dias anteriores que não foram atendidos e apaga os convites expirados.
+- **Filas:** mantenha um worker rodando (`php artisan queue:work`).
+- **Serviços externos:** a busca de endereço pelo CEP e de livros pelo ISBN usa as APIs públicas e gratuitas da [BrasilAPI](https://brasilapi.com.br) e da [Open Library](https://openlibrary.org). Os endereços podem ser trocados por `BRASIL_API_URL` e `OPEN_LIBRARY_URL` no `.env`.
+- **Cache de views:** rode `php artisan view:cache` (ou `view:clear`) a cada deploy, para que as traduções dos componentes do Flux entrem nas views compiladas.
+
 ## Desenvolvimento
 
 | Comando | O que faz |
@@ -94,19 +107,16 @@ O `composer test` é exatamente o que a CI executa em cada push e pull request. 
 
 ## Roadmap
 
-Na ordem em que devem ser desenvolvidos:
+Já prontos: assistidos, agendamentos, atendimentos, mentores e fluídicos, biblioteca e a tradução da interface para pt-BR.
 
-1. **Assistidos** — cadastro das pessoas atendidas
-2. **Agendamento** — agenda de atendimentos
-3. **Atendimentos** — registro do atendimento
-4. **Mentores e fluídicos** — cadastros e vínculo com o atendimento
-5. **Biblioteca** — catálogo, empréstimos e devoluções
-6. **Financeiro** — controle de receitas e despesas da casa
-7. **Assistência social** — gestão de doações e ações assistenciais aos assistidos
+A seguir:
+
+1. **Painel de controle** — visão geral do dia: agendamentos, atendimentos pendentes e empréstimos atrasados
+2. **Financeiro** — controle de receitas e despesas da casa
+3. **Assistência social** — gestão de doações e ações assistenciais aos assistidos
 
 Além dos módulos, no radar:
 
-- **Tradução para pt-BR** — as strings da interface já estão em `__()`; falta o arquivo `lang/pt_BR.json` e trocar o `APP_LOCALE`
 - **Imagem Docker e guia de deploy** — para tornar o self-host o mais simples possível
 
 ## Contribuindo

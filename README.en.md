@@ -28,21 +28,23 @@ Two principles guide the project:
 - **The center's data belongs to the center.** llumo is self-hosted: you install it on your own server and keep full control over the information of the people you assist.
 - **Free software, no subscription.** Open source under the MIT license, with no license fees and no vendor lock-in.
 
-> [!WARNING]
-> llumo is in early development. The technical foundation — authentication and multi-tenancy — is ready and tested, but **no domain module has been implemented yet**. See the table below and the [roadmap](#roadmap) for what exists today and what is planned.
+> [!NOTE]
+> llumo is in active development. The modules for the center's daily work — assisted persons, scheduling, sessions and library — already work and are covered by tests, but there is no stable release yet. See the [roadmap](#roadmap) for what comes next.
 
 ## Features
 
 | Module | Description | Status |
 |---|---|---|
-| Centers (multi-tenancy) | A single llumo instance hosts multiple centers, each with isolated data, its own members and roles (Owner/Admin/Member). Email invitations with expiration. | ✅ Ready |
+| Centers (multi-tenancy) | A single llumo instance hosts multiple centers, each with isolated data, its own members and roles (Owner/Admin/Member). Email invitations with expiration. In **Center settings**, admins manage the center's details (name, logo, phone, address filled in from the postal code), its members and its catalogs. | ✅ Ready |
 | Accounts and access | Registration, login, email verification, password reset, 2FA (TOTP + recovery codes) and passkeys/WebAuthn. | ✅ Ready |
-| Assisted persons (*assistidos*) | Records of the people being assisted, with their session history. | 🚧 Planned |
-| Scheduling | Session calendar, with time slots and attendance control. | 🚧 Planned |
-| Sessions (*atendimentos*) | Session log, linking the spiritual mentor who acted and the fluidic prescriptions given. | 🚧 Planned |
-| Spiritual mentors (*mentores*) | Records of the spiritual mentors, linked to the sessions. | 🚧 Planned |
-| Fluidics (*fluídicos*) | Records of fluidics (name and description), prescribed by the mentor during a session. | 🚧 Planned |
-| Library | Catalog of the center's books, with loan and return control. | 🚧 Planned |
+| Assisted persons (*assistidos*) | Records of the people being assisted, with contact details and address (filled in from the postal code), search, and each person's session and loan history. | ✅ Ready |
+| Scheduling | Daily schedule, in-person or remote sessions, arrival check-in and waiting queue, filters by status, type and attendant, and missed sessions marked automatically. Session types with weekdays and a daily limit. | ✅ Ready |
+| Sessions (*atendimentos*) | Session record: mentor, fluidics (quantity and dosage), passes, recommended guidance, infiltration removal, a scheduled return and notes, with a draft saved while filling it in. The day's attendance sheets print as a PDF. | ✅ Ready |
+| Catalogs | Session types, spiritual mentors (*mentores*), fluidics (*fluídicos*), guidance and pass types; for the library, authors, publishers, categories and collections. | ✅ Ready |
+| Library | The center's books, looked up by ISBN in public catalogs (BrasilAPI and Open Library, with cover), copies with a shelf code, loans, renewals and returns, overdue tracking and loan rules set by each center. | ✅ Ready |
+| Dashboard | An overview of the center's day. | 🚧 Planned |
+| Finance | Income and expense control for the center. | 🚧 Planned |
+| Social assistance | Management of donations and assistance actions for assisted persons. | 🚧 Planned |
 
 The core domain flow is: **assisted person → scheduling → session**. The assisted person is registered, a session is scheduled and, in the record of that session, the team notes the spiritual mentor who acted through the medium and the fluidics prescribed. Mentors are protective spirits and guides — more evolved spirits who guide, protect and support a person's moral and spiritual growth, carrying out the spiritual healing during the session. The fluidics stay linked to the session in which they were prescribed, forming the assisted person's history.
 
@@ -50,11 +52,11 @@ The core domain flow is: **assisted person → scheduling → session**. The ass
 
 <!-- TODO: add screenshots -->
 
-They will be added as the domain modules are completed.
+Coming soon.
 
 ## Stack
 
-PHP 8.3+ · Laravel 13 · Livewire 4 (single-file components) · Flux UI 2 · Tailwind CSS 4 · Laravel Fortify · Pest 5 · PHPStan level 7 · Pint · SQLite (default) · Vite 8 / vite-plus
+PHP 8.3+ · Laravel 13 · Livewire 4 (single-file components) · Flux UI 2 · Tailwind CSS 4 · Laravel Fortify · Laravel PDF (DomPDF) · Pest 5 · PHPStan level 7 · Pint · SQLite (default) · Vite 8 / vite-plus
 
 ## Requirements
 
@@ -80,6 +82,19 @@ composer dev
 
 If you use [Herd](https://herd.laravel.com), you can skip the built-in server: point Herd at the project directory, adjust `APP_URL` in `.env` and run Vite only.
 
+### Demo data
+
+To explore llumo with sample data, run `php artisan db:seed`. It creates the user `test@example.com` (password `password`) with a center already filled in: assisted persons, scheduling, sessions, catalogs and the library with books and loans.
+
+### In production
+
+- **Scheduler:** set up Laravel's cron entry (`* * * * * php artisan schedule:run`). It marks sessions from previous days that were never attended as missed and deletes expired invitations.
+- **Queues:** keep a worker running (`php artisan queue:work`).
+- **External services:** looking up an address by postal code and a book by ISBN uses the free public APIs of [BrasilAPI](https://brasilapi.com.br) and [Open Library](https://openlibrary.org). Their URLs can be changed with `BRASIL_API_URL` and `OPEN_LIBRARY_URL` in `.env`.
+- **View cache:** run `php artisan view:cache` (or `view:clear`) on every deploy, so the translations of the Flux components make it into the compiled views.
+
+The interface is in Brazilian Portuguese (`APP_LOCALE=pt_BR`).
+
 ## Development
 
 | Command | What it does |
@@ -94,19 +109,16 @@ If you use [Herd](https://herd.laravel.com), you can skip the built-in server: p
 
 ## Roadmap
 
-In the order they should be built:
+Already done: assisted persons, scheduling, sessions, mentors and fluidics, the library, and the pt-BR translation of the interface.
 
-1. **Assisted persons** — records of the people being assisted
-2. **Scheduling** — session calendar
-3. **Sessions** — session logging
-4. **Mentors and fluidics** — records and their link to sessions
-5. **Library** — catalog, loans and returns
-6. **Finance** — income and expense control for the center
-7. **Social assistance** — management of donations and assistance actions for assisted persons
+Next:
+
+1. **Dashboard** — an overview of the day: scheduled sessions, sessions awaiting a record and overdue loans
+2. **Finance** — income and expense control for the center
+3. **Social assistance** — management of donations and assistance actions for assisted persons
 
 Beyond the modules, also on the radar:
 
-- **pt-BR translation** — the UI strings are already wrapped in `__()`; what is missing is the `lang/pt_BR.json` file and switching `APP_LOCALE`
 - **Docker image and deployment guide** — to make self-hosting as simple as possible
 
 ## Contributing
