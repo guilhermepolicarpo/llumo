@@ -26,7 +26,7 @@ The name comes from Esperanto *lumo* (light), a language with a historical conne
 Two principles guide the project:
 
 - **The center's data belongs to the center.** llumo is self-hosted: you install it on your own server and keep full control over the information of the people you assist.
-- **Free software, no subscription.** Open source under the MIT license, with no license fees and no vendor lock-in.
+- **Free software.** Open source under the MIT license, with no license fees and no vendor lock-in.
 
 > [!NOTE]
 > llumo is in active development. The modules for the center's daily work — assisted persons, scheduling, sessions and library — already work and are covered by tests, but there is no stable release yet. See the [roadmap](#roadmap) for what comes next.

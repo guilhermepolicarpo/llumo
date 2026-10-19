@@ -26,7 +26,7 @@ O nome vem do esperanto *lumo* (luz), língua com ligação histórica com o mov
 Duas premissas guiam o projeto:
 
 - **Os dados da casa pertencem à casa.** O llumo é self-hosted: você o instala no seu próprio servidor e mantém o controle total das informações dos assistidos.
-- **Software livre, sem mensalidade.** Código aberto sob licença MIT, sem custo de licença e sem dependência de um fornecedor.
+- **Software livre.** Código aberto sob licença MIT, sem custo de licença e sem dependência de um fornecedor.
 
 > [!NOTE]
 > O llumo está em desenvolvimento ativo. Os módulos do dia a dia da casa — assistidos, agendamentos, atendimentos e biblioteca — já funcionam e são cobertos por testes, mas ainda não há uma versão estável lançada. Veja o [roadmap](#roadmap) para o que vem a seguir.
