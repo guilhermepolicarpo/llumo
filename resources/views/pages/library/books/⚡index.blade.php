@@ -238,7 +238,7 @@ new class extends Component
                                     <flux:dropdown position="bottom" align="end">
                                         <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" icon:variant="outline" :aria-label="__('More actions')" data-test="book-actions-trigger" />
                                         <flux:menu>
-                                            <flux:menu.item as="a" :href="route('library.books.edit', ['book' => $book])" wire:navigate icon="pencil" icon:variant="outline" data-test="book-edit-menu-item">{{ __('Edit') }}</flux:menu.item>
+                                            <flux:menu.item as="a" :href="route('library.books.edit', ['book' => $book, 'from' => route('library.books.index', absolute: false)])" wire:navigate icon="pencil" icon:variant="outline" data-test="book-edit-menu-item">{{ __('Edit') }}</flux:menu.item>
                                             <flux:menu.item variant="danger" icon="trash" icon:variant="outline" wire:click="$dispatch('confirm-delete-book', { bookId: {{ $book->id }}, bookTitle: @js($book->title) })" data-test="book-delete-menu-item">{{ __('Delete') }}</flux:menu.item>
                                         </flux:menu>
                                     </flux:dropdown>

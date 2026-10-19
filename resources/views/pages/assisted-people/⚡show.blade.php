@@ -1,5 +1,6 @@
 <?php
 
+use App\Concerns\InteractsWithReturnUrl;
 use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
 use App\Models\AppointmentRecord;
@@ -16,6 +17,8 @@ use Livewire\Component;
 
 new class extends Component
 {
+    use InteractsWithReturnUrl;
+
     /**
      * How many previous appointments the history shows at first, and how many more each "load more" adds.
      */
@@ -242,6 +245,16 @@ new class extends Component
             ->when(AppointmentStatus::tryFrom($this->status), fn (Builder $query, AppointmentStatus $status) => $query->where('status', $status));
     }
 
+    protected function defaultBackUrl(): string
+    {
+        return route('assisted-people.index');
+    }
+
+    protected function defaultBackLabel(): string
+    {
+        return __('Back to assisted people');
+    }
+
     public function render()
     {
         return $this->view()->title(__('History of :name', ['name' => $this->assistedPerson->name]));
@@ -253,7 +266,7 @@ new class extends Component
 @endphp
 
 <section class="w-full max-w-5xl">
-    <x-page-header :heading="$assistedPerson->name" :back-href="route('assisted-people.index')" :back-label="__('Back to assisted people')" :separator="false" stack-until="lg">
+    <x-page-header :heading="$assistedPerson->name" :back-href="$this->backUrl()" :back-label="$this->backLabel()" :separator="false" stack-until="lg">
         <x-slot:subheading>
             <span class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm" data-test="assisted-person-history-details">
                 @foreach (array_filter([
@@ -282,7 +295,7 @@ new class extends Component
         </x-slot:subheading>
 
         <div class="flex shrink-0 flex-wrap gap-2">
-            <flux:button icon="pencil" icon:variant="outline" :href="route('assisted-people.edit', ['assistedPerson' => $assistedPerson])" wire:navigate data-test="assisted-person-history-edit-button">
+            <flux:button icon="pencil" icon:variant="outline" :href="route('assisted-people.edit', ['assistedPerson' => $assistedPerson, 'from' => route('assisted-people.show', ['assistedPerson' => $assistedPerson, ...$this->returnUrlParameters()], absolute: false)])" wire:navigate data-test="assisted-person-history-edit-button">
                 {{ __('Edit registration') }}
             </flux:button>
 

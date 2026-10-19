@@ -620,3 +620,47 @@ test('admins can delete a book from the list after confirming, and members do no
 
     Livewire::test('pages::library.books.index')->assertDontSeeHtml('data-test="book-actions-trigger"');
 });
+
+test('the book page returns to the page it was opened from and passes itself on to the edit form', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Admin);
+    $book = Book::factory()->for($team)->create();
+    $loansPath = "/{$team->slug}/library/loans";
+
+    Livewire::withQueryParams(['from' => $loansPath])
+        ->test('pages::library.books.show', ['book' => $book])
+        ->assertSeeHtml('href="'.$loansPath.'"')
+        ->assertSeeHtml('href="'.route('library.books.edit', ['book' => $book, 'from' => route('library.books.show', ['book' => $book, 'from' => $loansPath], absolute: false)]).'"');
+});
+
+test('editing a book returns to the page it was opened from', function (string $from) {
+    [, $team] = actingAsTeamMember(TeamRole::Admin);
+    $book = Book::factory()->for($team)->create();
+    $from = str_replace(['{team}', '{book}'], [$team->slug, $book->id], $from);
+
+    Livewire::withQueryParams(['from' => $from])
+        ->test('pages::library.books.edit', ['book' => $book])
+        ->assertSeeHtml('href="'.$from.'"')
+        ->call('updateBook')
+        ->assertHasNoErrors()
+        ->assertRedirect($from);
+})->with([
+    'the list' => '/{team}/library/books',
+    'the book page opened from the loans' => '/{team}/library/books/{book}?from=%2F{team}%2Flibrary%2Floans',
+]);
+
+test('the edit menu item of the book list tells the edit form to return to the list', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Admin);
+    $book = Book::factory()->for($team)->create();
+
+    Livewire::test('pages::library.books.index')
+        ->assertSeeHtml('href="'.route('library.books.edit', ['book' => $book, 'from' => "/{$team->slug}/library/books"]).'"');
+});
+
+test('the loans list tells the book page to return to it', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+    $book = Book::factory()->for($team)->create();
+    BookLoan::factory()->for(BookCopy::factory()->for($book), 'copy')->create();
+
+    Livewire::test('pages::library.loans.index')
+        ->assertSeeHtml('href="'.route('library.books.show', ['book' => $book, 'from' => "/{$team->slug}/library/loans"]).'"');
+});

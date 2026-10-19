@@ -5,6 +5,7 @@ use App\Actions\Library\StoreBookCover;
 use App\Actions\Library\StoreDownloadedBookCover;
 use App\Actions\Library\UpdateBook;
 use App\Concerns\InteractsWithBookForm;
+use App\Concerns\InteractsWithReturnUrl;
 use App\Enums\AuthorRole;
 use App\Models\Book;
 use App\Rules\BookRules;
@@ -15,7 +16,7 @@ use Livewire\WithFileUploads;
 
 new class extends Component
 {
-    use InteractsWithBookForm, WithFileUploads;
+    use InteractsWithBookForm, InteractsWithReturnUrl, WithFileUploads;
 
     public Book $book;
 
@@ -57,7 +58,17 @@ new class extends Component
 
         Flux::toast(variant: 'success', text: __('Book updated.'));
 
-        $this->redirectRoute('library.books.show', ['book' => $this->book], navigate: true);
+        $this->redirect($this->backUrl(), navigate: true);
+    }
+
+    protected function defaultBackUrl(): string
+    {
+        return route('library.books.show', ['book' => $this->book]);
+    }
+
+    protected function defaultBackLabel(): string
+    {
+        return __('Back to book');
     }
 
     /**
@@ -75,7 +86,7 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <x-page-header :heading="__('Edit book')" :subheading="$book->title" :back-href="route('library.books.show', ['book' => $book])" :back-label="__('Back to book')" />
+    <x-page-header :heading="__('Edit book')" :subheading="$book->title" :back-href="$this->backUrl()" :back-label="$this->backLabel()" />
 
     <form wire:submit="updateBook" class="max-w-6xl space-y-6">
         <x-pages::library.books.form
@@ -93,7 +104,7 @@ new class extends Component
         />
 
         <div class="flex justify-end gap-2">
-            <flux:button variant="ghost" :href="route('library.books.show', ['book' => $book])" wire:navigate>
+            <flux:button variant="ghost" :href="$this->backUrl()" wire:navigate>
                 {{ __('Cancel') }}
             </flux:button>
 
