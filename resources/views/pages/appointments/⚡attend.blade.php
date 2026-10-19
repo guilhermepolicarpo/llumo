@@ -209,8 +209,6 @@ new class extends Component
         >
             <flux:card class="space-y-4" data-test="appointment-record-header">
                 <div class="flex items-center gap-3">
-                    <flux:avatar :name="$person->name" class="shrink-0" />
-
                     <div class="min-w-0">
                         <flux:heading size="lg" class="truncate">{{ $person->name }}</flux:heading>
                         @if ($person->formatted_age)

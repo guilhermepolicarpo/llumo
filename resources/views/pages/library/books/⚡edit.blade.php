@@ -2,6 +2,7 @@
 
 use App\Actions\Library\DownloadBookCover;
 use App\Actions\Library\StoreBookCover;
+use App\Actions\Library\StoreDownloadedBookCover;
 use App\Actions\Library\UpdateBook;
 use App\Concerns\InteractsWithBookForm;
 use App\Enums\AuthorRole;
@@ -40,7 +41,7 @@ new class extends Component
         $this->spiritualAuthorIds = $book->authorsWithRole(AuthorRole::Spiritual)->map(fn ($author) => (string) $author->id)->values()->all();
     }
 
-    public function updateBook(UpdateBook $updateBook, StoreBookCover $storeBookCover, DownloadBookCover $downloadBookCover): void
+    public function updateBook(UpdateBook $updateBook, StoreBookCover $storeBookCover, DownloadBookCover $downloadBookCover, StoreDownloadedBookCover $storeDownloadedBookCover): void
     {
         Gate::authorize('update', $this->book);
 
@@ -50,7 +51,7 @@ new class extends Component
             $this->book,
             $this->bookAttributes($validated),
             $this->bookAuthorIds($validated),
-            $this->storeChosenCover($storeBookCover, $downloadBookCover),
+            $this->storeChosenCover($storeBookCover, $downloadBookCover, $storeDownloadedBookCover),
             $this->removeCover,
         );
 
@@ -85,11 +86,13 @@ new class extends Component
             :category-id="$categoryId"
             :collection-id="$collectionId"
             :suggested-author-names="$suggestedAuthorNames"
+            :suggested-spiritual-author-names="$suggestedSpiritualAuthorNames"
             :suggested-publisher-name="$suggestedPublisherName"
+            :suggested-collection-name="$suggestedCollectionName"
             :cover-preview-url="$this->coverPreviewUrl"
         />
 
-        <div class="flex justify-end gap-2 border-t border-zinc-200 pt-6 dark:border-white/10">
+        <div class="flex justify-end gap-2">
             <flux:button variant="ghost" :href="route('library.books.show', ['book' => $book])" wire:navigate>
                 {{ __('Cancel') }}
             </flux:button>

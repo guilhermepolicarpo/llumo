@@ -11,7 +11,9 @@
     'categoryId',
     'collectionId',
     'suggestedAuthorNames',
+    'suggestedSpiritualAuthorNames',
     'suggestedPublisherName',
+    'suggestedCollectionName',
     'coverPreviewUrl',
     'withCopies' => false,
 ])
@@ -76,7 +78,7 @@
             <flux:label>{{ __('ISBN') }}</flux:label>
             <flux:description>{{ __('Type the ISBN printed on the back cover to fill in the book from the public catalogs.') }}</flux:description>
 
-            <flux:input.group class="max-w-md">
+            <flux:input.group class="sm:max-w-[calc(50%-0.75rem)]">
                 <flux:input
                     wire:model="isbn"
                     wire:keydown.enter.prevent="lookUpIsbn"
@@ -101,7 +103,7 @@
             </div>
 
             <div class="sm:col-span-2">
-                <flux:input wire:model="subtitle" :label="__('Subtitle')" data-test="book-subtitle-input" />
+                <flux:input wire:model="subtitle" :label="__('Subtitle')" :placeholder="__('E.g. Principles of the Spiritist Doctrine')" data-test="book-subtitle-input" />
             </div>
 
             <flux:field class="sm:col-span-2">
@@ -146,7 +148,7 @@
                                     <div class="flex flex-wrap items-center gap-2" wire:key="suggested-author-{{ $index }}-{{ $name }}">
                                         <span class="me-auto font-medium text-zinc-800 dark:text-white">{{ $name }}</span>
                                         <flux:button size="xs" wire:click="addSuggestedAuthor({{ $index }}, 'incarnate')" data-test="book-suggested-author-incarnate">{{ __('Incarnate') }}</flux:button>
-                                        <flux:button size="xs" wire:click="addSuggestedAuthor({{ $index }}, 'spiritual')" data-test="book-suggested-author-spiritual">{{ __('Spiritual') }}</flux:button>
+                                        <flux:button size="xs" :variant="in_array($name, $suggestedSpiritualAuthorNames, true) ? 'primary' : null" wire:click="addSuggestedAuthor({{ $index }}, 'spiritual')" data-test="book-suggested-author-spiritual">{{ __('Spiritual') }}</flux:button>
                                         <flux:button size="xs" variant="ghost" icon="x-mark" icon:variant="outline" wire:click="dismissSuggestedAuthor({{ $index }})" :aria-label="__('Ignore :name', ['name' => $name])" data-test="book-suggested-author-dismiss" />
                                     </div>
                                 @endforeach
@@ -156,7 +158,7 @@
                 </div>
             @endif
 
-            <flux:field>
+            <flux:field class="sm:col-span-2">
                 <flux:label>{{ __('Publisher') }}</flux:label>
                 <x-catalog-picker
                     :catalog="LibraryCatalog::Publisher"
@@ -168,15 +170,11 @@
                 <flux:error name="publisherId" />
 
                 @if ($suggestedPublisherName !== null)
-                    <div class="mt-2 flex flex-wrap items-center gap-2" data-test="book-suggested-publisher">
-                        <flux:text class="text-sm">{{ __('Found: :name', ['name' => $suggestedPublisherName]) }}</flux:text>
-                        <flux:button size="xs" icon="plus" icon:variant="outline" wire:click="addSuggestedPublisher" data-test="book-suggested-publisher-add">{{ __('Add') }}</flux:button>
-                        <flux:button size="xs" variant="ghost" icon="x-mark" icon:variant="outline" wire:click="dismissSuggestedPublisher" :aria-label="__('Ignore :name', ['name' => $suggestedPublisherName])" data-test="book-suggested-publisher-dismiss" />
-                    </div>
+                    <x-library.found-entry-suggestion :name="$suggestedPublisherName" add="addSuggestedPublisher" dismiss="dismissSuggestedPublisher" test-id="book-suggested-publisher" />
                 @endif
             </flux:field>
 
-            <flux:field>
+            <flux:field class="sm:col-span-2">
                 <flux:label>{{ __('Category') }}</flux:label>
                 <x-catalog-picker
                     :catalog="LibraryCatalog::Category"
@@ -188,7 +186,7 @@
                 <flux:error name="categoryId" />
             </flux:field>
 
-            <flux:field>
+            <flux:field class="sm:col-span-2">
                 <flux:label>{{ __('Collection') }}</flux:label>
                 <x-catalog-picker
                     :catalog="LibraryCatalog::Collection"
@@ -198,16 +196,20 @@
                     test-id="book-collection"
                 />
                 <flux:error name="collectionId" />
+
+                @if ($suggestedCollectionName !== null)
+                    <x-library.found-entry-suggestion :name="$suggestedCollectionName" add="addSuggestedCollection" dismiss="dismissSuggestedCollection" test-id="book-suggested-collection" />
+                @endif
             </flux:field>
 
-            <flux:input type="number" min="1" wire:model="collectionVolume" :label="__('Volume')" data-test="book-collection-volume-input" />
+            <flux:input type="number" min="1" wire:model="collectionVolume" :label="__('Volume')" :placeholder="__('E.g. 1')" data-test="book-collection-volume-input" />
 
             <flux:input wire:model="edition" :label="__('Edition')" :placeholder="__('E.g. 2nd')" data-test="book-edition-input" />
-            <flux:input type="number" min="1000" wire:model="publishedYear" :label="__('Year')" data-test="book-published-year-input" />
-            <flux:input type="number" min="1" wire:model="pageCount" :label="__('Pages')" data-test="book-page-count-input" />
+            <flux:input type="number" min="1000" wire:model="publishedYear" :label="__('Year')" :placeholder="__('E.g. 1944')" data-test="book-published-year-input" />
+            <flux:input type="number" min="1" wire:model="pageCount" :label="__('Pages')" :placeholder="__('E.g. 320')" data-test="book-page-count-input" />
 
             <div class="sm:col-span-4">
-                <flux:textarea wire:model="synopsis" :label="__('Synopsis')" rows="auto" data-test="book-synopsis-input" />
+                <flux:textarea wire:model="synopsis" :label="__('Synopsis')" :placeholder="__('A short summary of the story or content')" rows="auto" data-test="book-synopsis-input" />
             </div>
         </div>
     </div>

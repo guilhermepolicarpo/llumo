@@ -175,7 +175,7 @@ new class extends Component
                                     ></button>
 
                                     <div class="flex flex-wrap items-center gap-2">
-                                        <span class="text-[15px] text-zinc-900 dark:text-white">{{ $appointmentType->name }}</span>
+                                        <span class="text-zinc-800 dark:text-white">{{ $appointmentType->name }}</span>
                                         @if ($appointmentType->requires_record)
                                             <flux:badge size="sm" color="blue">{{ __('With record') }}</flux:badge>
                                         @endif

@@ -11,9 +11,9 @@ use Throwable;
 class DownloadBookCover
 {
     /**
-     * The largest cover accepted, in bytes.
+     * Where downloaded covers wait on the public disk until the book is saved.
      */
-    public const int MAX_BYTES = 5 * 1024 * 1024;
+    public const string DIRECTORY = StoreBookCover::DIRECTORY.'/downloads';
 
     /**
      * The image types accepted, keyed by the extension they are stored with.
@@ -23,8 +23,8 @@ class DownloadBookCover
     private const array IMAGE_TYPES = ['jpg' => IMAGETYPE_JPEG, 'png' => IMAGETYPE_PNG, 'webp' => IMAGETYPE_WEBP];
 
     /**
-     * Download a cover found by an ISBN lookup and store it on the public disk, returning its path, or null
-     * when it cannot be downloaded or is not an acceptable image.
+     * Download a cover found by an ISBN lookup and keep it on the public disk until the book is saved,
+     * returning its path, or null when it cannot be downloaded or is not an acceptable image.
      *
      * Only URLs handed out by the catalogs the lookup asks are given here, never one typed by a user.
      */
@@ -44,7 +44,7 @@ class DownloadBookCover
 
         $image = $response->successful() ? $response->body() : '';
 
-        if ($image === '' || strlen($image) > self::MAX_BYTES) {
+        if ($image === '' || strlen($image) > BookRules::COVER_MAX_KILOBYTES * 1024) {
             return null;
         }
 
@@ -55,7 +55,7 @@ class DownloadBookCover
             return null;
         }
 
-        $path = 'book-covers/'.Str::random(40).'.'.$extension;
+        $path = self::DIRECTORY.'/'.Str::random(40).'.'.$extension;
 
         return Storage::disk('public')->put($path, $image) ? $path : null;
     }

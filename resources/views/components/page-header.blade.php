@@ -19,7 +19,7 @@
     <div @class(['flex flex-col gap-4', $rowClasses])>
         <div class="flex items-start gap-2">
             @if ($backHref)
-                <flux:button variant="ghost" size="sm" icon="arrow-left" :href="$backHref" wire:navigate :aria-label="$backLabel ?? __('Back')" data-test="page-header-back-button" />
+                <flux:button variant="ghost" size="sm" icon="arrow-left" class="shrink-0" :href="$backHref" wire:navigate :aria-label="$backLabel ?? __('Back')" data-test="page-header-back-button" />
             @endif
 
             @isset($leading)

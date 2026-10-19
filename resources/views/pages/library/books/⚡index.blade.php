@@ -91,6 +91,7 @@ new class extends Component
                 ->whereLike('title', "%{$search}%")
                 ->orWhereLike('subtitle', "%{$search}%")
                 ->orWhereHas('authors', fn (Builder $authors) => $authors->whereLike('name', "%{$search}%"))
+                ->orWhereHas('collection', fn (Builder $collection) => $collection->whereLike('name', "%{$search}%"))
                 ->when($isbn, fn (Builder $query, string $isbn) => $query->orWhere('isbn', $isbn))))
             ->when($this->categoryId !== '', fn (Builder $query) => $query->where('book_category_id', (int) $this->categoryId))
             ->when($this->collectionId !== '', fn (Builder $query) => $query->where('book_collection_id', (int) $this->collectionId))
@@ -148,7 +149,7 @@ new class extends Component
             <flux:input
                 wire:model.live.debounce.300ms="search"
                 icon="magnifying-glass"
-                :placeholder="__('Search by title, author or ISBN...')"
+                :placeholder="__('Search by title, author, collection or ISBN...')"
                 clearable
                 class="min-w-0 max-sm:flex-1 sm:w-72"
                 data-test="books-search-input"
@@ -204,8 +205,8 @@ new class extends Component
                                     </div>
 
                                     <div class="min-w-0">
-                                        <div class="truncate font-medium text-zinc-900 dark:text-white">{{ $book->title }}</div>
-                                        <div class="truncate text-xs">
+                                        <div class="truncate font-medium text-zinc-800 dark:text-white">{{ $book->title }}</div>
+                                        <div class="truncate">
                                             {{ collect([
                                                 $book->publisher?->name,
                                                 $book->collection_label,
@@ -218,13 +219,13 @@ new class extends Component
                             <flux:table.cell class="whitespace-normal">
                                 @php($incarnate = $book->authorsWithRole(AuthorRole::Incarnate))
                                 @php($spiritual = $book->authorsWithRole(AuthorRole::Spiritual))
-                                <div class="text-zinc-900 dark:text-white">{{ $incarnate->pluck('name')->join(', ') ?: '—' }}</div>
+                                <div class="text-zinc-800 dark:text-white">{{ $incarnate->pluck('name')->join(', ') ?: '—' }}</div>
                                 @if ($spiritual->isNotEmpty())
-                                    <div class="text-xs">{{ __('By the spirit :names', ['names' => $spiritual->pluck('name')->join(', ')]) }}</div>
+                                    <div>{{ __('By the spirit :names', ['names' => $spiritual->pluck('name')->join(', ')]) }}</div>
                                 @endif
                             </flux:table.cell>
 
-                            <flux:table.cell>{{ $book->category?->name ?? '—' }}</flux:table.cell>
+                            <flux:table.cell class="text-zinc-800 dark:text-white">{{ $book->category?->name ?? '—' }}</flux:table.cell>
 
                             <flux:table.cell align="end">
                                 <flux:badge size="sm" :color="$book->available_copies_count > 0 ? 'green' : 'zinc'" data-test="book-available-copies">
@@ -278,20 +279,20 @@ new class extends Component
                 <flux:subheading>{{ __('Refine the books shown in the list.') }}</flux:subheading>
             </div>
 
-            <flux:radio.group wire:model.live="categoryId" variant="pills" :label="__('Category')" class="*:px-3! *:py-1.5!" data-test="books-category-filter">
-                <flux:radio value="" :label="__('All categories')" />
+            <flux:select wire:model.live="categoryId" :label="__('Category')" data-test="books-category-filter">
+                <flux:select.option value="">{{ __('All categories') }}</flux:select.option>
                 @foreach ($this->categories as $category)
-                    <flux:radio :value="(string) $category->id" :label="$category->name" wire:key="category-filter-{{ $category->id }}" />
+                    <flux:select.option :value="(string) $category->id" wire:key="category-filter-{{ $category->id }}">{{ $category->name }}</flux:select.option>
                 @endforeach
-            </flux:radio.group>
+            </flux:select>
 
             @if ($this->collections->isNotEmpty())
-                <flux:radio.group wire:model.live="collectionId" variant="pills" :label="__('Collection')" class="*:px-3! *:py-1.5!" data-test="books-collection-filter">
-                    <flux:radio value="" :label="__('All collections')" />
+                <flux:select wire:model.live="collectionId" :label="__('Collection')" data-test="books-collection-filter">
+                    <flux:select.option value="">{{ __('All collections') }}</flux:select.option>
                     @foreach ($this->collections as $collection)
-                        <flux:radio :value="(string) $collection->id" :label="$collection->name" wire:key="collection-filter-{{ $collection->id }}" />
+                        <flux:select.option :value="(string) $collection->id" wire:key="collection-filter-{{ $collection->id }}">{{ $collection->name }}</flux:select.option>
                     @endforeach
-                </flux:radio.group>
+                </flux:select>
             @endif
 
             <flux:switch wire:model.live="availableOnly" :label="__('Available only')" :description="__('Hide the books with no copy to lend now.')" data-test="books-available-filter" />

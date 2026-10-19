@@ -3,6 +3,7 @@
 use App\Actions\Library\CreateBook;
 use App\Actions\Library\DownloadBookCover;
 use App\Actions\Library\StoreBookCover;
+use App\Actions\Library\StoreDownloadedBookCover;
 use App\Concerns\InteractsWithBookForm;
 use App\Models\Book;
 use App\Rules\BookRules;
@@ -22,7 +23,7 @@ new class extends Component
         Gate::authorize('create', [Book::class, $this->team()]);
     }
 
-    public function createBook(CreateBook $createBook, StoreBookCover $storeBookCover, DownloadBookCover $downloadBookCover): void
+    public function createBook(CreateBook $createBook, StoreBookCover $storeBookCover, DownloadBookCover $downloadBookCover, StoreDownloadedBookCover $storeDownloadedBookCover): void
     {
         $team = $this->team();
 
@@ -38,7 +39,7 @@ new class extends Component
             $this->bookAttributes($validated),
             $this->bookAuthorIds($validated),
             (int) $validated['copiesCount'],
-            $this->storeChosenCover($storeBookCover, $downloadBookCover),
+            $this->storeChosenCover($storeBookCover, $downloadBookCover, $storeDownloadedBookCover),
         );
 
         Flux::toast(variant: 'success', text: __('Book registered.'));
@@ -64,12 +65,14 @@ new class extends Component
             :category-id="$categoryId"
             :collection-id="$collectionId"
             :suggested-author-names="$suggestedAuthorNames"
+            :suggested-spiritual-author-names="$suggestedSpiritualAuthorNames"
             :suggested-publisher-name="$suggestedPublisherName"
+            :suggested-collection-name="$suggestedCollectionName"
             :cover-preview-url="$this->coverPreviewUrl"
             with-copies
         />
 
-        <div class="flex justify-end gap-2 border-t border-zinc-200 pt-6 dark:border-white/10">
+        <div class="flex justify-end gap-2">
             <flux:button variant="ghost" :href="route('library.books.index')" wire:navigate>
                 {{ __('Cancel') }}
             </flux:button>

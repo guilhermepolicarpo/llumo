@@ -118,27 +118,25 @@ new class extends Component
                                     data-test="assisted-person-history-link"
                                 ></a>
 
-                                <div class="text-[15px] text-zinc-900 dark:text-white">{{ $person->name }}</div>
-                                @if ($person->email)
-                                    <div>{{ $person->email }}</div>
-                                @endif
-                                @if ($person->formatted_phone)
-                                    <div>{{ $person->formatted_phone }}</div>
-                                @endif
-                            </flux:table.cell>
-
-                            <flux:table.cell>
-                                <div class="text-[15px] text-zinc-900 dark:text-white">{{ $person->address_line ?? '—' }}</div>
-                                <div>
-                                    {{ $person->address_city_line ?? '—' }}
+                                <div class="flex min-w-0 flex-col gap-0.5">
+                                    <div class="font-medium text-zinc-800 dark:text-white">{{ $person->name }}</div>
+                                    @if ($person->email)
+                                        <div>{{ $person->email }}</div>
+                                    @endif
+                                    @if ($person->formatted_phone)
+                                        <div>{{ $person->formatted_phone }}</div>
+                                    @endif
                                 </div>
                             </flux:table.cell>
 
                             <flux:table.cell>
-                                <div class="text-[15px] text-zinc-900 dark:text-white">{{ $person->formatted_age ?? '—' }}</div>
-                                <div>
-                                    {{ $person->birth_date?->format('d/m/Y') ?? '—' }}
-                                </div>
+                                <div class="text-zinc-800 dark:text-white">{{ $person->address_line ?? '—' }}</div>
+                                <div class="mt-1">{{ $person->address_city_line ?? '—' }}</div>
+                            </flux:table.cell>
+
+                            <flux:table.cell>
+                                <div class="text-zinc-800 dark:text-white">{{ $person->formatted_age ?? '—' }}</div>
+                                <div class="mt-1">{{ $person->birth_date?->format('d/m/Y') ?? '—' }}</div>
                             </flux:table.cell>
 
                             <flux:table.cell align="end" class="relative z-10">
