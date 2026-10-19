@@ -146,7 +146,7 @@ new class extends Component
                                         <flux:menu.item as="a" href="{{ route('assisted-people.show', ['assistedPerson' => $person]) }}" wire:navigate icon="clock" icon:variant="outline" data-test="assisted-person-history-menu-item">
                                             {{ __('View history') }}
                                         </flux:menu.item>
-                                        <flux:menu.item as="a" href="{{ route('assisted-people.edit', ['assistedPerson' => $person]) }}" wire:navigate icon="pencil" icon:variant="outline" data-test="assisted-person-edit-menu-item">
+                                        <flux:menu.item as="a" href="{{ route('assisted-people.edit', ['assistedPerson' => $person, 'from' => route('assisted-people.index', absolute: false)]) }}" wire:navigate icon="pencil" icon:variant="outline" data-test="assisted-person-edit-menu-item">
                                             {{ __('Edit') }}
                                         </flux:menu.item>
                                         <flux:menu.item

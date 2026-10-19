@@ -258,7 +258,7 @@ new class extends Component
                                 @if ($loan->assistedPerson->trashed())
                                     {{ $loan->assistedPerson->name }}
                                 @else
-                                    <flux:link :href="route('assisted-people.show', ['assistedPerson' => $loan->assistedPerson])" wire:navigate variant="ghost" class="text-zinc-800 dark:text-white">{{ $loan->assistedPerson->name }}</flux:link>
+                                    <flux:link :href="route('assisted-people.show', ['assistedPerson' => $loan->assistedPerson, 'from' => route('library.loans.index', absolute: false)])" wire:navigate variant="ghost" class="text-zinc-800 dark:text-white">{{ $loan->assistedPerson->name }}</flux:link>
                                 @endif
                             </flux:table.cell>
 
@@ -267,7 +267,7 @@ new class extends Component
                                     @if ($loan->copy->book->trashed())
                                         <div class="truncate font-medium text-zinc-800 dark:text-white">{{ $loan->copy->book->title }}</div>
                                     @else
-                                        <flux:link :href="route('library.books.show', ['book' => $loan->copy->book])" wire:navigate variant="ghost" class="block truncate font-medium text-zinc-800 dark:text-white">{{ $loan->copy->book->title }}</flux:link>
+                                        <flux:link :href="route('library.books.show', ['book' => $loan->copy->book, 'from' => route('library.loans.index', absolute: false)])" wire:navigate variant="ghost" class="block truncate font-medium text-zinc-800 dark:text-white">{{ $loan->copy->book->title }}</flux:link>
                                     @endif
                                     <div>{{ $loan->copy->formatted_code }}</div>
                                 </div>

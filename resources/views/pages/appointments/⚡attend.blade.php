@@ -287,7 +287,7 @@ new class extends Component
                                     icon="arrow-top-right-on-square"
                                     icon:variant="outline"
                                     class="-ms-2"
-                                    :href="route('assisted-people.show', ['assistedPerson' => $person])"
+                                    :href="route('assisted-people.show', ['assistedPerson' => $person, 'from' => route('appointments.attend', ['appointment' => $appointment], absolute: false)])"
                                     wire:navigate
                                     data-test="appointment-record-full-history-link"
                                     >

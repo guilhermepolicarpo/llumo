@@ -3,6 +3,7 @@
 use App\Actions\AssistedPeople\UpdateAssistedPerson;
 use App\Concerns\InteractsWithAddressForm;
 use App\Concerns\InteractsWithAssistedPersonForm;
+use App\Concerns\InteractsWithReturnUrl;
 use App\Models\AssistedPerson;
 use App\Rules\AssistedPersonRules;
 use App\Rules\Phone;
@@ -13,7 +14,7 @@ use Livewire\Component;
 
 new class extends Component
 {
-    use InteractsWithAddressForm, InteractsWithAssistedPersonForm;
+    use InteractsWithAddressForm, InteractsWithAssistedPersonForm, InteractsWithReturnUrl;
 
     public AssistedPerson $assistedPerson;
 
@@ -47,7 +48,17 @@ new class extends Component
 
         Flux::toast(variant: 'success', text: __('Assisted person updated.'));
 
-        $this->redirectRoute('assisted-people.show', ['assistedPerson' => $this->assistedPerson], navigate: true);
+        $this->redirect($this->backUrl(), navigate: true);
+    }
+
+    protected function defaultBackUrl(): string
+    {
+        return route('assisted-people.show', ['assistedPerson' => $this->assistedPerson]);
+    }
+
+    protected function defaultBackLabel(): string
+    {
+        return __('Back to history');
     }
 
     public function render()
@@ -57,7 +68,7 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <x-page-header :heading="__('Edit assisted person')" :subheading="__('Update this assisted person\'s details for this Spiritist Center')" :back-href="route('assisted-people.show', ['assistedPerson' => $assistedPerson])" :back-label="__('Back to history')" />
+    <x-page-header :heading="__('Edit assisted person')" :subheading="__('Update this assisted person\'s details for this Spiritist Center')" :back-href="$this->backUrl()" :back-label="$this->backLabel()" />
 
     <form wire:submit="updateAssistedPerson" class="max-w-xl space-y-6">
         <x-assisted-people.fields />
@@ -65,7 +76,7 @@ new class extends Component
         <x-pages::address-form :states="$this->states" test-prefix="assisted-person" />
 
         <div class="flex justify-end gap-2">
-            <flux:button variant="ghost" :href="route('assisted-people.show', ['assistedPerson' => $assistedPerson])" wire:navigate>
+            <flux:button variant="ghost" :href="$this->backUrl()" wire:navigate>
                 {{ __('Cancel') }}
             </flux:button>
 

@@ -38,6 +38,9 @@ parameters:
             path: app/Concerns/InteractsWithAssistedPersonPicker.php
         -
             identifier: trait.unused
+            path: app/Concerns/InteractsWithReturnUrl.php
+        -
+            identifier: trait.unused
             path: app/Concerns/InteractsWithBookForm.php
         -
             identifier: trait.unused

@@ -2,10 +2,14 @@
 
 use App\Enums\AppointmentStatus;
 use App\Enums\InfiltrationRemovalPlace;
+use App\Enums\TeamRole;
 use App\Models\Appointment;
 use App\Models\AppointmentRecord;
 use App\Models\AppointmentType;
 use App\Models\AssistedPerson;
+use App\Models\Book;
+use App\Models\BookCopy;
+use App\Models\BookLoan;
 use App\Models\FluidicRemedy;
 use App\Models\Mentor;
 use App\Models\User;
@@ -263,4 +267,68 @@ test('an assisted person history cannot be opened under another team the user be
     $this->actingAs($user)
         ->get(route('assisted-people.show', ['current_team' => $otherTeam, 'assistedPerson' => $person]))
         ->assertNotFound();
+});
+
+test('the back button returns to the page the history was opened from', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+    $person = AssistedPerson::factory()->for($team)->create();
+    $loansPath = "/{$team->slug}/library/loans";
+
+    Livewire::withQueryParams(['from' => $loansPath])
+        ->test('pages::assisted-people.show', ['assistedPerson' => $person])
+        ->assertSeeHtml('href="'.$loansPath.'"')
+        ->assertSeeHtml('href="'.route('assisted-people.edit', ['assistedPerson' => $person, 'from' => route('assisted-people.show', ['assistedPerson' => $person, 'from' => $loansPath], absolute: false)]).'"');
+});
+
+test('the back button ignores an origin outside the app', function (string $from) {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+    $person = AssistedPerson::factory()->for($team)->create();
+
+    Livewire::withQueryParams(['from' => $from])
+        ->test('pages::assisted-people.show', ['assistedPerson' => $person])
+        ->assertDontSeeHtml('href="'.e($from).'"')
+        ->assertSeeHtml('aria-label="'.__('Back to assisted people').'"');
+})->with([
+    'absolute url' => 'https://evil.example/path',
+    'protocol-relative url' => '//evil.example/path',
+    'backslash' => '/\\evil.example/path',
+    'tab' => "/\t/evil.example/path",
+]);
+
+test('editing the registration returns to the page it was opened from', function (string $from) {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+    $person = AssistedPerson::factory()->for($team)->create();
+    $from = str_replace(['{team}', '{person}'], [$team->slug, $person->id], $from);
+
+    Livewire::withQueryParams(['from' => $from])
+        ->test('pages::assisted-people.edit', ['assistedPerson' => $person])
+        ->assertSeeHtml('href="'.$from.'"')
+        ->call('updateAssistedPerson')
+        ->assertHasNoErrors()
+        ->assertRedirect($from);
+})->with([
+    'the list' => '/{team}/assisted-people',
+    'the history opened from the loans' => '/{team}/assisted-people/{person}?from=%2F{team}%2Flibrary%2Floans',
+]);
+
+test('the edit menu item of the list tells the edit form to return to the list', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+    $person = AssistedPerson::factory()->for($team)->create();
+
+    Livewire::test('pages::assisted-people.index')
+        ->assertSeeHtml('href="'.route('assisted-people.edit', ['assistedPerson' => $person, 'from' => "/{$team->slug}/assisted-people"]).'"');
+});
+
+test('the pages that link to the history tell it where to go back to', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+    $person = AssistedPerson::factory()->for($team)->create();
+    BookLoan::factory()->for(BookCopy::factory()->for(Book::factory()->for($team)), 'copy')->for($person)->create();
+    $appointment = Appointment::factory()->for($team)->create(['assisted_person_id' => $person]);
+
+    Livewire::test('pages::library.loans.index')
+        ->assertSeeHtml('href="'.route('assisted-people.show', ['assistedPerson' => $person, 'from' => "/{$team->slug}/library/loans"]).'"');
+
+    Livewire::test('pages::appointments.index')
+        ->call('showAppointment', $appointment->id)
+        ->assertSeeHtml('href="'.route('assisted-people.show', ['assistedPerson' => $person, 'from' => "/{$team->slug}/appointments"]).'"');
 });
