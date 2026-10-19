@@ -55,7 +55,7 @@ new class extends Component
 <section class="w-full">
     <x-page-header :heading="__('New book')" :subheading="__('Register a book and its copies in the library')" :back-href="route('library.books.index')" :back-label="__('Back to books')" />
 
-    <form wire:submit="createBook" class="max-w-4xl space-y-6">
+    <form wire:submit="createBook" class="max-w-6xl space-y-6">
         <x-pages::library.books.form
             :selected-entries="$this->selectedCatalogEntries"
             :incarnate-author-ids="$incarnateAuthorIds"
@@ -69,7 +69,7 @@ new class extends Component
             with-copies
         />
 
-        <div class="flex justify-end gap-2">
+        <div class="flex justify-end gap-2 border-t border-zinc-200 pt-6 dark:border-white/10">
             <flux:button variant="ghost" :href="route('library.books.index')" wire:navigate>
                 {{ __('Cancel') }}
             </flux:button>

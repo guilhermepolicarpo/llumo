@@ -4,6 +4,7 @@ use App\Enums\AuthorRole;
 use App\Enums\TeamRole;
 use App\Models\Author;
 use App\Models\Book;
+use App\Models\BookCategory;
 use App\Models\BookCollection;
 use App\Models\BookCopy;
 use App\Models\BookLoan;
@@ -277,7 +278,8 @@ test('members cannot edit or delete books', function () {
 
     $this->get(route('library.books.edit', ['current_team' => $team, 'book' => $book]))->assertForbidden();
 
-    Livewire::test('pages::library.books.show', ['book' => $book])
+    Livewire::test('library.delete-book-modal')
+        ->call('confirmDeleteBook', $book->id, $book->title)
         ->call('deleteBook')
         ->assertForbidden();
 });
@@ -288,7 +290,8 @@ test('a book with a lent copy cannot be deleted', function () {
     $copy = BookCopy::factory()->for(Book::factory()->for($team))->create();
     BookLoan::factory()->for($copy, 'copy')->create();
 
-    Livewire::test('pages::library.books.show', ['book' => $copy->book])
+    Livewire::test('library.delete-book-modal')
+        ->call('confirmDeleteBook', $copy->book->id, $copy->book->title)
         ->call('deleteBook');
 
     expect($copy->book->fresh()->trashed())->toBeFalse();
@@ -300,7 +303,8 @@ test('deleting a book also deletes its copies and keeps their loans', function (
     $copy = BookCopy::factory()->for(Book::factory()->for($team))->create();
     $loan = BookLoan::factory()->for($copy, 'copy')->returned()->create();
 
-    Livewire::test('pages::library.books.show', ['book' => $copy->book])
+    Livewire::test('library.delete-book-modal', ['redirectTo' => route('library.books.index')])
+        ->call('confirmDeleteBook', $copy->book->id, $copy->book->title)
         ->call('deleteBook')
         ->assertRedirectToRoute('library.books.index');
 
@@ -396,4 +400,53 @@ test('the book list shows 5 books per page by default and lets the member show m
     $component->set('perPage', 10);
 
     expect($component->get('books')->count())->toBe(6);
+});
+
+test('the book page summarises the available copies and shows the year apart from the edition', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+    $book = Book::factory()->for($team)->create(['published_year' => 1861, 'edition' => null]);
+    $copies = BookCopy::factory()->for($book)->count(3)->sequence(fn ($sequence) => ['code' => $sequence->index + 1])->create();
+    BookLoan::factory()->for($copies->first(), 'copy')->create();
+
+    Livewire::test('pages::library.books.show', ['book' => $book])
+        ->assertSeeHtml('data-test="book-copies-summary"')
+        ->assertSee(__(':available of :total available', ['available' => 2, 'total' => 3]))
+        ->assertSeeInOrder([__('Year'), '1861', __('Edition'), '—']);
+});
+
+test('the book list counts the filters in use and clears them all at once', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+    $category = BookCategory::factory()->for($team)->create();
+
+    Livewire::test('pages::library.books.index')
+        ->assertDontSeeHtml('data-test="books-filters-count"')
+        ->set('categoryId', (string) $category->id)
+        ->set('availableOnly', true)
+        ->assertSet('activeFilterCount', 2)
+        ->assertSeeHtml('data-test="books-filters-count"')
+        ->call('clearFilters')
+        ->assertSet('categoryId', '')
+        ->assertSet('availableOnly', false)
+        ->assertSet('activeFilterCount', 0);
+});
+
+test('admins can delete a book from the list after confirming, and members do not see the row actions', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Admin);
+    $book = Book::factory()->for($team)->create(['title' => 'Nosso Lar']);
+
+    Livewire::test('pages::library.books.index')
+        ->assertSeeHtml('data-test="book-actions-trigger"')
+        ->assertSeeLivewire('library.delete-book-modal');
+
+    Livewire::test('library.delete-book-modal')
+        ->call('confirmDeleteBook', $book->id, $book->title)
+        ->assertSee('Nosso Lar')
+        ->call('deleteBook')
+        ->assertDispatched('book-deleted');
+
+    expect($book->fresh()->trashed())->toBeTrue();
+
+    actingAsTeamMember(TeamRole::Member);
+
+    Livewire::test('pages::library.books.index')->assertDontSeeHtml('data-test="book-actions-trigger"');
 });

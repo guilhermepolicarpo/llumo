@@ -76,7 +76,7 @@ new class extends Component
 <section class="w-full">
     <x-page-header :heading="__('Edit book')" :subheading="$book->title" :back-href="route('library.books.show', ['book' => $book])" :back-label="__('Back to book')" />
 
-    <form wire:submit="updateBook" class="max-w-4xl space-y-6">
+    <form wire:submit="updateBook" class="max-w-6xl space-y-6">
         <x-pages::library.books.form
             :selected-entries="$this->selectedCatalogEntries"
             :incarnate-author-ids="$incarnateAuthorIds"
@@ -89,7 +89,7 @@ new class extends Component
             :cover-preview-url="$this->coverPreviewUrl"
         />
 
-        <div class="flex justify-end gap-2">
+        <div class="flex justify-end gap-2 border-t border-zinc-200 pt-6 dark:border-white/10">
             <flux:button variant="ghost" :href="route('library.books.show', ['book' => $book])" wire:navigate>
                 {{ __('Cancel') }}
             </flux:button>

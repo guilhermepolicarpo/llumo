@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 new class extends Component
@@ -31,11 +32,19 @@ new class extends Component
 
     public string $loanNotes = '';
 
+    /**
+     * Whether the user may change the loan rules, worked out once to link to them beside the form.
+     */
+    #[Locked]
+    public bool $canEditLoanRules = false;
+
     public function mount(): void
     {
         $team = $this->team();
 
         Gate::authorize('create', [BookLoan::class, $team]);
+
+        $this->canEditLoanRules = Gate::allows('update', $team);
 
         $this->loanedOn = today()->toDateString();
         $this->dueOn = today()->addDays($team->loan_period_days)->toDateString();
@@ -149,6 +158,23 @@ new class extends Component
     }
 
     /**
+     * Get the team's loan rules shown beside the form.
+     *
+     * @return array{periodDays: int, maxRenewals: ?int, maxOpenLoans: ?int}
+     */
+    #[Computed]
+    public function loanRules(): array
+    {
+        $team = $this->team();
+
+        return [
+            'periodDays' => $team->loan_period_days,
+            'maxRenewals' => $team->loan_max_renewals,
+            'maxOpenLoans' => $team->loan_max_active_per_person,
+        ];
+    }
+
+    /**
      * Get the selected assisted person's books still to be returned, to show what they hold before lending.
      *
      * @return Collection<int, BookLoan>
@@ -182,104 +208,155 @@ new class extends Component
 <section class="w-full">
     <x-page-header :heading="__('New loan')" :subheading="__('Lend a copy to an assisted person')" :back-href="route('library.loans.index')" :back-label="__('Back to loans')" />
 
-    <form wire:submit="lendBookCopy" class="max-w-xl space-y-6">
-        <x-assisted-person-combobox
-            :selected="$this->selectedAssistedPerson"
-            :search="$assistedPersonSearch"
-            :suggestions="$this->assistedPersonSuggestions"
-            test-prefix="loan"
-        />
+    <div class="flex flex-wrap items-start gap-8">
+        <form wire:submit="lendBookCopy" class="min-w-0 max-w-xl flex-1 basis-[28rem] space-y-6">
+            <x-assisted-person-combobox
+                :selected="$this->selectedAssistedPerson"
+                :search="$assistedPersonSearch"
+                :suggestions="$this->assistedPersonSuggestions"
+                test-prefix="loan"
+            />
 
-        @if ($this->openLoans->isNotEmpty())
-            @php($overdue = $this->openLoans->contains(fn ($loan) => $loan->status === BookLoanStatus::Overdue))
-            <flux:callout :icon="$overdue ? 'exclamation-triangle' : 'information-circle'" icon:variant="outline" :color="$overdue ? 'red' : 'zinc'" data-test="loan-open-loans">
-                <flux:callout.heading>
-                    {{ $overdue ? __('This assisted person has an overdue book') : trans_choice('This assisted person has :count book to return|This assisted person has :count books to return', $this->openLoans->count()) }}
-                </flux:callout.heading>
-                <flux:callout.text>
-                    <ul class="space-y-1">
-                        @foreach ($this->openLoans as $loan)
-                            <li wire:key="open-loan-{{ $loan->id }}">
-                                {{ $loan->copy->book->title }} ({{ $loan->copy->formatted_code }}) — {{ __('due on :date', ['date' => $loan->due_on->format('d/m/Y')]) }}
-                            </li>
-                        @endforeach
-                    </ul>
-                </flux:callout.text>
-            </flux:callout>
-        @endif
+            <flux:field>
+                <flux:label>{{ __('Copy') }}</flux:label>
 
-        <flux:field>
-            <flux:label>{{ __('Copy') }}</flux:label>
-
-            @if ($this->selectedBookCopy)
-                <div class="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-3 py-2 dark:border-white/10" data-test="loan-selected-book-copy">
-                    <div class="min-w-0">
-                        <div class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $this->selectedBookCopy->book->title }}</div>
-                        <div class="truncate text-sm text-zinc-500 dark:text-zinc-400">
-                            {{ __('Copy :code', ['code' => $this->selectedBookCopy->formatted_code]) }}
-                            @if ($this->selectedBookCopy->book->authors->isNotEmpty())
-                                · {{ $this->selectedBookCopy->book->authors->pluck('name')->join(', ') }}
-                            @endif
+                @if ($this->selectedBookCopy)
+                    <div class="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-3 py-2 dark:border-white/10" data-test="loan-selected-book-copy">
+                        <div class="min-w-0">
+                            <div class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $this->selectedBookCopy->book->title }}</div>
+                            <div class="truncate text-sm text-zinc-500 dark:text-zinc-400">
+                                {{ __('Copy :code', ['code' => $this->selectedBookCopy->formatted_code]) }}
+                                @if ($this->selectedBookCopy->book->authors->isNotEmpty())
+                                    · {{ $this->selectedBookCopy->book->authors->pluck('name')->join(', ') }}
+                                @endif
+                            </div>
                         </div>
+
+                        <flux:button size="sm" variant="ghost" icon="arrows-right-left" icon:variant="outline" wire:click="clearBookCopy" data-test="loan-change-book-copy-button">
+                            {{ __('Change') }}
+                        </flux:button>
+                    </div>
+                @else
+                    <div class="relative" x-data="{ open: true }" x-on:click.outside="open = false" x-on:keydown.escape="open = false">
+                        <flux:input
+                            wire:model.live.debounce.300ms="bookCopySearch"
+                            icon="magnifying-glass"
+                            :placeholder="__('Type the code on the label or the title...')"
+                            autocomplete="off"
+                            x-on:focus="open = true"
+                            x-on:input="open = true"
+                            data-test="loan-book-copy-search-input"
+                        />
+
+                        @if ($this->bookCopySuggestions !== null)
+                            <div x-show="open" class="absolute inset-x-0 top-full z-20 mt-1 max-h-72 overflow-y-auto rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-white/10 dark:bg-zinc-800" data-test="loan-book-copy-suggestions">
+                                @forelse ($this->bookCopySuggestions as $suggestion)
+                                    <button
+                                        type="button"
+                                        wire:key="book-copy-suggestion-{{ $suggestion->id }}"
+                                        wire:click="selectBookCopy({{ $suggestion->id }})"
+                                        class="flex w-full items-center gap-3 px-3 py-2 text-start hover:bg-zinc-50 not-last:border-b not-last:border-zinc-100 dark:hover:bg-zinc-700/50 dark:not-last:border-white/5"
+                                        data-test="loan-book-copy-suggestion"
+                                    >
+                                        <span class="font-mono text-sm text-zinc-500 dark:text-zinc-400">{{ $suggestion->formatted_code }}</span>
+                                        <span class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $suggestion->book->title }}</span>
+                                    </button>
+                                @empty
+                                    <flux:text class="px-3 py-3">{{ __('No available copy matches your search.') }}</flux:text>
+                                @endforelse
+                            </div>
+                        @endif
+                    </div>
+                @endif
+
+                <flux:error name="bookCopyId" />
+            </flux:field>
+
+            <div class="grid gap-6 sm:grid-cols-2">
+                <x-date-input wire:model.live="loanedOn" :label="__('Loan date')" :max="today()->toDateString()" required data-test="loan-loaned-on-input" />
+                <x-date-input wire:model="dueOn" :label="__('Due date')" :min="$loanedOn" required data-test="loan-due-on-input" />
+            </div>
+
+            <flux:textarea wire:model="loanNotes" :label="__('Notes')" :badge="__('Optional')" rows="auto" data-test="loan-notes-input" />
+
+            <div class="flex justify-end gap-2">
+                <flux:button variant="ghost" :href="route('library.loans.index')" wire:navigate>
+                    {{ __('Cancel') }}
+                </flux:button>
+
+                <flux:button variant="primary" type="submit" data-test="loan-save-button">
+                    {{ __('Register loan') }}
+                </flux:button>
+            </div>
+        </form>
+
+        <aside class="min-w-0 max-w-md flex-1 basis-80 space-y-4" aria-label="{{ __('Loan context') }}">
+            @if ($this->selectedAssistedPerson)
+                @php($hasOverdue = $this->openLoans->contains(fn ($loan) => $loan->status === BookLoanStatus::Overdue))
+
+                <flux:card class="space-y-3" data-test="loan-open-loans">
+                    <div class="flex items-baseline justify-between gap-2">
+                        <flux:heading>{{ __('With :name now', ['name' => $this->selectedAssistedPerson->name]) }}</flux:heading>
+                        @if ($this->loanRules['maxOpenLoans'] !== null)
+                            <flux:text class="shrink-0 text-sm">{{ __(':count of :max open', ['count' => $this->openLoans->count(), 'max' => $this->loanRules['maxOpenLoans']]) }}</flux:text>
+                        @endif
                     </div>
 
-                    <flux:button size="sm" variant="ghost" icon="arrows-right-left" icon:variant="outline" wire:click="clearBookCopy" data-test="loan-change-book-copy-button">
-                        {{ __('Change') }}
-                    </flux:button>
-                </div>
-            @else
-                <div class="relative" x-data="{ open: true }" x-on:click.outside="open = false" x-on:keydown.escape="open = false">
-                    <flux:input
-                        wire:model.live.debounce.300ms="bookCopySearch"
-                        icon="magnifying-glass"
-                        :placeholder="__('Type the code on the label or the title...')"
-                        autocomplete="off"
-                        x-on:focus="open = true"
-                        x-on:input="open = true"
-                        data-test="loan-book-copy-search-input"
-                    />
-
-                    @if ($this->bookCopySuggestions !== null)
-                        <div x-show="open" class="absolute inset-x-0 top-full z-20 mt-1 max-h-72 overflow-y-auto rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-white/10 dark:bg-zinc-800" data-test="loan-book-copy-suggestions">
-                            @forelse ($this->bookCopySuggestions as $suggestion)
-                                <button
-                                    type="button"
-                                    wire:key="book-copy-suggestion-{{ $suggestion->id }}"
-                                    wire:click="selectBookCopy({{ $suggestion->id }})"
-                                    class="flex w-full items-center gap-3 px-3 py-2 text-start hover:bg-zinc-50 not-last:border-b not-last:border-zinc-100 dark:hover:bg-zinc-700/50 dark:not-last:border-white/5"
-                                    data-test="loan-book-copy-suggestion"
-                                >
-                                    <span class="font-mono text-sm text-zinc-500 dark:text-zinc-400">{{ $suggestion->formatted_code }}</span>
-                                    <span class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $suggestion->book->title }}</span>
-                                </button>
-                            @empty
-                                <flux:text class="px-3 py-3">{{ __('No available copy matches your search.') }}</flux:text>
-                            @endforelse
-                        </div>
+                    @if ($this->loanRules['maxOpenLoans'] !== null)
+                        <flux:progress :value="min(100, $this->openLoans->count() / $this->loanRules['maxOpenLoans'] * 100)" :color="$hasOverdue || $this->openLoans->count() >= $this->loanRules['maxOpenLoans'] ? 'red' : null" />
                     @endif
+
+                    @if ($this->openLoans->isEmpty())
+                        <flux:text>{{ __('No books to return.') }}</flux:text>
+                    @else
+                        @if ($hasOverdue)
+                            <flux:callout icon="exclamation-triangle" icon:variant="outline" color="red" :heading="__('This assisted person has an overdue book')" />
+                        @endif
+
+                        <ul class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                            @foreach ($this->openLoans as $loan)
+                                <li wire:key="open-loan-{{ $loan->id }}" class="flex items-center justify-between gap-3 py-2">
+                                    <div class="flex min-w-0 items-center gap-2">
+                                        <span class="shrink-0 font-mono text-xs text-zinc-500 dark:text-zinc-400">{{ $loan->copy->formatted_code }}</span>
+                                        <span class="truncate text-sm text-zinc-900 dark:text-white">{{ $loan->copy->book->title }}</span>
+                                    </div>
+                                    <span class="shrink-0 text-xs {{ $loan->status === BookLoanStatus::Overdue ? 'font-medium text-red-600 dark:text-red-400' : 'text-zinc-500 dark:text-zinc-400' }}">
+                                        {{ __('Due on :date', ['date' => $loan->due_on->format('d/m/Y')]) }}
+                                    </span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </flux:card>
+            @else
+                <div class="rounded-lg border border-dashed border-zinc-300 p-5 text-center dark:border-zinc-600" data-test="loan-open-loans-empty">
+                    <flux:text>{{ __('Choose an assisted person to see the books they still have to return.') }}</flux:text>
                 </div>
             @endif
 
-            <flux:error name="bookCopyId" />
-        </flux:field>
+            <flux:card class="space-y-3 bg-zinc-50 dark:bg-white/5" data-test="loan-rules">
+                <div class="flex items-baseline justify-between gap-2">
+                    <flux:heading>{{ __('Loan rules') }}</flux:heading>
+                    @if ($canEditLoanRules)
+                        <flux:link :href="route('team-settings.loan-rules')" wire:navigate class="text-sm">{{ __('Edit') }}</flux:link>
+                    @endif
+                </div>
 
-        <div class="grid gap-6 sm:grid-cols-2">
-            <x-date-input wire:model.live="loanedOn" :label="__('Loan date')" :max="today()->toDateString()" required data-test="loan-loaned-on-input" />
-            <x-date-input wire:model="dueOn" :label="__('Due date')" :min="$loanedOn" required data-test="loan-due-on-input" />
-        </div>
+                <dl class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1.5 text-sm">
+                    <dt class="text-zinc-500 dark:text-zinc-400">{{ __('Loan period') }}</dt>
+                    <dd class="text-end text-zinc-900 dark:text-white">{{ trans_choice(':count day|:count days', $this->loanRules['periodDays']) }}</dd>
 
-        <flux:input wire:model="loanNotes" :label="__('Notes')" data-test="loan-notes-input" />
+                    <dt class="text-zinc-500 dark:text-zinc-400">{{ __('Renewals') }}</dt>
+                    <dd class="text-end text-zinc-900 dark:text-white">{{ $this->loanRules['maxRenewals'] === null ? __('No limit') : __('Up to :count', ['count' => $this->loanRules['maxRenewals']]) }}</dd>
 
-        <div class="flex justify-end gap-2">
-            <flux:button variant="ghost" :href="route('library.loans.index')" wire:navigate>
-                {{ __('Cancel') }}
-            </flux:button>
+                    <dt class="text-zinc-500 dark:text-zinc-400">{{ __('Open per assisted person') }}</dt>
+                    <dd class="text-end text-zinc-900 dark:text-white">{{ $this->loanRules['maxOpenLoans'] === null ? __('No limit') : __('Up to :count', ['count' => $this->loanRules['maxOpenLoans']]) }}</dd>
+                </dl>
 
-            <flux:button variant="primary" type="submit" data-test="loan-save-button">
-                {{ __('Register loan') }}
-            </flux:button>
-        </div>
-    </form>
+                <flux:text class="text-sm">{{ __('Assisted people with an overdue book cannot borrow another one.') }}</flux:text>
+            </flux:card>
+        </aside>
+    </div>
 
     <livewire:appointments.create-assisted-person-modal />
 </section>

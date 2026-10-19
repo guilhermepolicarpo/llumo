@@ -33,7 +33,7 @@ class RenewBookLoan
             }
 
             $loan->update([
-                'due_on' => $loan->due_on->max(today())->addDays($team->loan_period_days)->toDateString(),
+                'due_on' => $loan->dueOnAfterRenewal($team->loan_period_days)->toDateString(),
                 'renewals_count' => $loan->renewals_count + 1,
             ]);
 

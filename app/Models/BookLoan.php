@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\BookLoanStatus;
+use Carbon\CarbonInterface;
 use Database\Factories\BookLoanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -52,6 +53,11 @@ class BookLoan extends Model
 {
     /** @use HasFactory<BookLoanFactory> */
     use HasFactory;
+
+    /**
+     * How many days before its due date an open loan counts as due soon.
+     */
+    public const int DUE_SOON_DAYS = 3;
 
     /**
      * Get the team this loan belongs to.
@@ -148,6 +154,48 @@ class BookLoan extends Model
             $this->due_on->lt(today()) => BookLoanStatus::Overdue,
             default => BookLoanStatus::Open,
         });
+    }
+
+    /**
+     * Get the due date a renewal gives the loan: one more loan period, counted from the due date or from today
+     * when the loan is overdue.
+     */
+    public function dueOnAfterRenewal(int $loanPeriodDays): CarbonInterface
+    {
+        return $this->due_on->max(today())->addDays($loanPeriodDays);
+    }
+
+    /**
+     * Describe where the loan stands against its due date, as the loan lists show it.
+     */
+    public function dueHint(): string
+    {
+        $daysUntilDue = $this->daysUntilDue();
+
+        return match (true) {
+            $this->returned_on !== null => __('Returned on :date', ['date' => $this->returned_on->format('d/m/Y')]),
+            $daysUntilDue < 0 => trans_choice('Overdue by :count day|Overdue by :count days', -$daysUntilDue),
+            $daysUntilDue === 0 => __('Due today'),
+            default => trans_choice('Due in :count day|Due in :count days', $daysUntilDue),
+        };
+    }
+
+    /**
+     * Determine whether the loan is still open and due within the next few days, but not overdue yet.
+     */
+    public function isDueSoon(): bool
+    {
+        $daysUntilDue = $this->daysUntilDue();
+
+        return $this->returned_on === null && $daysUntilDue >= 0 && $daysUntilDue <= self::DUE_SOON_DAYS;
+    }
+
+    /**
+     * Count the days left until the loan is due: zero on the due date and negative once it is overdue.
+     */
+    private function daysUntilDue(): int
+    {
+        return (int) today()->diffInDays($this->due_on, false);
     }
 
     /**

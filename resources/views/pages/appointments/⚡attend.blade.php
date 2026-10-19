@@ -557,7 +557,7 @@ new class extends Component
 
                     <div class="space-y-4">
                         <flux:heading size="lg">{{ __('Observations') }}</flux:heading>
-                        <flux:textarea wire:model="observations" rows="4" :label="__('Appointment notes')" data-test="appointment-record-observations-input" />
+                        <flux:textarea wire:model="observations" rows="auto" :label="__('Appointment notes')" data-test="appointment-record-observations-input" />
                     </div>
 
                     <div class="sticky bottom-0 z-10 flex flex-col-reverse gap-2 border-t border-zinc-200 bg-white py-3 sm:flex-row sm:items-center sm:justify-end dark:border-white/10 dark:bg-zinc-800">
