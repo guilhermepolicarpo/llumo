@@ -1,7 +1,7 @@
 {{-- editAs places the Edit entry: 'menu' (dropdown item), 'button' (visible button), or null (hidden). --}}
-{{-- menuFirst moves the dropdown to the start of the row, pushing the buttons to the opposite edge. --}}
+{{-- menuFirst places the dropdown before the buttons; menuApart also pushes it to the opposite edge of the row. --}}
 {{-- emphasizeMain paints the next-step button (attend, receive, start, complete) as primary; the attend button is always primary. --}}
-@props(['appointment', 'size' => 'base', 'editAs' => 'menu', 'menuFirst' => false, 'emphasizeMain' => false])
+@props(['appointment', 'size' => 'base', 'editAs' => 'menu', 'menuFirst' => false, 'menuApart' => false,'emphasizeMain' => false])
 
 @use('App\Enums\AppointmentAction')
 @use('App\Enums\AppointmentStatus')
@@ -67,7 +67,7 @@
     @endforeach
 
     @if ($hasMenu)
-        <flux:dropdown position="bottom" align="end" :class="$menuFirst ? 'order-first me-auto' : null">
+        <flux:dropdown position="bottom" align="end" @class(['order-first' => $menuFirst, 'me-auto' => $menuApart])>
             <flux:button variant="ghost" :size="$size" icon="ellipsis-horizontal" icon:variant="outline" :aria-label="__('More actions')" data-test="appointment-actions-trigger" />
             <flux:menu>
                 @if ($isPrintable)

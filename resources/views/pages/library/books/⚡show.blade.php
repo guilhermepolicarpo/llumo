@@ -224,16 +224,16 @@ new class extends Component
     <x-page-header :heading="$book->title" :subheading="$book->subtitle" :back-href="route('library.books.index')" :back-label="__('Back to books')" stack-until="lg">
         @if ($this->canManage)
             <div class="flex items-center gap-2">
-                <flux:button icon="pencil" icon:variant="outline" :href="route('library.books.edit', ['book' => $book])" wire:navigate data-test="book-edit-button">
-                    {{ __('Edit') }}
-                </flux:button>
-
                 <flux:dropdown position="bottom" align="end">
-                    <flux:button icon="ellipsis-horizontal" icon:variant="outline" :aria-label="__('More actions')" data-test="book-actions-trigger" />
+                    <flux:button variant="ghost" icon="ellipsis-horizontal" icon:variant="outline" :aria-label="__('More actions')" data-test="book-actions-trigger" />
                     <flux:menu>
                         <flux:menu.item variant="danger" icon="trash" icon:variant="outline" wire:click="$dispatch('confirm-delete-book', { bookId: {{ $book->id }}, bookTitle: @js($book->title) })" data-test="book-delete-menu-item">{{ __('Delete') }}</flux:menu.item>
                     </flux:menu>
                 </flux:dropdown>
+
+                <flux:button icon="pencil" icon:variant="outline" :href="route('library.books.edit', ['book' => $book])" wire:navigate data-test="book-edit-button">
+                    {{ __('Edit') }}
+                </flux:button>
             </div>
         @endif
     </x-page-header>
@@ -323,8 +323,20 @@ new class extends Component
 
                             <flux:table.rows>
                                 @foreach ($this->copies as $copy)
-                                    <flux:table.row :key="$copy->id" data-test="book-copy-row">
-                                        <flux:table.cell class="text-zinc-800 dark:text-white">{{ $copy->formatted_code }}</flux:table.cell>
+                                    <flux:table.row :key="$copy->id" @class(['relative cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800' => $this->canManage]) data-test="book-copy-row">
+                                        <flux:table.cell class="text-zinc-800 dark:text-white">
+                                            @if ($this->canManage)
+                                                <button
+                                                    type="button"
+                                                    wire:click="editCopy({{ $copy->id }})"
+                                                    class="absolute inset-0 cursor-pointer"
+                                                    aria-label="{{ __('Edit :name', ['name' => $copy->formatted_code]) }}"
+                                                    data-test="book-copy-edit-row"
+                                                ></button>
+                                            @endif
+
+                                            {{ $copy->formatted_code }}
+                                        </flux:table.cell>
 
                                         <flux:table.cell>
                                             @if ($copy->openLoan)
@@ -345,7 +357,7 @@ new class extends Component
                                             @endif
                                         </flux:table.cell>
 
-                                        <flux:table.cell align="end">
+                                        <flux:table.cell align="end" class="relative z-10">
                                             <div class="flex items-center justify-end gap-1">
                                                 @if ($copy->isAvailable())
                                                     <flux:button size="sm" variant="ghost" icon="arrow-up-right" icon:variant="outline" :href="route('library.loans.create', ['book_copy' => $copy->id])" wire:navigate data-test="book-copy-lend-button">

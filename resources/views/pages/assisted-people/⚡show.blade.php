@@ -282,7 +282,7 @@ new class extends Component
         </x-slot:subheading>
 
         <div class="flex shrink-0 flex-wrap gap-2">
-            <flux:button icon="pencil-square" icon:variant="outline" :href="route('assisted-people.edit', ['assistedPerson' => $assistedPerson])" wire:navigate data-test="assisted-person-history-edit-button">
+            <flux:button icon="pencil" icon:variant="outline" :href="route('assisted-people.edit', ['assistedPerson' => $assistedPerson])" wire:navigate data-test="assisted-person-history-edit-button">
                 {{ __('Edit registration') }}
             </flux:button>
 
