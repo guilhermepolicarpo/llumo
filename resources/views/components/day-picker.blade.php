@@ -45,10 +45,15 @@
             >
                 <span x-show="all" class="font-normal text-zinc-500 dark:text-zinc-400">{{ __('Choose date') }}</span>
 
-                <span x-show="! all" class="flex items-center gap-1.5 whitespace-nowrap">
-                    <span class="max-sm:hidden" x-text="weekdayLong"></span>
-                    <span class="sm:hidden" x-text="weekdayShort"></span>
-                    <span class="font-normal text-zinc-500 max-sm:hidden dark:text-zinc-400" x-text="dateLong"></span>
+                <span x-show="! all" class="flex items-center gap-1.5 whitespace-nowrap tabular-nums">
+                    <span class="grid">
+                        <template x-for="weekday in widestWeekdays"><span class="invisible col-start-1 row-start-1" aria-hidden="true" x-text="weekday"></span></template>
+                        <span class="col-start-1 row-start-1" x-text="weekdayShort"></span>
+                    </span>
+                    <span class="grid font-normal text-zinc-500 max-sm:hidden dark:text-zinc-400">
+                        <template x-for="date in widestDates"><span class="invisible col-start-1 row-start-1" aria-hidden="true" x-text="date"></span></template>
+                        <span class="col-start-1 row-start-1" x-text="dateMedium"></span>
+                    </span>
                     <span class="font-normal text-zinc-500 sm:hidden dark:text-zinc-400" x-text="dateShort"></span>
                 </span>
             </flux:button>

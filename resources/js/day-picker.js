@@ -11,10 +11,19 @@ export default function registerDayPicker(Alpine) {
     Alpine.data('dayPicker', ({ today, locale }) => {
         const format = makeFormatter(locale);
         const weekdayName = (iso) => capitalize(format(iso, { weekday: 'long' }));
+        const weekdayAbbreviation = (iso) => capitalize(format(iso, { weekday: 'short' }).replace(/\.$/, ''));
+        const dateAbbreviation = (iso) => format(iso, { day: '2-digit', month: 'short', year: 'numeric' }).replace(/\./g, '');
 
         return {
             today,
             value: '',
+
+            /**
+             * Every weekday and every month the label can show, laid invisibly under it so the picker always takes the
+             * width of the longest one, taken from a week that starts on a Sunday and from the months of this year.
+             */
+            widestWeekdays: Array.from({ length: 7 }, (_, index) => weekdayAbbreviation(addDays('2023-01-01', index))),
+            widestDates: Array.from({ length: 12 }, (_, index) => dateAbbreviation(`${today.slice(0, 4)}-${String(index + 1).padStart(2, '0')}-28`)),
 
             /** Whether every date is listed instead of a single day. */
             get all() {
@@ -29,16 +38,13 @@ export default function registerDayPicker(Alpine) {
                 return this.value === today;
             },
 
-            get weekdayLong() {
-                return weekdayName(this.day);
-            },
-
             get weekdayShort() {
-                return capitalize(format(this.day, { weekday: 'short' }).replace(/\.$/, ''));
+                return weekdayAbbreviation(this.day);
             },
 
-            get dateLong() {
-                return format(this.day, { day: 'numeric', month: 'long', year: 'numeric' });
+            /** Abbreviates the month, such as "19 de out de 2026", so the picker keeps its width from day to day. */
+            get dateMedium() {
+                return dateAbbreviation(this.day);
             },
 
             get dateShort() {
