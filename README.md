@@ -31,6 +31,12 @@ Duas premissas guiam o projeto:
 > [!NOTE]
 > O llumo está em desenvolvimento ativo. Os módulos do dia a dia da casa — assistidos, agendamentos, atendimentos e biblioteca — já funcionam e são cobertos por testes, mas ainda não há uma versão estável lançada. Veja o [roadmap](#roadmap) para o que vem a seguir.
 
+<p align="center">
+  <img src="art/screenshots/agendamentos.png" alt="Tela de agendamentos do llumo: agenda do dia com busca, filtros, aviso de atendimentos pendentes e a lista de assistidos com as ações Receber e Atender">
+</p>
+
+<p align="center"><em>Agendamentos: a agenda do dia, com a recepção e o atendimento dos assistidos.</em></p>
+
 ## Funcionalidades
 
 | Módulo | Descrição | Status |
@@ -47,14 +53,6 @@ Duas premissas guiam o projeto:
 | Assistência social | Gestão de doações e ações assistenciais aos assistidos. | 🚧 Planejado |
 
 O fluxo central do domínio é: **assistido → agendamento → atendimento**. O assistido é cadastrado, tem um atendimento agendado e, no registro desse atendimento, anotam-se o mentor espiritual que atuou através do médium e os fluídicos prescritos por ele. Os mentores são espíritos protetores e guias — espíritos mais evoluídos que orientam, protegem e auxiliam na evolução moral e espiritual, realizando o tratamento espiritual e de cura durante o atendimento. Os fluídicos ficam vinculados ao atendimento em que foram prescritos, formando o histórico do assistido.
-
-## Screenshots
-
-<p align="center">
-  <img src="art/screenshots/agendamentos.png" alt="Tela de agendamentos do llumo: agenda do dia com busca, filtros, aviso de atendimentos pendentes e a lista de assistidos com as ações Receber e Atender">
-</p>
-
-<p align="center"><em>Agendamentos: a agenda do dia, com a recepção e o atendimento dos assistidos.</em></p>
 
 ## Stack
 

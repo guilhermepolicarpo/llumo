@@ -31,6 +31,12 @@ Two principles guide the project:
 > [!NOTE]
 > llumo is in active development. The modules for the center's daily work — assisted persons, scheduling, sessions and library — already work and are covered by tests, but there is no stable release yet. See the [roadmap](#roadmap) for what comes next.
 
+<p align="center">
+  <img src="art/screenshots/agendamentos.png" alt="llumo's scheduling screen: the day's schedule with search, filters, a notice about sessions awaiting a record, and the list of assisted persons with the Check in and Attend actions">
+</p>
+
+<p align="center"><em>Scheduling: the day's schedule, with check-in and the session for each assisted person (interface in Brazilian Portuguese).</em></p>
+
 ## Features
 
 | Module | Description | Status |
@@ -47,14 +53,6 @@ Two principles guide the project:
 | Social assistance | Management of donations and assistance actions for assisted persons. | 🚧 Planned |
 
 The core domain flow is: **assisted person → scheduling → session**. The assisted person is registered, a session is scheduled and, in the record of that session, the team notes the spiritual mentor who acted through the medium and the fluidics prescribed. Mentors are protective spirits and guides — more evolved spirits who guide, protect and support a person's moral and spiritual growth, carrying out the spiritual healing during the session. The fluidics stay linked to the session in which they were prescribed, forming the assisted person's history.
-
-## Screenshots
-
-<p align="center">
-  <img src="art/screenshots/agendamentos.png" alt="llumo's scheduling screen: the day's schedule with search, filters, a notice about sessions awaiting a record, and the list of assisted persons with the Check in and Attend actions">
-</p>
-
-<p align="center"><em>Scheduling: the day's schedule, with check-in and the session for each assisted person (interface in Brazilian Portuguese).</em></p>
 
 ## Stack
 
