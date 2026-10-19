@@ -114,12 +114,16 @@ new class extends Component
                         <flux:label>{{ __('Logo') }}</flux:label>
 
                         <div class="flex items-center gap-4">
-                            <flux:avatar
-                                size="xl"
-                                :src="$logo?->isPreviewable() ? $logo->temporaryUrl() : $team->logo_url"
-                                :name="$team->name"
-                                data-test="team-logo-preview"
-                            />
+                            @php($logoPreviewUrl = $logo?->isPreviewable() ? $logo->temporaryUrl() : $team->logo_url)
+
+                            @if ($logoPreviewUrl)
+                                {{-- The avatar crops to a square, so the logo is fitted whole: the PDF header shows it uncropped too. --}}
+                                <div class="flex h-16 w-28 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white p-1.5 dark:border-zinc-700">
+                                    <img src="{{ $logoPreviewUrl }}" alt="{{ $team->name }}" class="size-full object-contain" data-test="team-logo-preview">
+                                </div>
+                            @else
+                                <flux:avatar size="xl" :name="$team->name" data-test="team-logo-preview" />
+                            @endif
 
                             <div class="flex flex-1 flex-col gap-2">
                                 <flux:input
