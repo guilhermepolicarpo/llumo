@@ -141,17 +141,18 @@ new class extends Component
 
                             <flux:table.cell align="end" class="relative z-10">
                                 <flux:dropdown position="bottom" align="end">
-                                    <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" data-test="assisted-person-actions-trigger" />
+                                    <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" icon:variant="outline" :aria-label="__('More actions')" data-test="assisted-person-actions-trigger" />
                                     <flux:menu>
-                                        <flux:menu.item as="a" href="{{ route('assisted-people.show', ['assistedPerson' => $person]) }}" wire:navigate icon="clock" data-test="assisted-person-history-menu-item">
+                                        <flux:menu.item as="a" href="{{ route('assisted-people.show', ['assistedPerson' => $person]) }}" wire:navigate icon="clock" icon:variant="outline" data-test="assisted-person-history-menu-item">
                                             {{ __('View history') }}
                                         </flux:menu.item>
-                                        <flux:menu.item as="a" href="{{ route('assisted-people.edit', ['assistedPerson' => $person]) }}" wire:navigate icon="pencil" data-test="assisted-person-edit-menu-item">
+                                        <flux:menu.item as="a" href="{{ route('assisted-people.edit', ['assistedPerson' => $person]) }}" wire:navigate icon="pencil" icon:variant="outline" data-test="assisted-person-edit-menu-item">
                                             {{ __('Edit') }}
                                         </flux:menu.item>
                                         <flux:menu.item
                                             variant="danger"
                                             icon="trash"
+                                            icon:variant="outline"
                                             wire:click="$dispatch('confirm-delete-assisted-person', { assistedPersonId: {{ $person->id }}, assistedPersonName: @js($person->name) })"
                                             data-test="assisted-person-delete-menu-item"
                                             >

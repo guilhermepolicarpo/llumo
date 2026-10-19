@@ -79,6 +79,21 @@ test('members can add copies but cannot change or delete them', function () {
         ->assertForbidden();
 });
 
+test('only those who can change copies get the copy row linked to its edit modal', function (TeamRole $role, bool $sees) {
+    [, $team] = actingAsTeamMember($role);
+
+    $copy = BookCopy::factory()->for(Book::factory()->for($team))->create();
+
+    $component = Livewire::test('pages::library.books.show', ['book' => $copy->book]);
+
+    $sees
+        ? $component->assertSeeHtml('data-test="book-copy-edit-row"')
+        : $component->assertDontSeeHtml('data-test="book-copy-edit-row"');
+})->with([
+    'admin' => [TeamRole::Admin, true],
+    'member' => [TeamRole::Member, false],
+]);
+
 test('a copy code can be typed with or without the zeros of its label', function (string $typed, ?int $code) {
     expect(BookCopy::parseCode($typed))->toBe($code);
 })->with([

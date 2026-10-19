@@ -29,14 +29,14 @@ test('members cannot open the spiritist center settings', function (string $rout
     $this->get(route($routeName, ['current_team' => $team, ...$parameters]))->assertForbidden();
 })->with('team settings pages');
 
-test('the sidebar links to the spiritist center settings only for owners and admins', function (TeamRole $role, bool $sees) {
+test('the user menu links to the spiritist center settings only for owners and admins', function (TeamRole $role, bool $sees) {
     actingAsTeamMember($role);
 
     $response = $this->get(route('dashboard'))->assertOk();
 
     $sees
-        ? $response->assertSee('data-test="sidebar-team-settings"', false)
-        : $response->assertDontSee('data-test="sidebar-team-settings"', false);
+        ? $response->assertSee('data-test="user-menu-team-settings"', false)
+        : $response->assertDontSee('data-test="user-menu-team-settings"', false);
 })->with([
     'owner' => [TeamRole::Owner, true],
     'admin' => [TeamRole::Admin, true],

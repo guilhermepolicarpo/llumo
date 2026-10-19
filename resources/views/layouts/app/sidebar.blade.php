@@ -41,12 +41,6 @@
             <flux:spacer />
 
             <flux:sidebar.nav>
-                @can('update', auth()->user()->currentTeam)
-                    <flux:sidebar.item icon="cog-6-tooth" :href="route('team-settings.profile')" :current="request()->routeIs('team-settings.*')" wire:navigate data-test="sidebar-team-settings">
-                        {{ __('Spiritist Center settings') }}
-                    </flux:sidebar.item>
-                @endcan
-
                 <flux:sidebar.item icon="folder-git-2" href="https://github.com/guilhermepolicarpo/llumo" target="_blank">
                     {{ __('Repository') }}
                 </flux:sidebar.item>
@@ -91,9 +85,16 @@
                     <flux:menu.separator />
 
                     <flux:menu.radio.group>
-                        <flux:menu.item :href="route('profile.edit')" icon="cog" wire:navigate>
-                            {{ __('Settings') }}
+                        <flux:menu.item :href="route('profile.edit')" icon="user-circle" icon:variant="outline" wire:navigate data-test="user-menu-account">
+                            {{ __('My account') }}
                         </flux:menu.item>
+                        @if (auth()->user()->currentTeam)
+                            @can('update', auth()->user()->currentTeam)
+                                <flux:menu.item :href="route('team-settings.profile')" icon="cog-6-tooth" icon:variant="outline" wire:navigate data-test="user-menu-team-settings">
+                                    {{ __('Spiritist Center settings') }}
+                                </flux:menu.item>
+                            @endcan
+                        @endif
                     </flux:menu.radio.group>
 
                     <flux:menu.separator />
@@ -104,6 +105,7 @@
                             as="button"
                             type="submit"
                             icon="arrow-right-start-on-rectangle"
+                            icon:variant="outline"
                             class="w-full"
                             data-test="logout-button"
                         >

@@ -27,15 +27,26 @@
         </div>
         <flux:menu.separator />
         <flux:menu.radio.group>
-            <flux:menu.item :href="route('profile.edit')" icon="cog" wire:navigate>
-                {{ __('Settings') }}
+            <flux:menu.item :href="route('profile.edit')" icon="user-circle" icon:variant="outline" wire:navigate data-test="user-menu-account">
+                {{ __('My account') }}
             </flux:menu.item>
+            @if (auth()->user()->currentTeam)
+                @can('update', auth()->user()->currentTeam)
+                    <flux:menu.item :href="route('team-settings.profile')" icon="cog-6-tooth" icon:variant="outline" wire:navigate data-test="user-menu-team-settings">
+                        {{ __('Spiritist Center settings') }}
+                    </flux:menu.item>
+                @endcan
+            @endif
+        </flux:menu.radio.group>
+        <flux:menu.separator />
+        <flux:menu.radio.group>
             <form method="POST" action="{{ route('logout') }}" class="w-full">
                 @csrf
                 <flux:menu.item
                     as="button"
                     type="submit"
                     icon="arrow-right-start-on-rectangle"
+                    icon:variant="outline"
                     class="w-full"
                     data-test="logout-button"
                 >
