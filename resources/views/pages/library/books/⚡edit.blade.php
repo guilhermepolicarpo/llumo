@@ -89,7 +89,7 @@ new class extends Component
             :cover-preview-url="$this->coverPreviewUrl"
         />
 
-        <div class="flex justify-end gap-2 border-t border-zinc-200 pt-6 dark:border-white/10">
+        <div class="flex justify-end gap-2">
             <flux:button variant="ghost" :href="route('library.books.show', ['book' => $book])" wire:navigate>
                 {{ __('Cancel') }}
             </flux:button>

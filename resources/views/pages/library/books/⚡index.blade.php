@@ -278,20 +278,20 @@ new class extends Component
                 <flux:subheading>{{ __('Refine the books shown in the list.') }}</flux:subheading>
             </div>
 
-            <flux:radio.group wire:model.live="categoryId" variant="pills" :label="__('Category')" class="*:px-3! *:py-1.5!" data-test="books-category-filter">
-                <flux:radio value="" :label="__('All categories')" />
+            <flux:select wire:model.live="categoryId" :label="__('Category')" data-test="books-category-filter">
+                <flux:select.option value="">{{ __('All categories') }}</flux:select.option>
                 @foreach ($this->categories as $category)
-                    <flux:radio :value="(string) $category->id" :label="$category->name" wire:key="category-filter-{{ $category->id }}" />
+                    <flux:select.option :value="(string) $category->id" wire:key="category-filter-{{ $category->id }}">{{ $category->name }}</flux:select.option>
                 @endforeach
-            </flux:radio.group>
+            </flux:select>
 
             @if ($this->collections->isNotEmpty())
-                <flux:radio.group wire:model.live="collectionId" variant="pills" :label="__('Collection')" class="*:px-3! *:py-1.5!" data-test="books-collection-filter">
-                    <flux:radio value="" :label="__('All collections')" />
+                <flux:select wire:model.live="collectionId" :label="__('Collection')" data-test="books-collection-filter">
+                    <flux:select.option value="">{{ __('All collections') }}</flux:select.option>
                     @foreach ($this->collections as $collection)
-                        <flux:radio :value="(string) $collection->id" :label="$collection->name" wire:key="collection-filter-{{ $collection->id }}" />
+                        <flux:select.option :value="(string) $collection->id" wire:key="collection-filter-{{ $collection->id }}">{{ $collection->name }}</flux:select.option>
                     @endforeach
-                </flux:radio.group>
+                </flux:select>
             @endif
 
             <flux:switch wire:model.live="availableOnly" :label="__('Available only')" :description="__('Hide the books with no copy to lend now.')" data-test="books-available-filter" />

@@ -69,7 +69,7 @@ new class extends Component
             with-copies
         />
 
-        <div class="flex justify-end gap-2 border-t border-zinc-200 pt-6 dark:border-white/10">
+        <div class="flex justify-end gap-2">
             <flux:button variant="ghost" :href="route('library.books.index')" wire:navigate>
                 {{ __('Cancel') }}
             </flux:button>
