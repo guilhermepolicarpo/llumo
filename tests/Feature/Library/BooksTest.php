@@ -31,11 +31,15 @@ function fakeNossoLarLookup(?string $coverImage = null): void
             'year' => 2019,
             'cover_url' => null,
         ]),
-        'https://openlibrary.org/api/books*' => Http::response(['ISBN:9788573289442' => [
+        'https://openlibrary.org/api/books*jscmd=data*' => Http::response(['ISBN:9788573289442' => [
             'title' => 'Nosso Lar',
             'authors' => [['name' => 'Francisco Cândido Xavier'], ['name' => 'André Luiz']],
             'cover' => ['large' => 'https://covers.openlibrary.org/b/id/10545010-L.jpg'],
         ]]),
+        'https://openlibrary.org/api/books*jscmd=details*' => Http::response(['ISBN:9788573289442' => ['details' => [
+            'edition_name' => '40 edition',
+            'notes' => 'Source title: Nosso Lar (A Vida no Mundo Espiritual) (Portuguese Edition)',
+        ]]]),
         'https://covers.openlibrary.org/b/id/10545010-L.jpg' => Http::response($coverImage ?? fakeCoverImage(), 200, ['Content-Type' => 'image/jpeg']),
     ]);
 }
@@ -147,6 +151,79 @@ test('an author already used as a spirit is selected as a spiritual author by th
         ->set('isbn', '9788573289442')
         ->call('lookUpIsbn')
         ->assertSet('spiritualAuthorIds', [(string) $spirit->id]);
+});
+
+test('an author the catalog marks as a spirit is selected as a spiritual author, or suggested as one', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+
+    Http::fake([
+        'https://brasilapi.com.br/api/isbn/v1/9788573289442' => Http::response([
+            'title' => 'Os Mensageiros',
+            'authors' => ['André Luiz (espírito)', 'Emmanuel (Espírito)', 'Francisco Cândido Xavier'],
+        ]),
+        'https://openlibrary.org/api/books*' => Http::response([]),
+    ]);
+
+    $spirit = Author::factory()->for($team)->create(['name' => 'André Luiz']);
+    Book::factory()->for($team)->create()->authors()->attach($spirit, ['role' => AuthorRole::Incarnate->value]);
+
+    Livewire::test('pages::library.books.create')
+        ->set('isbn', '9788573289442')
+        ->call('lookUpIsbn')
+        ->assertSet('spiritualAuthorIds', [(string) $spirit->id])
+        ->assertSet('suggestedAuthorNames', ['Emmanuel', 'Francisco Cândido Xavier'])
+        ->assertSet('suggestedSpiritualAuthorNames', ['André Luiz', 'Emmanuel'])
+        ->call('dismissSuggestedAuthor', 0)
+        ->assertSet('suggestedAuthorNames', ['Francisco Cândido Xavier']);
+});
+
+test('looking up the isbn fills the edition and selects the collection the library already has', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+
+    fakeNossoLarLookup();
+
+    $collection = BookCollection::factory()->for($team)->create(['name' => 'A vida no mundo espiritual']);
+
+    Livewire::test('pages::library.books.create')
+        ->set('isbn', '9788573289442')
+        ->call('lookUpIsbn')
+        ->assertSet('edition', '40ª')
+        ->assertSet('collectionId', (string) $collection->id)
+        ->assertSet('suggestedCollectionName', null);
+});
+
+test('a collection found by the lookup that the library lacks is suggested, and adding it selects it', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+
+    fakeNossoLarLookup();
+
+    $component = Livewire::test('pages::library.books.create')
+        ->set('isbn', '9788573289442')
+        ->call('lookUpIsbn')
+        ->assertSet('collectionId', '')
+        ->assertSet('suggestedCollectionName', 'A Vida no Mundo Espiritual')
+        ->call('addSuggestedCollection');
+
+    $collection = $team->bookCollections()->sole();
+
+    expect($collection->name)->toBe('A Vida no Mundo Espiritual');
+    $component->assertSet('collectionId', (string) $collection->id)
+        ->assertSet('suggestedCollectionName', null);
+});
+
+test('a collection suggested by the lookup can be ignored', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+
+    fakeNossoLarLookup();
+
+    Livewire::test('pages::library.books.create')
+        ->set('isbn', '9788573289442')
+        ->call('lookUpIsbn')
+        ->call('dismissSuggestedCollection')
+        ->assertSet('suggestedCollectionName', null)
+        ->assertSet('collectionId', '');
+
+    expect($team->bookCollections()->exists())->toBeFalse();
 });
 
 test('the cover found by the lookup is downloaded and stored with the book', function () {
@@ -371,6 +448,19 @@ test('the books can be searched by title, author or isbn and filtered by availab
         ->assertDontSee('Paulo e Estêvão')
         ->set('search', '')
         ->set('availableOnly', true)
+        ->assertSee('Nosso Lar')
+        ->assertDontSee('Paulo e Estêvão');
+});
+
+test('the books can be searched by the name of their collection', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+
+    $collection = BookCollection::factory()->for($team)->create(['name' => 'A Vida no Mundo Espiritual']);
+    Book::factory()->for($team)->create(['title' => 'Nosso Lar', 'book_collection_id' => $collection->id]);
+    Book::factory()->for($team)->create(['title' => 'Paulo e Estêvão']);
+
+    Livewire::test('pages::library.books.index')
+        ->set('search', 'mundo espiritual')
         ->assertSee('Nosso Lar')
         ->assertDontSee('Paulo e Estêvão');
 });

@@ -11,7 +11,9 @@
     'categoryId',
     'collectionId',
     'suggestedAuthorNames',
+    'suggestedSpiritualAuthorNames',
     'suggestedPublisherName',
+    'suggestedCollectionName',
     'coverPreviewUrl',
     'withCopies' => false,
 ])
@@ -146,7 +148,7 @@
                                     <div class="flex flex-wrap items-center gap-2" wire:key="suggested-author-{{ $index }}-{{ $name }}">
                                         <span class="me-auto font-medium text-zinc-800 dark:text-white">{{ $name }}</span>
                                         <flux:button size="xs" wire:click="addSuggestedAuthor({{ $index }}, 'incarnate')" data-test="book-suggested-author-incarnate">{{ __('Incarnate') }}</flux:button>
-                                        <flux:button size="xs" wire:click="addSuggestedAuthor({{ $index }}, 'spiritual')" data-test="book-suggested-author-spiritual">{{ __('Spiritual') }}</flux:button>
+                                        <flux:button size="xs" :variant="in_array($name, $suggestedSpiritualAuthorNames, true) ? 'primary' : null" wire:click="addSuggestedAuthor({{ $index }}, 'spiritual')" data-test="book-suggested-author-spiritual">{{ __('Spiritual') }}</flux:button>
                                         <flux:button size="xs" variant="ghost" icon="x-mark" icon:variant="outline" wire:click="dismissSuggestedAuthor({{ $index }})" :aria-label="__('Ignore :name', ['name' => $name])" data-test="book-suggested-author-dismiss" />
                                     </div>
                                 @endforeach
@@ -168,11 +170,7 @@
                 <flux:error name="publisherId" />
 
                 @if ($suggestedPublisherName !== null)
-                    <div class="mt-2 flex flex-wrap items-center gap-2" data-test="book-suggested-publisher">
-                        <flux:text class="text-sm">{{ __('Found: :name', ['name' => $suggestedPublisherName]) }}</flux:text>
-                        <flux:button size="xs" icon="plus" icon:variant="outline" wire:click="addSuggestedPublisher" data-test="book-suggested-publisher-add">{{ __('Add') }}</flux:button>
-                        <flux:button size="xs" variant="ghost" icon="x-mark" icon:variant="outline" wire:click="dismissSuggestedPublisher" :aria-label="__('Ignore :name', ['name' => $suggestedPublisherName])" data-test="book-suggested-publisher-dismiss" />
-                    </div>
+                    <x-library.found-entry-suggestion :name="$suggestedPublisherName" add="addSuggestedPublisher" dismiss="dismissSuggestedPublisher" test-id="book-suggested-publisher" />
                 @endif
             </flux:field>
 
@@ -198,6 +196,10 @@
                     test-id="book-collection"
                 />
                 <flux:error name="collectionId" />
+
+                @if ($suggestedCollectionName !== null)
+                    <x-library.found-entry-suggestion :name="$suggestedCollectionName" add="addSuggestedCollection" dismiss="dismissSuggestedCollection" test-id="book-suggested-collection" />
+                @endif
             </flux:field>
 
             <flux:input type="number" min="1" wire:model="collectionVolume" :label="__('Volume')" :placeholder="__('E.g. 1')" data-test="book-collection-volume-input" />

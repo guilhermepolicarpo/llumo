@@ -85,7 +85,9 @@ new class extends Component
             :category-id="$categoryId"
             :collection-id="$collectionId"
             :suggested-author-names="$suggestedAuthorNames"
+            :suggested-spiritual-author-names="$suggestedSpiritualAuthorNames"
             :suggested-publisher-name="$suggestedPublisherName"
+            :suggested-collection-name="$suggestedCollectionName"
             :cover-preview-url="$this->coverPreviewUrl"
         />
 

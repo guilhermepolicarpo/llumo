@@ -91,6 +91,7 @@ new class extends Component
                 ->whereLike('title', "%{$search}%")
                 ->orWhereLike('subtitle', "%{$search}%")
                 ->orWhereHas('authors', fn (Builder $authors) => $authors->whereLike('name', "%{$search}%"))
+                ->orWhereHas('collection', fn (Builder $collection) => $collection->whereLike('name', "%{$search}%"))
                 ->when($isbn, fn (Builder $query, string $isbn) => $query->orWhere('isbn', $isbn))))
             ->when($this->categoryId !== '', fn (Builder $query) => $query->where('book_category_id', (int) $this->categoryId))
             ->when($this->collectionId !== '', fn (Builder $query) => $query->where('book_collection_id', (int) $this->collectionId))
@@ -148,7 +149,7 @@ new class extends Component
             <flux:input
                 wire:model.live.debounce.300ms="search"
                 icon="magnifying-glass"
-                :placeholder="__('Search by title, author or ISBN...')"
+                :placeholder="__('Search by title, author, collection or ISBN...')"
                 clearable
                 class="min-w-0 max-sm:flex-1 sm:w-72"
                 data-test="books-search-input"

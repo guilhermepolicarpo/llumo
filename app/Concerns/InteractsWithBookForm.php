@@ -32,6 +32,8 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
  */
 trait InteractsWithBookForm
 {
+    use ComparesNames;
+
     /**
      * How many ISBN lookups a user may make per minute, as each one calls the public catalogs.
      */
@@ -92,10 +94,24 @@ trait InteractsWithBookForm
     public array $suggestedAuthorNames = [];
 
     /**
+     * The suggested author names a catalog marked as the spirit who dictated the book.
+     *
+     * @var list<string>
+     */
+    #[Locked]
+    public array $suggestedSpiritualAuthorNames = [];
+
+    /**
      * The publisher name found by the ISBN lookup when it is not in the library yet.
      */
     #[Locked]
     public ?string $suggestedPublisherName = null;
+
+    /**
+     * The collection name found by the ISBN lookup when it is not in the library yet.
+     */
+    #[Locked]
+    public ?string $suggestedCollectionName = null;
 
     /**
      * Fill in the blank fields with what the free public catalogs know about the typed ISBN.
@@ -125,14 +141,16 @@ trait InteractsWithBookForm
         $this->isbn = (string) Isbn::toIsbn13($validated['isbn']);
         $this->title = $this->title !== '' ? $this->title : (string) $lookup->title;
         $this->subtitle = $this->subtitle !== '' ? $this->subtitle : (string) $lookup->subtitle;
+        $this->edition = $this->edition !== '' || $lookup->editionNumber === null ? $this->edition : $lookup->editionNumber.'ª';
         $this->publishedYear = $this->publishedYear !== '' ? $this->publishedYear : (string) $lookup->publishedYear;
         $this->pageCount = $this->pageCount !== '' ? $this->pageCount : (string) $lookup->pageCount;
         $this->synopsis = $this->synopsis !== '' ? $this->synopsis : (string) $lookup->synopsis;
 
         $this->foundCoverUrl = $this->hasCover() ? null : $lookup->coverUrl;
 
-        $this->suggestAuthors($lookup->authorNames);
-        $this->suggestPublisher($lookup->publisherName);
+        $this->suggestAuthors($lookup->authorNames, $lookup->spiritualAuthorNames);
+        $this->suggestedPublisherName = $this->selectOrSuggestEntry(LibraryCatalog::Publisher, 'publisherId', $lookup->publisherName);
+        $this->suggestedCollectionName = $this->selectOrSuggestEntry(LibraryCatalog::Collection, 'collectionId', $lookup->collectionName);
 
         Flux::toast(variant: 'success', text: __('Book found. Please review the details before saving.'));
     }
@@ -188,6 +206,30 @@ trait InteractsWithBookForm
     public function dismissSuggestedPublisher(): void
     {
         $this->suggestedPublisherName = null;
+    }
+
+    /**
+     * Register the collection found by the lookup in the library and select it.
+     */
+    public function addSuggestedCollection(CreateCatalogEntry $createCatalogEntry): void
+    {
+        Gate::authorize('create', [LibraryCatalog::Collection->modelClass(), $this->team()]);
+
+        if ($this->suggestedCollectionName === null) {
+            return;
+        }
+
+        $this->collectionId = (string) $this->findOrCreateEntry($createCatalogEntry, LibraryCatalog::Collection, $this->suggestedCollectionName)->getKey();
+
+        $this->dismissSuggestedCollection();
+    }
+
+    /**
+     * Forget the collection found by the lookup.
+     */
+    public function dismissSuggestedCollection(): void
+    {
+        $this->suggestedCollectionName = null;
     }
 
     /**
@@ -378,17 +420,19 @@ trait InteractsWithBookForm
     }
 
     /**
-     * Select the existing authors among the found names in the role they usually have in the library, and
-     * offer the others as suggestions.
+     * Select the existing authors among the found names, as spiritual authors when a catalog marked them as
+     * spirits and otherwise in the role they usually have in the library, and offer the others as suggestions.
      *
      * @param  list<string>  $names
+     * @param  list<string>  $spiritualNames
      */
-    private function suggestAuthors(array $names): void
+    private function suggestAuthors(array $names, array $spiritualNames): void
     {
         $authors = $this->catalogEntries(LibraryCatalog::Author);
-        $found = [];
+        $foundIsSpirit = [];
 
         $this->suggestedAuthorNames = [];
+        $this->suggestedSpiritualAuthorNames = $spiritualNames;
 
         foreach ($names as $name) {
             $author = $this->findEntryByName($authors, $name);
@@ -396,37 +440,38 @@ trait InteractsWithBookForm
             if ($author === null) {
                 $this->suggestedAuthorNames[] = $name;
             } elseif (! in_array((string) $author->getKey(), [...$this->incarnateAuthorIds, ...$this->spiritualAuthorIds], true)) {
-                $found[] = $author->getKey();
+                $foundIsSpirit[$author->getKey()] = in_array($name, $spiritualNames, true);
             }
         }
 
-        $usualRoles = $this->usualRolesOf($found);
+        $usualRoles = $this->usualRolesOf(array_keys($foundIsSpirit));
 
-        foreach ($found as $authorId) {
-            $this->selectAuthor((string) $authorId, $usualRoles[$authorId] ?? AuthorRole::Incarnate);
+        foreach ($foundIsSpirit as $authorId => $isSpirit) {
+            $this->selectAuthor((string) $authorId, $isSpirit ? AuthorRole::Spiritual : ($usualRoles[$authorId] ?? AuthorRole::Incarnate));
         }
     }
 
     /**
-     * Select the existing publisher of the found name, or offer it as a suggestion.
+     * Select the existing entry of the found name in a single-choice catalog when none is selected yet, returning
+     * the name to offer as a suggestion when the library does not have it.
+     *
+     * @param  'publisherId'|'collectionId'  $selectedIdProperty
      */
-    private function suggestPublisher(?string $name): void
+    private function selectOrSuggestEntry(LibraryCatalog $catalog, string $selectedIdProperty, ?string $name): ?string
     {
-        $this->suggestedPublisherName = null;
-
-        if ($name === null || $this->publisherId !== '') {
-            return;
+        if ($name === null || $this->{$selectedIdProperty} !== '') {
+            return null;
         }
 
-        $publisher = $this->findEntryByName($this->catalogEntries(LibraryCatalog::Publisher), $name);
+        $entry = $this->findEntryByName($this->catalogEntries($catalog), $name);
 
-        if ($publisher === null) {
-            $this->suggestedPublisherName = $name;
-
-            return;
+        if ($entry === null) {
+            return $name;
         }
 
-        $this->publisherId = (string) $publisher->getKey();
+        $this->{$selectedIdProperty} = (string) $entry->getKey();
+
+        return null;
     }
 
     /**
@@ -483,9 +528,9 @@ trait InteractsWithBookForm
      */
     private function findEntryByName(Collection $entries, string $name): ?Model
     {
-        $key = Str::lower(Str::ascii(Str::squish($name)));
+        $key = $this->nameKey($name);
 
-        return $entries->first(fn (Model $entry) => Str::lower(Str::ascii(Str::squish($entry->getAttribute('name')))) === $key);
+        return $entries->first(fn (Model $entry) => $this->nameKey($entry->getAttribute('name')) === $key);
     }
 
     /**
