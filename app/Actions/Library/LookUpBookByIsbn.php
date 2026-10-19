@@ -99,7 +99,7 @@ class LookUpBookByIsbn
         $collectionName = $first('collectionName');
 
         return new BookLookup(
-            title: $this->displayTitle(collect($lookups)->pluck('title')->all()),
+            title: $this->displayTitle(array_map(fn (BookLookup $lookup): string => (string) $lookup->title, $lookups)),
             subtitle: $first('subtitle'),
             authorNames: $authorNames,
             spiritualAuthorNames: array_values(array_filter($authorNames, fn (string $name) => in_array($this->nameKey($name), $spiritKeys, true))),
@@ -164,7 +164,7 @@ class LookUpBookByIsbn
             return $title;
         }
 
-        $article = $matches[2];
+        $article = $matches[2] ?? '';
 
         if (! in_array(Str::lower($article), self::TITLE_ARTICLES, true)) {
             return $title;
