@@ -27,7 +27,7 @@
             @endisset
 
             <div class="min-w-0">
-                <flux:heading size="xl" level="1">{{ $heading }}</flux:heading>
+                <flux:heading size="xl" level="1" class="mb-1!">{{ $heading }}</flux:heading>
                 @if ($subheading)
                     <flux:subheading size="lg">{{ $subheading }}</flux:subheading>
                 @endif
