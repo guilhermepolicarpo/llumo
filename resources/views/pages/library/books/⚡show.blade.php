@@ -324,7 +324,7 @@ new class extends Component
                             <flux:table.rows>
                                 @foreach ($this->copies as $copy)
                                     <flux:table.row :key="$copy->id" data-test="book-copy-row">
-                                        <flux:table.cell class="font-mono text-[15px] text-zinc-900 dark:text-white">{{ $copy->formatted_code }}</flux:table.cell>
+                                        <flux:table.cell class="text-zinc-900 dark:text-white">{{ $copy->formatted_code }}</flux:table.cell>
 
                                         <flux:table.cell>
                                             @if ($copy->openLoan)
@@ -387,7 +387,7 @@ new class extends Component
                                     <div class="min-w-0">
                                         <div class="truncate text-zinc-900 dark:text-white">{{ $loan->assistedPerson->name }}</div>
                                         <flux:text class="text-sm">
-                                            <span class="font-mono">{{ $loan->copy->formatted_code }}</span> · {{ $loan->loaned_on->format('d/m/Y') }} – {{ ($loan->returned_on ?? $loan->due_on)->format('d/m/Y') }}
+                                            {{ $loan->copy->formatted_code }} · {{ $loan->loaned_on->format('d/m/Y') }} – {{ ($loan->returned_on ?? $loan->due_on)->format('d/m/Y') }}
                                         </flux:text>
                                     </div>
 

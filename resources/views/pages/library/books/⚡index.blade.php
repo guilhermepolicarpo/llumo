@@ -205,7 +205,7 @@ new class extends Component
 
                                     <div class="min-w-0">
                                         <div class="truncate font-medium text-zinc-900 dark:text-white">{{ $book->title }}</div>
-                                        <div class="truncate text-xs">
+                                        <div class="truncate">
                                             {{ collect([
                                                 $book->publisher?->name,
                                                 $book->collection_label,
@@ -220,7 +220,7 @@ new class extends Component
                                 @php($spiritual = $book->authorsWithRole(AuthorRole::Spiritual))
                                 <div class="text-zinc-900 dark:text-white">{{ $incarnate->pluck('name')->join(', ') ?: '—' }}</div>
                                 @if ($spiritual->isNotEmpty())
-                                    <div class="text-xs">{{ __('By the spirit :names', ['names' => $spiritual->pluck('name')->join(', ')]) }}</div>
+                                    <div>{{ __('By the spirit :names', ['names' => $spiritual->pluck('name')->join(', ')]) }}</div>
                                 @endif
                             </flux:table.cell>
 

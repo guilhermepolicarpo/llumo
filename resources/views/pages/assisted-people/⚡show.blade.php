@@ -254,10 +254,6 @@ new class extends Component
 
 <section class="w-full max-w-5xl">
     <x-page-header :heading="$assistedPerson->name" :back-href="route('assisted-people.index')" :back-label="__('Back to assisted people')" :separator="false" stack-until="lg">
-        <x-slot:leading class="ms-1">
-            <flux:avatar circle size="lg" :name="$assistedPerson->name" />
-        </x-slot:leading>
-
         <x-slot:subheading>
             <span class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm" data-test="assisted-person-history-details">
                 @foreach (array_filter([
@@ -580,8 +576,8 @@ new class extends Component
                         @foreach ($this->bookLoans as $loan)
                             <flux:table.row :key="'book-loan-'.$loan->id" data-test="assisted-person-book-loan-row">
                                 <flux:table.cell class="whitespace-normal">
-                                    <div class="text-[15px] text-zinc-900 dark:text-white">{{ $loan->copy->book->title }}</div>
-                                    <div class="font-mono">{{ $loan->copy->formatted_code }}</div>
+                                    <div class="text-zinc-900 dark:text-white">{{ $loan->copy->book->title }}</div>
+                                    <div>{{ $loan->copy->formatted_code }}</div>
                                 </flux:table.cell>
                                 <flux:table.cell>
                                     {{ $loan->loaned_on->format('d/m/Y') }} – {{ ($loan->returned_on ?? $loan->due_on)->format('d/m/Y') }}

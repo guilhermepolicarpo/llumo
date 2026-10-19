@@ -258,7 +258,7 @@ new class extends Component
                                         class="flex w-full items-center gap-3 px-3 py-2 text-start hover:bg-zinc-50 not-last:border-b not-last:border-zinc-100 dark:hover:bg-zinc-700/50 dark:not-last:border-white/5"
                                         data-test="loan-book-copy-suggestion"
                                     >
-                                        <span class="font-mono text-sm text-zinc-500 dark:text-zinc-400">{{ $suggestion->formatted_code }}</span>
+                                        <span class="text-sm text-zinc-500 dark:text-zinc-400">{{ $suggestion->formatted_code }}</span>
                                         <span class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $suggestion->book->title }}</span>
                                     </button>
                                 @empty
@@ -317,7 +317,7 @@ new class extends Component
                             @foreach ($this->openLoans as $loan)
                                 <li wire:key="open-loan-{{ $loan->id }}" class="flex items-center justify-between gap-3 py-2">
                                     <div class="flex min-w-0 items-center gap-2">
-                                        <span class="shrink-0 font-mono text-xs text-zinc-500 dark:text-zinc-400">{{ $loan->copy->formatted_code }}</span>
+                                        <span class="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">{{ $loan->copy->formatted_code }}</span>
                                         <span class="truncate text-sm text-zinc-900 dark:text-white">{{ $loan->copy->book->title }}</span>
                                     </div>
                                     <span class="shrink-0 text-xs {{ $loan->status === BookLoanStatus::Overdue ? 'font-medium text-red-600 dark:text-red-400' : 'text-zinc-500 dark:text-zinc-400' }}">

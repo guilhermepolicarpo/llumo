@@ -14,6 +14,7 @@
                             'border-red-500' => $errors->has('appointmentTypeId'),
                             'border-zinc-200 border-b-zinc-300/80 dark:border-white/10' => ! $errors->has('appointmentTypeId'),
                         ])
+                        data-picker-trigger
                         data-test="appointment-type-select"
                     >
                         <span

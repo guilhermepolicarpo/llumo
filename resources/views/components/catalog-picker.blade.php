@@ -52,9 +52,16 @@
         'border-zinc-200 border-b-zinc-300/80 dark:border-white/10' => ! $invalid,
     ])
 
+    {{-- data-picker-trigger shares the Flux inputs' focus style (resources/css/app.css) while the picker is open or focused from the keyboard. --}}
     <div class="relative">
         @if ($multiple)
-            <div x-on:click="toggle()" @class([...$triggerClasses, 'cursor-pointer']) data-test="{{ $testId }}-trigger">
+            <div
+                x-on:click="toggle()"
+                data-picker-trigger
+                x-bind:data-open="open"
+                @class([...$triggerClasses, 'cursor-pointer [&_button]:outline-hidden'])
+                data-test="{{ $testId }}-trigger"
+            >
                 <span wire:ignore class="flex min-w-0 flex-wrap gap-1">
                     <span x-show="selectedIds().length === 0" class="truncate text-zinc-400">{{ $placeholder }}</span>
 
@@ -85,6 +92,8 @@
                 type="button"
                 x-on:click="toggle()"
                 x-bind:aria-expanded="open"
+                data-picker-trigger
+                x-bind:data-open="open"
                 @class($triggerClasses)
                 data-test="{{ $testId }}-trigger"
             >

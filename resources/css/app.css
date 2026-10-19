@@ -37,7 +37,6 @@
 }
 
 @layer base {
-
     *,
     ::after,
     ::before,
@@ -52,13 +51,19 @@
     }
 }
 
+/* Focus ring for picker triggers and Flux inputs */
 input:focus[data-flux-control],
 textarea:focus[data-flux-control],
-select:focus[data-flux-control] {
-    @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
+select:focus[data-flux-control],
+[data-flux-input]:has([aria-expanded="true"]) input[data-flux-control],
+[data-picker-trigger][data-open],
+[data-picker-trigger][aria-expanded="true"],
+[data-picker-trigger]:focus-visible,
+[data-picker-trigger]:has(:focus-visible) {
+    @apply outline-2 -outline-offset-1 outline-accent;
 }
 
-/* Me */
+/* Logo */
 [data-flux-sidebar-brand] div {
     @apply font-bold;
 }

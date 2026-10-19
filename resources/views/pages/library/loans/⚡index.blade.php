@@ -254,7 +254,7 @@ new class extends Component
                 <flux:table.rows>
                     @foreach ($this->loans as $loan)
                         <flux:table.row :key="$loan->id" data-test="loan-row">
-                            <flux:table.cell class="text-[15px] text-zinc-900 dark:text-white">
+                            <flux:table.cell class="text-zinc-900 dark:text-white">
                                 @if ($loan->assistedPerson->trashed())
                                     {{ $loan->assistedPerson->name }}
                                 @else
@@ -269,7 +269,7 @@ new class extends Component
                                     @else
                                         <flux:link :href="route('library.books.show', ['book' => $loan->copy->book])" wire:navigate variant="ghost" class="block truncate text-zinc-900 dark:text-white">{{ $loan->copy->book->title }}</flux:link>
                                     @endif
-                                    <div class="font-mono text-xs">{{ $loan->copy->formatted_code }}</div>
+                                    <div>{{ $loan->copy->formatted_code }}</div>
                                 </div>
                             </flux:table.cell>
 
@@ -278,8 +278,7 @@ new class extends Component
                             <flux:table.cell>
                                 <div class="text-zinc-900 dark:text-white">{{ $loan->due_on->format('d/m/Y') }}</div>
                                 <div @class([
-                                    'text-xs',
-                                    'font-medium text-red-600 dark:text-red-400' => $loan->status === BookLoanStatus::Overdue,
+                                    'text-red-600 dark:text-red-400' => $loan->status === BookLoanStatus::Overdue,
                                     'text-amber-700 dark:text-amber-400' => $loan->isDueSoon(),
                                 ]) data-test="loan-due-hint">
                                     {{ $loan->dueHint() }}
