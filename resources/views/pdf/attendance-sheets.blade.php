@@ -33,8 +33,11 @@
         .identification .value { font-size: 9.5pt; }
 
         .section-label { margin: 5mm 0 1.8mm; }
-        .item { margin-bottom: 2mm; }
-        .box { display: inline-block; width: 3mm; height: 3mm; border: 0.8pt solid #141414; border-radius: 0.4mm; vertical-align: -0.4mm; margin-right: 2.1mm; position: relative; }
+        .guidance-columns td { vertical-align: top; }
+        .guidance-columns.two-columns td { width: 50%; }
+        .guidance-columns.two-columns td + td { padding-left: 3mm; }
+        .item { margin-bottom: 2mm; padding-left: 5.7mm; text-indent: -5.7mm; }
+        .box { display: inline-block; text-indent: 0; width: 3mm; height: 3mm; border: 0.8pt solid #141414; border-radius: 0.4mm; vertical-align: -1.1mm; margin-right: 2.1mm; position: relative; }
         .radio { display: inline-block; width: 3mm; height: 3mm; border: 0.8pt solid #141414; border-radius: 1.5mm; }
         .tick { position: absolute; left: 0.3mm; top: -0.9mm; font-size: 10pt; font-weight: bold; line-height: 1; }
         .radio.checked { background: #141414; }
@@ -83,9 +86,18 @@
             $sheetGuidances = $guidances->union($givenGuidances->pluck('name', 'id'));
             $sheetPassTypes = $passTypes->union($prescriptionsByPass->map(fn ($prescriptions) => $prescriptions->first()->passType->name));
 
-            // The closing is pinned to the page bottom, so each guidance (≈7mm) or pass (≈9mm) beyond the
-            // three of each the sheet was laid out for takes the room of the 6.4mm dotted notes lines.
-            $extraCatalogHeight = max(0, $sheetGuidances->count() - 3) * 7 + max(0, $sheetPassTypes->count() - 3) * 9;
+            // With more than three guidances they are split in two columns, filled top to bottom. A column fits about
+            // 34 characters per line, so each guidance is estimated at its wrapped lines (≈7mm the first, ≈3.9mm each more).
+            $guidanceColumns = $sheetGuidances->count() > 3 ? $sheetGuidances->splitIn(2) : collect([$sheetGuidances]);
+            $guidanceLines = fn (string $name, int $id) => max(1, (int) ceil(mb_strlen(trim($name.' '.$givenGuidances->get($id)?->pivot->detail)) / 34));
+            $guidanceColumnLines = $guidanceColumns->map(fn ($column) => $column->map($guidanceLines)->values());
+            $twoColumnGuidancesHeight = $guidanceColumnLines->first()->keys()
+                ->sum(fn (int $row) => 7 + 3.9 * ($guidanceColumnLines->map(fn ($lines) => $lines->get($row, 1))->max() - 1));
+            $extraGuidancesHeight = $guidanceColumns->count() > 1 ? max(0, $twoColumnGuidancesHeight - 3 * 7) : 0;
+
+            // The closing is pinned to the page bottom, so each pass (≈9mm) beyond the three the sheet was laid out for,
+            // like the guidances beyond them, takes the room of the 6.4mm dotted notes lines.
+            $extraCatalogHeight = $extraGuidancesHeight + max(0, $sheetPassTypes->count() - 3) * 9;
             $notesLineCount = max(0, 4 - (int) ceil(max(0, $extraCatalogHeight - 12) / 6.4));
             $sheetDay = $appointment->received_at ?? today();
             $sheetDate = $sheetDay->translatedFormat('d \d\e F \d\e Y');
@@ -134,17 +146,25 @@
 
             @if ($sheetGuidances->isNotEmpty())
                 <div class="label section-label">{{ __('Guidances') }}</div>
-                @foreach ($sheetGuidances as $guidanceId => $guidance)
-                    @php
-                        $given = $givenGuidances->get($guidanceId);
-                    @endphp
-                    <div class="item">
-                        <span class="box">@if ($given)<span class="tick">✓</span>@endif</span>{{ $guidance }}
-                        @if ($given?->pivot->detail)
-                            <span class="detail">· {{ $given->pivot->detail }}</span>
-                        @endif
-                    </div>
-                @endforeach
+                <table @class(['guidance-columns', 'two-columns' => $guidanceColumns->count() > 1])>
+                    <tr>
+                        @foreach ($guidanceColumns as $column)
+                            <td class="guidance-column">
+                                @foreach ($column as $guidanceId => $guidance)
+                                    @php
+                                        $given = $givenGuidances->get($guidanceId);
+                                    @endphp
+                                    <div class="item">
+                                        <span class="box">@if ($given)<span class="tick">✓</span>@endif</span>{{ $guidance }}
+                                        @if ($given?->pivot->detail)
+                                            <span class="detail">· {{ $given->pivot->detail }}</span>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </td>
+                        @endforeach
+                    </tr>
+                </table>
             @endif
 
             @if ($sheetPassTypes->isNotEmpty())

@@ -125,6 +125,53 @@ test('the fluidic remedies of a filled sheet split into two columns when they wo
     'overflowing one column' => [21, true],
 ]);
 
+test('the guidances of a sheet split half and half into two columns when there are more than three', function (int $guidanceCount, array $columnSizes) {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    foreach (range(1, $guidanceCount) as $position) {
+        Guidance::factory()->for($team)->create(['name' => sprintf('Orientação %02d', $position)]);
+    }
+    $appointment = Appointment::factory()->for($team)->waiting()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+
+    $this->get(route('appointments.attendance-sheet', ['current_team' => $team, 'appointment' => $appointment]));
+
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) use ($columnSizes) {
+        preg_match_all('/class="guidance-column">(.*?)<\/td>/s', $pdf->getHtml(), $columns);
+
+        expect(array_map(fn (string $column) => substr_count($column, 'class="item"'), $columns[1]))->toBe($columnSizes);
+
+        return true;
+    });
+})->with([
+    'three in one column' => [3, [3]],
+    'four split in two' => [4, [2, 2]],
+    'five leave the bigger half on the left' => [5, [3, 2]],
+    'six split in two' => [6, [3, 3]],
+]);
+
+test('the given guidances stay ticked, with their detail, when the sheet splits them in two columns', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $guidances = collect(['Alfa', 'Beta', 'Gama', 'Delta'])->map(fn (string $name) => Guidance::factory()->for($team)->create(['name' => $name]));
+    $appointment = Appointment::factory()->for($team)->inPerson()->completed()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+    $record = AppointmentRecord::factory()->for($appointment)->create();
+    $record->guidances()->attach($guidances->firstWhere('name', 'Gama'), ['detail' => 'Por 21 dias']);
+    $record->guidances()->attach($guidances->firstWhere('name', 'Delta'));
+
+    $this->get(route('appointments.attendance-sheet', ['current_team' => $team, 'appointment' => $appointment]));
+
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
+        preg_match_all('/class="guidance-column">(.*?)<\/td>/s', $pdf->getHtml(), $columns);
+
+        expect(array_map(fn (string $column) => substr_count($column, 'class="tick"'), $columns[1]))->toBe([0, 2])
+            ->and($columns[1][1])->toContain('Por 21 dias');
+
+        return true;
+    });
+});
+
 test('the attendance sheet of another team appointment is not found', function () {
     [, $team] = actingAsTeamMember(TeamRole::Owner);
     $otherTeam = teamOwnedBy(User::factory()->create());
