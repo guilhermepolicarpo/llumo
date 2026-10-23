@@ -11,7 +11,6 @@ use App\Models\Team;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\URL;
 
@@ -28,23 +27,6 @@ trait HasTeams
             ->using(Membership::class)
             ->withPivot(['role'])
             ->withTimestamps();
-    }
-
-    /**
-     * Get all of the teams the user owns.
-     *
-     * @return HasManyThrough<Team, Membership, $this>
-     */
-    public function ownedTeams(): HasManyThrough
-    {
-        return $this->hasManyThrough(
-            Team::class,
-            Membership::class,
-            'user_id',
-            'id',
-            'id',
-            'team_id',
-        )->where('team_members.role', TeamRole::Owner->value);
     }
 
     /**
@@ -68,13 +50,35 @@ trait HasTeams
     }
 
     /**
-     * Get the user's personal team.
+     * Get the user's current team, switching to another of their teams when none is selected
+     * or they no longer belong to it, and clearing it when they have no team left.
      */
-    public function personalTeam(): ?Team
+    public function resolveCurrentTeam(): ?Team
     {
-        return $this->ownedTeams()
-            ->where('teams.is_personal', true)
-            ->first();
+        if ($this->currentTeam && $this->belongsToTeam($this->currentTeam)) {
+            return $this->currentTeam;
+        }
+
+        $team = $this->fallbackTeam();
+
+        if ($team) {
+            $this->switchTeam($team);
+        } elseif ($this->current_team_id !== null) {
+            $this->update(['current_team_id' => null]);
+            $this->setRelation('currentTeam', null);
+        }
+
+        return $team;
+    }
+
+    /**
+     * Get the URL users land on: their current team's dashboard, or onboarding when they have no team.
+     */
+    public function homeUrl(): string
+    {
+        $team = $this->resolveCurrentTeam();
+
+        return $team ? route('dashboard', ['current_team' => $team->slug]) : route('onboarding');
     }
 
     /**
@@ -89,7 +93,10 @@ trait HasTeams
         $this->update(['current_team_id' => $team->id]);
         $this->setRelation('currentTeam', $team);
 
-        URL::defaults(['current_team' => $team->slug]);
+        URL::defaults([
+            'current_team' => $team->slug,
+            'team' => $team->slug,
+        ]);
 
         return true;
     }
@@ -154,7 +161,6 @@ trait HasTeams
             id: $team->id,
             name: $team->name,
             slug: $team->slug,
-            isPersonal: $team->is_personal,
             logoUrl: $team->logo_url,
             role: $role?->value,
             roleLabel: $role?->label(),

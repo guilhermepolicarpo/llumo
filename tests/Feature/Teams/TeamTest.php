@@ -3,6 +3,7 @@
 use App\Enums\TeamRole;
 use App\Models\Team;
 use App\Models\User;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
 
 test('teams index page can be rendered', function () {
@@ -16,6 +17,7 @@ test('teams index page can be rendered', function () {
 });
 
 test('teams can be created', function () {
+    config(['llumo.allow_center_creation' => true]);
     $user = User::factory()->create();
 
     $this->actingAs($user);
@@ -25,30 +27,53 @@ test('teams can be created', function () {
         ->call('createTeam')
         ->assertHasNoErrors();
 
-    $this->assertDatabaseHas('teams', [
-        'name' => 'Test Team',
-        'is_personal' => false,
-    ]);
+    $team = Team::where('name', 'Test Team')->firstOrFail();
+
+    expect($user->fresh()->ownsTeam($team))->toBeTrue();
 });
 
-test('personal team returns the team owned by the user', function () {
-    $otherUser = User::factory()->create();
-    $user = User::factory()->make();
-    $user->save();
+test('teams cannot be created when the installation serves a single center', function (string $component, string $nameField) {
+    $user = User::factory()->create();
 
-    $otherUser->personalTeam()->members()->attach($user, [
-        'role' => TeamRole::Member->value,
-    ]);
+    $this->actingAs($user);
 
-    $personalTeam = Team::factory()->personal()->create();
-    $personalTeam->members()->attach($user, [
-        'role' => TeamRole::Owner->value,
-    ]);
+    Livewire::test($component)
+        ->set($nameField, 'Second Center')
+        ->call('createTeam')
+        ->assertForbidden();
 
-    expect($personalTeam->is($user->personalTeam()))->toBeTrue();
+    $this->assertDatabaseMissing('teams', ['name' => 'Second Center']);
+})->with([
+    'settings page' => ['pages::teams.index', 'name'],
+    'team switcher modal' => ['create-team-modal', 'teamName'],
+]);
+
+test('the new center button is hidden when the installation serves a single center', function () {
+    $this->actingAs(User::factory()->create());
+
+    Livewire::test('pages::teams.index')
+        ->assertDontSeeHtml('data-test="teams-new-team-button"');
+});
+
+test('only the first center can be created when the installation serves a single center', function () {
+    $user = User::factory()->withoutTeam()->create();
+
+    expect(Gate::forUser($user)->allows('create', Team::class))->toBeTrue();
+
+    Team::factory()->trashed()->create();
+
+    expect(Gate::forUser($user)->allows('create', Team::class))->toBeFalse();
+});
+
+test('any user can create centers when center creation is allowed', function () {
+    config(['llumo.allow_center_creation' => true]);
+    $user = User::factory()->create();
+
+    expect(Gate::forUser($user)->allows('create', Team::class))->toBeTrue();
 });
 
 test('team slug uses next available suffix', function () {
+    config(['llumo.allow_center_creation' => true]);
     $user = User::factory()->create();
 
     Team::factory()->create(['name' => 'Acme', 'slug' => 'acme']);
@@ -119,6 +144,7 @@ test('teams cannot be updated by members', function () {
 });
 
 test('teams can be deleted by owners', function () {
+    config(['llumo.allow_center_creation' => true]);
     $user = User::factory()->create();
     $team = Team::factory()->create();
 
@@ -137,6 +163,7 @@ test('teams can be deleted by owners', function () {
 });
 
 test('team deletion requires name confirmation', function () {
+    config(['llumo.allow_center_creation' => true]);
     $user = User::factory()->create();
     $team = Team::factory()->create();
 
@@ -156,6 +183,7 @@ test('team deletion requires name confirmation', function () {
 });
 
 test('deleting current team switches to alphabetically first remaining team', function () {
+    config(['llumo.allow_center_creation' => true]);
     $user = User::factory()->create(['name' => 'Mike']);
 
     $zuluTeam = Team::factory()->create(['name' => 'Zulu Team']);
@@ -183,13 +211,10 @@ test('deleting current team switches to alphabetically first remaining team', fu
     expect($user->fresh()->current_team_id)->toEqual($alphaTeam->id);
 });
 
-test('deleting current team falls back to personal team when alphabetically first', function () {
+test('deleting the only team of a user clears their current team', function () {
+    config(['llumo.allow_center_creation' => true]);
     $user = User::factory()->create();
-    $personalTeam = $user->personalTeam();
-    $team = Team::factory()->create(['name' => 'Zulu Team']);
-    $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
-
-    $user->update(['current_team_id' => $team->id]);
+    $team = $user->currentTeam;
 
     $this->actingAs($user);
 
@@ -202,16 +227,15 @@ test('deleting current team falls back to personal team when alphabetically firs
         'id' => $team->id,
     ]);
 
-    expect($user->fresh()->current_team_id)->toEqual($personalTeam->id);
+    expect($user->fresh()->current_team_id)->toBeNull();
 });
 
 test('deleting non current team leaves current team unchanged', function () {
+    config(['llumo.allow_center_creation' => true]);
     $user = User::factory()->create();
-    $personalTeam = $user->personalTeam();
+    $currentTeam = $user->currentTeam;
     $team = Team::factory()->create();
     $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
-
-    $user->update(['current_team_id' => $personalTeam->id]);
 
     $this->actingAs($user);
 
@@ -224,10 +248,10 @@ test('deleting non current team leaves current team unchanged', function () {
         'id' => $team->id,
     ]);
 
-    expect($user->fresh()->current_team_id)->toEqual($personalTeam->id);
+    expect($user->fresh()->current_team_id)->toEqual($currentTeam->id);
 });
 
-test('members can leave non personal teams', function () {
+test('members can leave teams', function () {
     $owner = User::factory()->create();
     $member = User::factory()->create();
     $team = Team::factory()->create();
@@ -270,19 +294,6 @@ test('leaving current team switches to alphabetically first remaining team', fun
     expect($member->fresh()->current_team_id)->toEqual($alphaTeam->id);
 });
 
-test('personal teams cannot be left', function () {
-    $user = User::factory()->create();
-    $personalTeam = $user->personalTeam();
-
-    $this->actingAs($user);
-
-    Livewire::test('pages::teams.index')
-        ->call('leaveTeam', $personalTeam->id)
-        ->assertForbidden();
-
-    expect($user->fresh()->belongsToTeam($personalTeam))->toBeTrue();
-});
-
 test('team owners cannot leave their team', function () {
     $owner = User::factory()->create();
     $team = Team::factory()->create();
@@ -323,7 +334,7 @@ test('leave control is only rendered for leaveable teams', function () {
         ->assertSeeHtml('data-test="team-leave-button"');
 });
 
-test('leave control is not rendered for personal or owned teams', function () {
+test('leave control is not rendered for owned teams', function () {
     $user = User::factory()->create();
     $ownedTeam = Team::factory()->create();
 
@@ -335,7 +346,8 @@ test('leave control is not rendered for personal or owned teams', function () {
         ->assertDontSeeHtml('data-test="team-leave-button"');
 });
 
-test('deleting team switches other affected users to their personal team', function () {
+test('deleting team clears the current team of other affected users', function () {
+    config(['llumo.allow_center_creation' => true]);
     $owner = User::factory()->create();
     $member = User::factory()->create();
 
@@ -353,28 +365,28 @@ test('deleting team switches other affected users to their personal team', funct
         ->call('deleteTeam')
         ->assertHasNoErrors();
 
-    expect($member->fresh()->current_team_id)->toEqual($member->personalTeam()->id);
+    expect($member->fresh()->current_team_id)->toBeNull();
 });
 
-test('personal teams cannot be deleted', function () {
+test('teams cannot be deleted when the installation serves a single center', function () {
     $user = User::factory()->create();
-
-    $personalTeam = $user->personalTeam();
+    $team = $user->currentTeam;
 
     $this->actingAs($user);
 
-    Livewire::test('pages::teams.delete-team-modal', ['team' => $personalTeam])
-        ->set('deleteName', $personalTeam->name)
+    Livewire::test('pages::teams.delete-team-modal', ['team' => $team])
+        ->set('deleteName', $team->name)
         ->call('deleteTeam')
         ->assertForbidden();
 
     $this->assertDatabaseHas('teams', [
-        'id' => $personalTeam->id,
+        'id' => $team->id,
         'deleted_at' => null,
     ]);
 });
 
 test('teams cannot be deleted by non owners', function () {
+    config(['llumo.allow_center_creation' => true]);
     $owner = User::factory()->create();
     $member = User::factory()->create();
     $team = Team::factory()->create();

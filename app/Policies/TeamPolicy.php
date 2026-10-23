@@ -26,10 +26,13 @@ class TeamPolicy
 
     /**
      * Determine whether the user can create models.
+     *
+     * Without multiple centers enabled, only the first center of the
+     * installation can be created.
      */
     public function create(User $user): bool
     {
-        return true;
+        return config('llumo.allow_center_creation') || ! Team::withTrashed()->exists();
     }
 
     /**
@@ -45,9 +48,7 @@ class TeamPolicy
      */
     public function leave(User $user, Team $team): bool
     {
-        return ! $team->is_personal
-            && $user->belongsToTeam($team)
-            && ! $user->ownsTeam($team);
+        return $user->belongsToTeam($team) && ! $user->ownsTeam($team);
     }
 
     /**
@@ -92,9 +93,12 @@ class TeamPolicy
 
     /**
      * Determine whether the user can delete the model.
+     *
+     * An installation that serves a single center cannot delete it: only the
+     * first center can be created there, so it would be left without one.
      */
     public function delete(User $user, Team $team): bool
     {
-        return ! $team->is_personal && $user->hasTeamPermission($team, TeamPermission::DeleteTeam);
+        return config('llumo.allow_center_creation') && $user->hasTeamPermission($team, TeamPermission::DeleteTeam);
     }
 }

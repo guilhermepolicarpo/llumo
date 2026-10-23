@@ -302,7 +302,6 @@
   "Edit :name": "Editar :name",
   "View :name": "Ver :name",
   "Type \":name\" to confirm": "Digite \":name\" para confirmar",
-  "Personal": "Pessoal",
   "Logo": "Logotipo",
   "Remove logo": "Remover logotipo",
   "Logo removed.": "Logotipo removido.",
@@ -894,5 +893,13 @@
   "Refine the books shown in the list.": "Refine os livros exibidos na lista.",
   "Hide the books with no copy to lend now.": "Oculta os livros sem exemplar para emprestar agora.",
   "Appointments scheduled for the assisted people": "Atendimentos agendados para os assistidos",
-  ":available of :total available": ":available de :total disponíveis"
+  ":available of :total available": ":available de :total disponíveis",
+  "Registration is by invitation only. Ask an administrator of your Spiritist Center for an invitation.": "O cadastro é feito apenas por convite. Peça um convite a um administrador do seu Centro Espírita.",
+  "This invitation is no longer valid.": "Este convite não é mais válido.",
+  "Create your Spiritist Center": "Crie seu Centro Espírita",
+  "Give your Spiritist Center a name to get started. You can fill in the other details later.": "Dê um nome ao seu Centro Espírita para começar. Os demais dados podem ser preenchidos depois.",
+  "You are not part of any Spiritist Center yet. Ask an administrator of your Spiritist Center for an invitation.": "Você ainda não participa de nenhum Centro Espírita. Peça um convite a um administrador do seu Centro Espírita.",
+  "This installation already has a Spiritist Center.": "Esta instalação já tem um Centro Espírita.",
+  "Your name": "Seu nome",
+  "Spiritist Center \":name\" created. Log in with :email.": "Centro Espírita \":name\" criado. Entre com :email."
 }

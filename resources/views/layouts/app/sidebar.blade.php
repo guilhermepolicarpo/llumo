@@ -118,7 +118,9 @@
 
         {{ $slot }}
 
-        <livewire:create-team-modal />
+        @can('create', App\Models\Team::class)
+            <livewire:create-team-modal />
+        @endcan
 
         @persist('toast')
             <flux:toast.group position="bottom center">
