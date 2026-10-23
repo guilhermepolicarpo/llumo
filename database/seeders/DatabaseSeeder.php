@@ -136,7 +136,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'test@example.com',
         ]);
 
-        $team = $owner->currentTeam;
+        $team = $owner->currentTeam()->sole();
         $team->update(['name' => 'Centro Espírita Luz']);
 
         $members = User::factory()->withoutTeam()->count(3)->create();
@@ -155,7 +155,7 @@ class DatabaseSeeder extends Seeder
 
         foreach (['Centro Espírita Caminho da Paz' => TeamRole::Admin, 'Grupo Espírita Fraternidade' => TeamRole::Member] as $name => $ownerRole) {
             $otherOwner = User::factory()->create();
-            $otherTeam = $otherOwner->currentTeam;
+            $otherTeam = $otherOwner->currentTeam()->sole();
             $otherTeam->update(['name' => $name]);
 
             Membership::factory()->for($otherTeam)->for($owner)->create(['role' => $ownerRole]);
