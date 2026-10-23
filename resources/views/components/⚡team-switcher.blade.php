@@ -144,13 +144,15 @@ new class extends Component {
                 </flux:menu.item>
             @endforeach
 
-            <flux:menu.separator />
+            @can('create', App\Models\Team::class)
+                <flux:menu.separator />
 
-            <flux:modal.trigger name="create-team-switcher">
-                <flux:menu.item icon="plus" data-test="team-switcher-new-team">
-                    {{ __('New Spiritist Center') }}
-                </flux:menu.item>
-            </flux:modal.trigger>
+                <flux:modal.trigger name="create-team-switcher">
+                    <flux:menu.item icon="plus" data-test="team-switcher-new-team">
+                        {{ __('New Spiritist Center') }}
+                    </flux:menu.item>
+                </flux:modal.trigger>
+            @endcan
         </flux:menu>
     </flux:dropdown>
 </div>

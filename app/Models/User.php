@@ -32,7 +32,6 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Team|null $currentTeam
- * @property-read Collection<int, Team> $ownedTeams
  * @property-read Collection<int, Membership> $teamMemberships
  * @property-read Collection<int, Team> $teams
  */
@@ -55,6 +54,16 @@ class User extends Authenticatable implements PasskeyUser
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Determine if an account can be created without an invitation.
+     *
+     * The first account of an empty installation is always allowed.
+     */
+    public static function canRegisterWithoutInvitation(): bool
+    {
+        return config('llumo.open_registration') || ! static::query()->exists();
     }
 
     /**

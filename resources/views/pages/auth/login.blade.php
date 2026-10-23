@@ -58,15 +58,17 @@
             </flux:button>
         </form>
 
-        <flux:text class="text-center">
-            {{ __('Don\'t have an account?') }}
-            <flux:link
-                :href="$teamInvitation ? route('register', ['invitation' => $teamInvitation['code']]) : route('register')"
-                data-test="register-link"
-                wire:navigate
-            >
-                {{ __('Sign up') }}
-            </flux:link>
-        </flux:text>
+        @if ($teamInvitation || App\Models\User::canRegisterWithoutInvitation())
+            <flux:text class="text-center">
+                {{ __('Don\'t have an account?') }}
+                <flux:link
+                    :href="$teamInvitation ? route('register', ['invitation' => $teamInvitation['code']]) : route('register')"
+                    data-test="register-link"
+                    wire:navigate
+                >
+                    {{ __('Sign up') }}
+                </flux:link>
+            </flux:text>
+        @endif
     </div>
 </x-layouts::auth>

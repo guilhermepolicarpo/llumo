@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 
+Route::livewire('onboarding', 'pages::onboarding.index')
+    ->middleware(['auth', 'verified'])
+    ->name('onboarding');
+
 Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])
     ->scopeBindings()

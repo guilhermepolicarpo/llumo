@@ -174,10 +174,9 @@ test('confirming removal from the shared modal sets the target member and shows 
         ->assertSee('Removable Member');
 });
 
-test('removed members current team is set to personal team', function () {
+test('removing a member clears their current team when it was the team they were removed from', function () {
     $owner = User::factory()->create();
     $member = User::factory()->create();
-    $personalTeam = $member->personalTeam();
     $team = Team::factory()->create();
 
     $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -192,7 +191,7 @@ test('removed members current team is set to personal team', function () {
         ->call('removeMember')
         ->assertHasNoErrors();
 
-    expect($member->fresh()->current_team_id)->toEqual($personalTeam->id);
+    expect($member->fresh()->current_team_id)->toBeNull();
 });
 
 test('the members page shows an empty state when there are no pending invitations', function () {

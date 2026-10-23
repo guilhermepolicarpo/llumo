@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Actions\Appointments\SaveAppointmentRecord;
 use App\Enums\AppointmentMode;
 use App\Enums\InfiltrationRemovalPlace;
+use App\Enums\TeamRole;
 use App\Models\Appointment;
 use App\Models\AppointmentType;
 use App\Models\AssistedPerson;
@@ -136,24 +137,33 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $team = $owner->currentTeam;
+        $team->update(['name' => 'Centro Espírita Luz']);
 
-        $members = User::factory()->count(3)->create();
+        $members = User::factory()->withoutTeam()->count(3)->create();
+
+        foreach ($members as $index => $member) {
+            $membership = Membership::factory()->for($team)->for($member);
+
+            $index === 0
+                ? $membership->admin()->create()
+                : $membership->member()->create();
+
+            $member->switchTeam($team);
+        }
 
         $teams = collect([$team]);
 
-        foreach ($members as $index => $member) {
-            Membership::factory()->for($team)->for($member)->member()->create();
+        foreach (['Centro Espírita Caminho da Paz' => TeamRole::Admin, 'Grupo Espírita Fraternidade' => TeamRole::Member] as $name => $ownerRole) {
+            $otherOwner = User::factory()->create();
+            $otherTeam = $otherOwner->currentTeam;
+            $otherTeam->update(['name' => $name]);
 
-            $ownerMembership = Membership::factory()->for($member->currentTeam)->for($owner);
+            Membership::factory()->for($otherTeam)->for($owner)->create(['role' => $ownerRole]);
 
-            $index < 2
-                ? $ownerMembership->admin()->create()
-                : $ownerMembership->member()->create();
-
-            $teams->push($member->currentTeam);
+            $teams->push($otherTeam);
         }
 
-        $teams->filter()->each(fn (Team $team) => $this->seedTeam($team));
+        $teams->each(fn (Team $team) => $this->seedTeam($team));
     }
 
     /**

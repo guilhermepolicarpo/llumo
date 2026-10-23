@@ -25,7 +25,6 @@ use Illuminate\Support\Facades\Storage;
  * @property string $name
  * @property string|null $legal_name
  * @property string $slug
- * @property bool $is_personal
  * @property string|null $logo_path
  * @property string|null $phone
  * @property string|null $postal_code
@@ -68,7 +67,6 @@ use Illuminate\Support\Facades\Storage;
     'name',
     'legal_name',
     'slug',
-    'is_personal',
     'logo_path',
     'phone',
     'postal_code',
@@ -335,7 +333,6 @@ class Team extends Model
     protected function casts(): array
     {
         return [
-            'is_personal' => 'boolean',
             'state' => BrazilianState::class,
             'loan_period_days' => 'integer',
             'loan_max_renewals' => 'integer',

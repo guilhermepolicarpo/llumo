@@ -381,25 +381,21 @@ test('an unreachable postal code service leaves the address fields untouched', f
         ->assertSet('street', '');
 });
 
-test('personal teams also show the logo and address sections', function () {
+test('the center details page shows the logo and address sections', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user);
-
-    auth()->user()->switchTeam($user->personalTeam());
 
     Livewire::test('pages::team-settings.profile')
         ->assertSeeHtml('data-test="team-logo-input"')
         ->assertSeeHtml('data-test="team-postal-code-input"');
 });
 
-test('owners can set a logo and address on their personal team', function () {
+test('owners can set a logo and address on their center', function () {
     $user = User::factory()->create();
-    $team = $user->personalTeam();
+    $team = $user->currentTeam;
 
     $this->actingAs($user);
-
-    auth()->user()->switchTeam($team);
 
     Livewire::test('pages::team-settings.profile')
         ->set('logo', UploadedFile::fake()->image('logo.png', 400, 400))

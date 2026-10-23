@@ -47,7 +47,7 @@ new class extends Component {
         $membership->delete();
 
         if ($user->isCurrentTeam($this->team)) {
-            $user->switchTeam($user->personalTeam());
+            $user->update(['current_team_id' => null]);
         }
 
         Flux::modal('remove-member')->close();

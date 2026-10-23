@@ -16,6 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             SetTeamUrlDefaults::class,
         ]);
+
+        $middleware->redirectUsersTo(fn (Request $request): string => $request->user()->homeUrl());
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

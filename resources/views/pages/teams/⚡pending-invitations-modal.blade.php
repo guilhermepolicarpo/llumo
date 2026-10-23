@@ -1,9 +1,9 @@
 <?php
 
+use App\Actions\Teams\AcceptTeamInvitation;
 use App\Models\TeamInvitation;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
@@ -30,10 +30,7 @@ new class extends Component {
         return TeamInvitation::query()
             ->with(['inviter', 'team'])
             ->whereRaw('LOWER(email) = ?', [$email])
-            ->whereNull('accepted_at')
-            ->where(fn ($query) => $query
-                ->whereNull('expires_at')
-                ->orWhere('expires_at', '>=', now()))
+            ->pending()
             ->latest()
             ->get()
             ->map(fn (TeamInvitation $invitation) => [
@@ -43,24 +40,9 @@ new class extends Component {
             ]);
     }
 
-    public function acceptInvitation(string $code): void
+    public function acceptInvitation(string $code, AcceptTeamInvitation $acceptTeamInvitation): void
     {
-        $invitation = $this->findPendingInvitation($code);
-
-        $user = Auth::user();
-
-        DB::transaction(function () use ($user, $invitation) {
-            $team = $invitation->team;
-
-            $team->memberships()->firstOrCreate(
-                ['user_id' => $user->id],
-                ['role' => $invitation->role]
-            );
-
-            $invitation->update(['accepted_at' => now()]);
-
-            $user->switchTeam($team);
-        });
+        $acceptTeamInvitation->handle(Auth::user(), $this->findPendingInvitation($code));
 
         session()->flash('team-invitation-accepted', true);
 

@@ -44,7 +44,7 @@ class UserFactory extends Factory
     public function configure(): static
     {
         return $this->afterCreating(function ($user) {
-            $team = Team::factory()->personal()->create([
+            $team = Team::factory()->create([
                 'name' => $user->firstName()."'s Team",
             ]);
 
@@ -53,6 +53,18 @@ class UserFactory extends Factory
             ]);
 
             $user->switchTeam($team);
+        });
+    }
+
+    /**
+     * Indicate that the user does not belong to any Spiritist Center.
+     */
+    public function withoutTeam(): static
+    {
+        return $this->afterCreating(function (User $user) {
+            $user->currentTeam->forceDelete();
+
+            $user->refresh();
         });
     }
 

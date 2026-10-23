@@ -16,6 +16,8 @@ new class extends Component {
 
     public function createTeam(CreateTeam $createTeam): void
     {
+        Gate::authorize('create', Team::class);
+
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255', new TeamName],
         ]);
@@ -46,6 +48,8 @@ new class extends Component {
 
         if ($fallbackTeam) {
             $user->switchTeam($fallbackTeam);
+        } elseif ($user->isCurrentTeam($team)) {
+            $user->update(['current_team_id' => null]);
         }
 
         Flux::toast(variant: 'success', text: __('You left the Spiritist Center ":name"', ['name' => $team->name]));
@@ -74,13 +78,15 @@ new class extends Component {
     <flux:heading level="2" class="sr-only">{{ __('Spiritist Centers') }}</flux:heading>
 
     <x-pages::settings.layout :heading="__('Spiritist Centers')" :subheading="__('Manage your Spiritist Centers and memberships')">
-        <div class="flex items-center justify-end">
-            <flux:modal.trigger name="create-team">
-                <flux:button variant="primary" icon="plus" data-test="teams-new-team-button">
-                    {{ __('New Spiritist Center') }}
-                </flux:button>
-            </flux:modal.trigger>
-        </div>
+        @can('create', App\Models\Team::class)
+            <div class="flex items-center justify-end">
+                <flux:modal.trigger name="create-team">
+                    <flux:button variant="primary" icon="plus" data-test="teams-new-team-button">
+                        {{ __('New Spiritist Center') }}
+                    </flux:button>
+                </flux:modal.trigger>
+            </div>
+        @endcan
 
         <div class="mt-6 space-y-3">
             @forelse ($this->teams as $team)
@@ -91,16 +97,13 @@ new class extends Component {
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="font-medium">{{ $team->name }}</span>
-                                @if ($team->isPersonal)
-                                    <flux:badge color="zinc">{{ __('Personal') }}</flux:badge>
-                                @endif
                             </div>
                             <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">{{ $team->roleLabel }}</flux:text>
                         </div>
                     </div>
 
                     <div class="flex items-center gap-1">
-                        @if (! $team->isPersonal && $team->role !== 'owner')
+                        @if ($team->role !== 'owner')
                             <flux:modal.trigger :name="'leave-team-'.$team->id">
                                 <flux:tooltip :content="__('Leave Spiritist Center')">
                                     <flux:button
@@ -129,7 +132,7 @@ new class extends Component {
                     </div>
                 </div>
 
-                @if (! $team->isPersonal && $team->role !== 'owner')
+                @if ($team->role !== 'owner')
                     <flux:modal :name="'leave-team-'.$team->id" focusable class="max-w-lg">
                         <form wire:submit="leaveTeam({{ $team->id }})" class="space-y-6">
                             <div>

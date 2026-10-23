@@ -10,6 +10,7 @@ use App\Http\Responses\RegisterResponse;
 use App\Http\Responses\TwoFactorLoginResponse;
 use App\Http\Responses\VerifyEmailResponse;
 use App\Models\TeamInvitation;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -66,9 +67,15 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::verifyEmailView(fn () => view('pages::auth.verify-email'));
         Fortify::twoFactorChallengeView(fn () => view('pages::auth.two-factor-challenge'));
         Fortify::confirmPasswordView(fn () => view('pages::auth.confirm-password'));
-        Fortify::registerView(fn (Request $request) => view('pages::auth.register', [
-            'teamInvitation' => $this->teamInvitation($request),
-        ]));
+        Fortify::registerView(function (Request $request) {
+            $teamInvitation = $this->teamInvitation($request);
+
+            if (! $teamInvitation && ! User::canRegisterWithoutInvitation()) {
+                return redirect()->route('login');
+            }
+
+            return view('pages::auth.register', ['teamInvitation' => $teamInvitation]);
+        });
         Fortify::resetPasswordView(fn () => view('pages::auth.reset-password'));
         Fortify::requestPasswordResetLinkView(fn () => view('pages::auth.forgot-password'));
     }
@@ -100,7 +107,7 @@ class FortifyServiceProvider extends ServiceProvider
     /**
      * Get the pending team invitation context for auth pages.
      *
-     * @return array{code: string, teamName: string}|null
+     * @return array{code: string, email: string, teamName: string}|null
      */
     private function teamInvitation(Request $request): ?array
     {
@@ -113,10 +120,7 @@ class FortifyServiceProvider extends ServiceProvider
         $invitation = TeamInvitation::query()
             ->with('team')
             ->where('code', $invitationCode)
-            ->whereNull('accepted_at')
-            ->where(fn ($query) => $query
-                ->whereNull('expires_at')
-                ->orWhere('expires_at', '>=', now()))
+            ->pending()
             ->first();
 
         if (! $invitation) {
@@ -125,6 +129,7 @@ class FortifyServiceProvider extends ServiceProvider
 
         return [
             'code' => $invitation->code,
+            'email' => $invitation->email,
             'teamName' => $invitation->team->name,
         ];
     }
