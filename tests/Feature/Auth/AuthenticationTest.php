@@ -11,6 +11,30 @@ test('login screen can be rendered', function () {
     $response->assertOk();
 });
 
+test('login screen shows the book a quote was taken from', function () {
+    config(['quotes' => [[
+        'message' => 'Fora da caridade não há salvação.',
+        'author' => 'Allan Kardec',
+        'book' => 'O Evangelho Segundo o Espiritismo',
+    ]]]);
+
+    $this->get(route('login'))
+        ->assertOk()
+        ->assertSeeInOrder(['Allan Kardec', 'O Evangelho Segundo o Espiritismo']);
+});
+
+test('login screen shows a quote without a book', function () {
+    config(['quotes' => [[
+        'message' => 'Nunca deixe de tentar.',
+        'author' => 'Divaldo Franco',
+    ]]]);
+
+    $this->get(route('login'))
+        ->assertOk()
+        ->assertSee('Divaldo Franco')
+        ->assertDontSee('<cite', escape: false);
+});
+
 test('users can authenticate using the login screen', function () {
     $user = User::factory()->create();
 

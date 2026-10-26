@@ -22,7 +22,7 @@
 
             <div class="flex flex-1 p-4 max-lg:hidden">
                 @php
-                    ['message' => $message, 'author' => $author] = collect(config('quotes'))->random();
+                    $quote = collect(config('quotes'))->random();
                 @endphp
 
                 <div
@@ -30,8 +30,13 @@
                     style="background-image: url('{{ \Illuminate\Support\Facades\Vite::asset('resources/images/auth_aurora_2x.webp') }}')"
                 >
                     <blockquote class="relative z-10">
-                        <p class="mb-6 text-3xl italic xl:text-4xl">&ldquo;{{ $message }}&rdquo;</p>
-                        <footer class="font-medium">{{ $author }}</footer>
+                        <p class="mb-6 text-3xl italic xl:text-4xl">&ldquo;{{ $quote['message'] }}&rdquo;</p>
+                        <footer>
+                            <div class="font-medium">{{ $quote['author'] }}</div>
+                            @isset($quote['book'])
+                                <cite class="block text-sm text-white/70 not-italic">{{ $quote['book'] }}</cite>
+                            @endisset
+                        </footer>
                     </blockquote>
                 </div>
             </div>
