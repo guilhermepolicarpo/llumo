@@ -119,7 +119,8 @@ return [
     ],
     [
         'message' => 'Embora ninguém possa voltar atrás e fazer um novo começo, qualquer um pode começar agora e fazer um novo fim.',
-        'author' => 'Chico Xavier',
+        'author' => 'James R. Sherman',
+        'book' => 'Rejection',
     ],
     [
         'message' => 'Ambiente limpo não é o que mais se limpa e sim o que menos se suja.',
