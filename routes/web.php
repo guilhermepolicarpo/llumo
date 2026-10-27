@@ -18,7 +18,7 @@ Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])
     ->scopeBindings()
     ->group(function () {
-        Route::view('dashboard', 'dashboard')->name('dashboard');
+        Route::livewire('dashboard', 'pages::dashboard.index')->name('dashboard');
 
         Route::livewire('assisted-people', 'pages::assisted-people.index')->name('assisted-people.index');
         Route::livewire('assisted-people/create', 'pages::assisted-people.create')->name('assisted-people.create');
