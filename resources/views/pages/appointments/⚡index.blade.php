@@ -26,6 +26,7 @@ use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Renderless;
 use Livewire\Attributes\Session;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -61,11 +62,16 @@ new class extends Component
 
     public string $search = '';
 
+    /**
+     * The day listed ('Y-m-d'), today unless the link that opened the page names another one.
+     */
+    #[Url]
     public string $date = '';
 
     /**
      * Whether the list shows the appointments from previous days whose attendance was never entered, instead of a date.
      */
+    #[Url]
     public bool $pending = false;
 
     /**
@@ -102,7 +108,11 @@ new class extends Component
     {
         Gate::authorize('viewAny', [Appointment::class, Auth::user()->currentTeam]);
 
-        $this->date = today()->toDateString();
+        if ($this->pending) {
+            $this->date = '';
+        } elseif ($this->parsedDate() === null) {
+            $this->date = today()->toDateString();
+        }
     }
 
     public function updated(): void
@@ -270,11 +280,19 @@ new class extends Component
     #[Computed]
     public function filteredDate(): ?CarbonInterface
     {
-        if ($this->date === '' || strtotime($this->date) === false) {
+        return $this->parsedDate();
+    }
+
+    /**
+     * Parse the listed day, or null when no day is picked or it is not a 'Y-m-d' date.
+     */
+    private function parsedDate(): ?CarbonInterface
+    {
+        if (! Date::canBeCreatedFromFormat($this->date, 'Y-m-d')) {
             return null;
         }
 
-        return Date::parse($this->date)->startOfDay();
+        return Date::createFromFormat('!Y-m-d', $this->date);
     }
 
     /**

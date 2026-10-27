@@ -18,6 +18,7 @@ use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Session;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -41,7 +42,7 @@ new class extends Component
     /**
      * The status shown, or an empty string for every loan still to be returned, overdue or not.
      */
-    #[Session('library-loans-status')]
+    #[Url]
     public string $status = '';
 
     public string $search = '';

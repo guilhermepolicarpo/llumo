@@ -401,3 +401,33 @@ test('the index lists the appointments from previous days still awaiting their r
         ->assertSee('Carla Hoje')
         ->assertDontSee('Ana Remota');
 });
+
+test('the index opens the pending list or the day named in the link', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $person = fn (string $name) => AssistedPerson::factory()->for($team)->create(['name' => $name]);
+    Appointment::factory()->for($team)->remote()->create(['scheduled_on' => today()->subDay(), 'assisted_person_id' => $person('Ana Pendente')]);
+    Appointment::factory()->for($team)->remote()->create(['scheduled_on' => today()->addDays(2), 'assisted_person_id' => $person('Bruno Depois')]);
+    Appointment::factory()->for($team)->remote()->create(['scheduled_on' => today(), 'assisted_person_id' => $person('Carla Hoje')]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::withQueryParams(['pending' => 1])
+        ->test('pages::appointments.index')
+        ->assertSet('pending', true)
+        ->assertSet('date', '')
+        ->assertSee('Ana Pendente')
+        ->assertDontSee('Carla Hoje');
+
+    Livewire::withQueryParams(['date' => today()->addDays(2)->toDateString()])
+        ->test('pages::appointments.index')
+        ->assertSet('date', today()->addDays(2)->toDateString())
+        ->assertSee('Bruno Depois')
+        ->assertDontSee('Carla Hoje');
+
+    Livewire::withQueryParams(['date' => 'not-a-date'])
+        ->test('pages::appointments.index')
+        ->assertSet('date', today()->toDateString())
+        ->assertSee('Carla Hoje');
+});

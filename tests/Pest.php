@@ -1,6 +1,9 @@
 <?php
 
 use App\Enums\TeamRole;
+use App\Models\Book;
+use App\Models\BookCopy;
+use App\Models\BookLoan;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -84,4 +87,16 @@ function actingAsTeamMember(TeamRole $role): array
     $user->switchTeam($team);
 
     return [$user, $team];
+}
+
+/**
+ * Lend a copy of a new book of the team with the given title.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function lendBookTitled(Team $team, string $title, array $attributes = []): BookLoan
+{
+    return BookLoan::factory()
+        ->for(BookCopy::factory()->for(Book::factory()->for($team)->state(['title' => $title])), 'copy')
+        ->create($attributes);
 }

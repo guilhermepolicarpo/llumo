@@ -48,7 +48,7 @@ Duas premissas guiam o projeto:
 | Atendimentos | Registro do atendimento: mentor, fluídicos (quantidade e posologia), passes, orientações recomendadas, retirada de infiltração, retorno agendado e observações, com rascunho salvo enquanto se preenche. Impressão das fichas de atendimento do dia em PDF. | ✅ Pronto |
 | Cadastros | Tipos de atendimento, mentores, fluídicos, orientações e tipos de passe; na biblioteca, autores, editoras, categorias e coleções. | ✅ Pronto |
 | Biblioteca | Acervo da casa com busca pelo ISBN nos catálogos públicos (BrasilAPI e Open Library, com capa), exemplares com tombo, empréstimos, renovações e devoluções, controle de atrasos e regras de empréstimo definidas por cada casa. | ✅ Pronto |
-| Painel de controle | Visão geral do dia na casa. | 🚧 Planejado |
+| Início | Visão geral da casa ao entrar: agendamentos do dia por situação, atendimentos pendentes de dias anteriores, empréstimos atrasados ou vencendo e os agendamentos dos próximos dias. | ✅ Pronto |
 | Financeiro | Controle de receitas e despesas da casa. | 🚧 Planejado |
 | Assistência social | Gestão de doações e ações assistenciais aos assistidos. | 🚧 Planejado |
 
@@ -107,13 +107,12 @@ O `composer test` é exatamente o que a CI executa em cada push e pull request. 
 
 ## Roadmap
 
-Já prontos: assistidos, agendamentos, atendimentos, mentores e fluídicos, biblioteca e a tradução da interface para pt-BR.
+Já prontos: assistidos, agendamentos, atendimentos, mentores e fluídicos, biblioteca, a tela de início e a tradução da interface para pt-BR.
 
 A seguir:
 
-1. **Painel de controle** — visão geral do dia: agendamentos, atendimentos pendentes e empréstimos atrasados
-2. **Financeiro** — controle de receitas e despesas da casa
-3. **Assistência social** — gestão de doações e ações assistenciais aos assistidos
+1. **Financeiro** — controle de receitas e despesas da casa
+2. **Assistência social** — gestão de doações e ações assistenciais aos assistidos
 
 Além dos módulos, no radar:
 

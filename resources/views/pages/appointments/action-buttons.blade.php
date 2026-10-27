@@ -4,7 +4,6 @@
 @props(['appointment', 'size' => 'base', 'editAs' => 'menu', 'menuFirst' => false, 'menuApart' => false,'emphasizeMain' => false])
 
 @use('App\Enums\AppointmentAction')
-@use('App\Enums\AppointmentStatus')
 
 @php
     $availableActions = collect(AppointmentAction::availableFor($appointment));
@@ -19,7 +18,7 @@
         $primaryActions = $primaryActions->reject(fn (AppointmentAction $action) => in_array($action, [AppointmentAction::Start, AppointmentAction::Complete], true));
     }
 
-    $isAttendable = $usesRecord && ($startsAttendance || $appointment->status === AppointmentStatus::InProgress);
+    $isAttendable = $usesRecord && $appointment->isAttendable();
     $mainVariant = $emphasizeMain ? 'primary' : 'outline';
 @endphp
 

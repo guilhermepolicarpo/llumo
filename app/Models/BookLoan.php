@@ -132,6 +132,17 @@ class BookLoan extends Model
     }
 
     /**
+     * Scope the query to open loans due from today up to the next few days, as isDueSoon() tells.
+     *
+     * @param  Builder<BookLoan>  $query
+     */
+    #[Scope]
+    protected function dueSoon(Builder $query): void
+    {
+        $query->open()->whereBetween('due_on', [today()->toDateString(), today()->addDays(self::DUE_SOON_DAYS)->toDateString()]);
+    }
+
+    /**
      * Scope the query to loans whose copy has been returned.
      *
      * @param  Builder<BookLoan>  $query

@@ -202,6 +202,19 @@ test('the loans list shows the books to return by default and can show the overd
         ->assertDontSee('Os Mensageiros');
 });
 
+test('the loans list opens on the status named in the link', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+
+    lendBookTitled($team, 'Nosso Lar');
+    lendBookTitled($team, 'Os Mensageiros', ['loaned_on' => today()->subDays(20)->toDateString(), 'due_on' => today()->subDays(6)->toDateString()]);
+
+    Livewire::withQueryParams(['status' => BookLoanStatus::Overdue->value])
+        ->test('pages::library.loans.index')
+        ->assertSet('status', BookLoanStatus::Overdue->value)
+        ->assertSee('Os Mensageiros')
+        ->assertDontSee('Nosso Lar');
+});
+
 test('the history keeps the loans of a deleted assisted person', function () {
     [, $team] = actingAsTeamMember(TeamRole::Member);
 

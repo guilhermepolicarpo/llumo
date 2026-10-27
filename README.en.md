@@ -48,7 +48,7 @@ Two principles guide the project:
 | Sessions (*atendimentos*) | Session record: mentor, fluidics (quantity and dosage), passes, recommended guidance, infiltration removal, a scheduled return and notes, with a draft saved while filling it in. The day's attendance sheets print as a PDF. | ✅ Ready |
 | Catalogs | Session types, spiritual mentors (*mentores*), fluidics (*fluídicos*), guidance and pass types; for the library, authors, publishers, categories and collections. | ✅ Ready |
 | Library | The center's books, looked up by ISBN in public catalogs (BrasilAPI and Open Library, with cover), copies with a shelf code, loans, renewals and returns, overdue tracking and loan rules set by each center. | ✅ Ready |
-| Dashboard | An overview of the center's day. | 🚧 Planned |
+| Dashboard (*Início*) | An overview of the center on sign-in: today's sessions by status, sessions from previous days awaiting a record, overdue and soon-due loans, and the sessions of the coming days. | ✅ Ready |
 | Finance | Income and expense control for the center. | 🚧 Planned |
 | Social assistance | Management of donations and assistance actions for assisted persons. | 🚧 Planned |
 
@@ -109,13 +109,12 @@ The interface is in Brazilian Portuguese (`APP_LOCALE=pt_BR`).
 
 ## Roadmap
 
-Already done: assisted persons, scheduling, sessions, mentors and fluidics, the library, and the pt-BR translation of the interface.
+Already done: assisted persons, scheduling, sessions, mentors and fluidics, the library, the dashboard, and the pt-BR translation of the interface.
 
 Next:
 
-1. **Dashboard** — an overview of the day: scheduled sessions, sessions awaiting a record and overdue loans
-2. **Finance** — income and expense control for the center
-3. **Social assistance** — management of donations and assistance actions for assisted persons
+1. **Finance** — income and expense control for the center
+2. **Social assistance** — management of donations and assistance actions for assisted persons
 
 Beyond the modules, also on the radar:
 
