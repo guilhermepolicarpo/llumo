@@ -4,7 +4,9 @@ use App\Enums\TeamRole;
 use App\Models\Membership;
 use App\Models\Team;
 use App\Models\User;
+use App\Notifications\Teams\TeamMemberRemoved;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
 test('membership factory persists the correct role for each state', function () {
@@ -68,6 +70,8 @@ test('team member role cannot be updated by non owner', function () {
 });
 
 test('team member can be removed by owner', function () {
+    Notification::fake();
+
     $owner = User::factory()->create();
     $member = User::factory()->create();
     $team = Team::factory()->create();
@@ -85,9 +89,17 @@ test('team member can be removed by owner', function () {
         ->assertNoRedirect();
 
     expect($member->fresh()->belongsToTeam($team))->toBeFalse();
+
+    Notification::assertSentTo(
+        $member,
+        TeamMemberRemoved::class,
+        fn (TeamMemberRemoved $notification): bool => $notification->team->is($team),
+    );
 });
 
 test('team member cannot be removed by non owners', function () {
+    Notification::fake();
+
     $owner = User::factory()->create();
     $admin = User::factory()->create();
     $member = User::factory()->create();
@@ -103,9 +115,13 @@ test('team member cannot be removed by non owners', function () {
         ->call('confirmRemoveMember', $member->id, $member->name)
         ->call('removeMember')
         ->assertForbidden();
+
+    Notification::assertNothingSent();
 });
 
 test('owner cannot remove themselves via a tampered member id', function () {
+    Notification::fake();
+
     $owner = User::factory()->create();
     $team = Team::factory()->create();
 
@@ -119,6 +135,8 @@ test('owner cannot remove themselves via a tampered member id', function () {
         ->assertForbidden();
 
     expect($owner->fresh()->belongsToTeam($team))->toBeTrue();
+
+    Notification::assertNothingSent();
 });
 
 test('owner cannot promote a member to owner via updateMember', function () {

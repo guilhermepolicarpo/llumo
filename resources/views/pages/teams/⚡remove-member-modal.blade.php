@@ -3,6 +3,7 @@
 use App\Enums\TeamRole;
 use App\Models\Team;
 use App\Models\User;
+use App\Notifications\Teams\TeamMemberRemoved;
 use Flux\Flux;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Locked;
@@ -49,6 +50,8 @@ new class extends Component {
         if ($user->isCurrentTeam($this->team)) {
             $user->update(['current_team_id' => null]);
         }
+
+        $user->notify(new TeamMemberRemoved($this->team));
 
         Flux::modal('remove-member')->close();
 
