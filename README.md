@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  Gestão para centros e casas espíritas — livre, self-hosted e feito com carinho.
+  Gestão para centros espíritas — livre, self-hosted e feito com carinho.
 </p>
 
 <p align="center">
@@ -19,7 +19,7 @@
 
 ## Sobre
 
-O llumo é um sistema de gestão para centros e casas espíritas: cadastro de assistidos, agendamento e registro de atendimentos, controle da biblioteca — o dia a dia da casa em um só lugar.
+O llumo é um sistema de gestão para centros espíritas: cadastro de assistidos, agendamento e registro de atendimentos, controle da biblioteca — o dia a dia da casa em um só lugar.
 
 O nome vem do esperanto *lumo* (luz), língua com ligação histórica com o movimento espírita. É grafado sempre em minúsculas.
 

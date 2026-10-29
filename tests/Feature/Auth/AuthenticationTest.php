@@ -11,6 +11,13 @@ test('login screen can be rendered', function () {
     $response->assertOk();
 });
 
+test('login screen has link preview meta tags', function () {
+    $this->get(route('login'))
+        ->assertOk()
+        ->assertSee('<meta property="og:image" content="'.asset('og-image.png').'">', escape: false)
+        ->assertSee('<meta property="og:title" content="'.__('Log in').' - '.config('app.name').'">', escape: false);
+});
+
 test('login screen shows the book a quote was taken from', function () {
     config(['quotes' => [[
         'message' => 'Fora da caridade não há salvação.',
