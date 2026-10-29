@@ -181,6 +181,7 @@ trait HasTeams
             canAddMember: $role?->hasPermission(TeamPermission::AddMember) ?? false,
             canUpdateMember: $role?->hasPermission(TeamPermission::UpdateMember) ?? false,
             canRemoveMember: $role?->hasPermission(TeamPermission::RemoveMember) ?? false,
+            canTransferOwnership: $role === TeamRole::Owner,
             canCreateInvitation: $role?->hasPermission(TeamPermission::CreateInvitation) ?? false,
             canCancelInvitation: $role?->hasPermission(TeamPermission::CancelInvitation) ?? false,
             canManageCatalogs: $role?->hasPermission(TeamPermission::ManageCatalogs) ?? false,
@@ -201,5 +202,18 @@ trait HasTeams
     public function hasTeamPermission(Team $team, TeamPermission $permission): bool
     {
         return $this->teamRole($team)?->hasPermission($permission) ?? false;
+    }
+
+    /**
+     * Get the teams the user owns that have no other admin to manage them without the user.
+     *
+     * @return Collection<int, Team>
+     */
+    public function ownedTeamsWithoutAnotherAdmin(): Collection
+    {
+        return $this->teams()
+            ->wherePivot('role', TeamRole::Owner->value)
+            ->whereDoesntHave('memberships', fn ($query) => $query->where('role', TeamRole::Admin->value))
+            ->get();
     }
 }

@@ -60,19 +60,21 @@ class TeamPolicy
     }
 
     /**
-     * Determine whether the user can update a member's role in the team.
+     * Determine whether the user can update the given member's role in the team.
      */
-    public function updateMember(User $user, Team $team): bool
+    public function updateMember(User $user, Team $team, User $member): bool
     {
-        return $user->hasTeamPermission($team, TeamPermission::UpdateMember);
+        return $user->hasTeamPermission($team, TeamPermission::UpdateMember)
+            && $this->canManageMember($user, $team, $member);
     }
 
     /**
-     * Determine whether the user can remove a member from the team.
+     * Determine whether the user can remove the given member from the team.
      */
-    public function removeMember(User $user, Team $team): bool
+    public function removeMember(User $user, Team $team, User $member): bool
     {
-        return $user->hasTeamPermission($team, TeamPermission::RemoveMember);
+        return $user->hasTeamPermission($team, TeamPermission::RemoveMember)
+            && $this->canManageMember($user, $team, $member);
     }
 
     /**
@@ -92,6 +94,14 @@ class TeamPolicy
     }
 
     /**
+     * Determine whether the user can transfer the team's ownership to the given member.
+     */
+    public function transferOwnership(User $user, Team $team, User $member): bool
+    {
+        return $user->ownsTeam($team) && ! $user->is($member) && $member->belongsToTeam($team);
+    }
+
+    /**
      * Determine whether the user can delete the model.
      *
      * An installation that serves a single center cannot delete it: only the
@@ -100,5 +110,13 @@ class TeamPolicy
     public function delete(User $user, Team $team): bool
     {
         return config('llumo.allow_center_creation') && $user->hasTeamPermission($team, TeamPermission::DeleteTeam);
+    }
+
+    /**
+     * Determine whether the given member can be managed by the user: nobody manages the owner or themselves.
+     */
+    private function canManageMember(User $user, Team $team, User $member): bool
+    {
+        return ! $user->is($member) && ! $member->ownsTeam($team);
     }
 }

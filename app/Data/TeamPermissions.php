@@ -10,6 +10,7 @@ readonly class TeamPermissions
         public bool $canAddMember,
         public bool $canUpdateMember,
         public bool $canRemoveMember,
+        public bool $canTransferOwnership,
         public bool $canCreateInvitation,
         public bool $canCancelInvitation,
         public bool $canManageCatalogs,

@@ -3,6 +3,7 @@
 use App\Concerns\PasswordValidationRules;
 use App\Livewire\Actions\Logout;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 
 new class extends Component {
@@ -18,6 +19,16 @@ new class extends Component {
         $this->validate([
             'password' => $this->currentPasswordRules(),
         ]);
+
+        $teamsWithoutAnotherAdmin = Auth::user()->ownedTeamsWithoutAnotherAdmin();
+
+        if ($teamsWithoutAnotherAdmin->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'password' => __('You own :teams. Transfer ownership, promote another member to admin, or delete the Spiritist Center before deleting your account.', [
+                    'teams' => $teamsWithoutAnotherAdmin->pluck('name')->join(', '),
+                ]),
+            ]);
+        }
 
         tap(Auth::user(), $logout(...))->delete();
 

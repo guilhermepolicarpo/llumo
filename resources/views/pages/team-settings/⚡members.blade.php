@@ -3,6 +3,7 @@
 use App\Data\TeamPermissions;
 use App\Enums\TeamRole;
 use App\Models\Team;
+use App\Models\User;
 use Flux\Flux;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -27,7 +28,7 @@ new class extends Component
 
     public function updateMember(int $userId, string $role): void
     {
-        Gate::authorize('updateMember', $this->team);
+        Gate::authorize('updateMember', [$this->team, User::findOrFail($userId)]);
 
         $validated = Validator::make(['role' => $role], [
             'role' => ['required', 'string', Rule::enum(TeamRole::class)->except([TeamRole::Owner])],
@@ -36,8 +37,6 @@ new class extends Component
         $membership = $this->team->memberships()
             ->where('user_id', $userId)
             ->firstOrFail();
-
-        abort_if($membership->role === TeamRole::Owner, 403);
 
         $membership->update(['role' => TeamRole::from($validated['role'])]);
 
@@ -105,7 +104,9 @@ new class extends Component
                             </div>
 
                             <div class="flex items-center gap-2">
-                                @if ($member->pivot->role !== TeamRole::Owner && $this->permissions->canUpdateMember)
+                                @php($isManageable = $member->pivot->role !== TeamRole::Owner && $member->id !== auth()->id())
+
+                                @if ($isManageable && $this->permissions->canUpdateMember)
                                     <flux:dropdown position="bottom" align="end">
                                         <flux:button variant="outline" size="sm" icon:trailing="chevron-down" data-test="member-role-trigger">
                                             {{ $member->pivot->role->label() }}
@@ -121,13 +122,27 @@ new class extends Component
                                                     {{ $role['label'] }}
                                                 </flux:menu.item>
                                             @endforeach
+
+                                            @if ($this->permissions->canTransferOwnership)
+                                                <flux:menu.separator />
+
+                                                <flux:menu.item
+                                                    as="button"
+                                                    type="button"
+                                                    icon="key"
+                                                    wire:click="$dispatch('confirm-transfer-ownership', { memberId: {{ $member->id }}, memberName: @js($member->name) })"
+                                                    data-test="member-transfer-ownership"
+                                                >
+                                                    {{ __('Transfer ownership') }}
+                                                </flux:menu.item>
+                                            @endif
                                         </flux:menu>
                                     </flux:dropdown>
                                 @else
                                     <flux:badge color="zinc">{{ $member->pivot->role->label() }}</flux:badge>
                                 @endif
 
-                                @if ($member->pivot->role !== TeamRole::Owner && $this->permissions->canRemoveMember)
+                                @if ($isManageable && $this->permissions->canRemoveMember)
                                     <flux:tooltip :content="__('Remove member')">
                                         <flux:button
                                             variant="ghost"
@@ -145,7 +160,7 @@ new class extends Component
                 </flux:card>
 
                 <flux:text class="text-sm">
-                    {{ __('Owners and admins edit the center details, invite members and manage the catalogs. Members use the system but do not see this area.') }}
+                    {{ __('Owners and admins edit the center details, manage members and invitations, and manage the catalogs. Members use the system but do not see this area.') }}
                 </flux:text>
             </div>
 
@@ -199,6 +214,10 @@ new class extends Component
 
     @if ($this->permissions->canRemoveMember)
         <livewire:pages::teams.remove-member-modal :team="$team" @member-removed="$refresh" />
+    @endif
+
+    @if ($this->permissions->canTransferOwnership)
+        <livewire:pages::teams.transfer-ownership-modal :team="$team" @ownership-transferred="$refresh" />
     @endif
 
     @if ($this->permissions->canCancelInvitation)

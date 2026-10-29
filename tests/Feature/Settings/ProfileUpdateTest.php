@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TeamRole;
 use App\Models\User;
 use Livewire\Livewire;
 
@@ -44,7 +45,7 @@ test('email verification status is unchanged when email address is unchanged', f
 });
 
 test('user can delete their account', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withoutTeam()->create();
 
     $this->actingAs($user);
 
@@ -58,6 +59,41 @@ test('user can delete their account', function () {
 
     expect($user->fresh())->toBeNull();
     expect(auth()->check())->toBeFalse();
+});
+
+test('owners cannot delete their account while a center they own has no other admin', function () {
+    $owner = User::factory()->create();
+    $team = $owner->currentTeam;
+
+    $team->members()->attach(User::factory()->create(), ['role' => TeamRole::Member->value]);
+
+    $this->actingAs($owner);
+
+    Livewire::test('pages::settings.delete-user-modal')
+        ->set('password', 'password')
+        ->call('deleteUser')
+        ->assertHasErrors(['password']);
+
+    expect($owner->fresh())->not->toBeNull();
+});
+
+test('owners can delete their account when the centers they own have another admin', function () {
+    $owner = User::factory()->create();
+    $admin = User::factory()->create();
+    $team = $owner->currentTeam;
+
+    $team->members()->attach($admin, ['role' => TeamRole::Admin->value]);
+
+    $this->actingAs($owner);
+
+    Livewire::test('pages::settings.delete-user-modal')
+        ->set('password', 'password')
+        ->call('deleteUser')
+        ->assertHasNoErrors()
+        ->assertRedirect('/');
+
+    expect($owner->fresh())->toBeNull()
+        ->and($admin->belongsToTeam($team))->toBeTrue();
 });
 
 test('correct password must be provided to delete account', function () {
