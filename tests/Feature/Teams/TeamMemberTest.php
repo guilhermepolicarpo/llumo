@@ -4,7 +4,9 @@ use App\Enums\TeamRole;
 use App\Models\Membership;
 use App\Models\Team;
 use App\Models\User;
+use App\Notifications\Teams\TeamMemberRemoved;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
 test('membership factory persists the correct role for each state', function () {
@@ -48,7 +50,27 @@ test('team member role can be updated by owner', function () {
     expect($team->members()->where('user_id', $member->id)->first()->pivot->role->value)->toEqual(TeamRole::Admin->value);
 });
 
-test('team member role cannot be updated by non owner', function () {
+test('team member role cannot be updated by members', function () {
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    $otherMember = User::factory()->create();
+    $team = Team::factory()->create();
+
+    $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+    $team->members()->attach($member, ['role' => TeamRole::Member->value]);
+    $team->members()->attach($otherMember, ['role' => TeamRole::Member->value]);
+
+    $this->actingAs($member);
+
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.members')
+        ->assertForbidden();
+
+    expect($member->can('updateMember', [$team, $otherMember]))->toBeFalse();
+});
+
+test('team member role can be updated by admins', function () {
     $owner = User::factory()->create();
     $admin = User::factory()->create();
     $member = User::factory()->create();
@@ -64,10 +86,38 @@ test('team member role cannot be updated by non owner', function () {
 
     Livewire::test('pages::team-settings.members')
         ->call('updateMember', $member->id, TeamRole::Admin->value)
+        ->assertHasNoErrors();
+
+    expect($member->teamRole($team))->toBe(TeamRole::Admin);
+});
+
+test('admins cannot change the role of the owner or their own role', function () {
+    $owner = User::factory()->create();
+    $admin = User::factory()->create();
+    $team = Team::factory()->create();
+
+    $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+    $team->members()->attach($admin, ['role' => TeamRole::Admin->value]);
+
+    $this->actingAs($admin);
+
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.members')
+        ->call('updateMember', $owner->id, TeamRole::Member->value)
         ->assertForbidden();
+
+    Livewire::test('pages::team-settings.members')
+        ->call('updateMember', $admin->id, TeamRole::Member->value)
+        ->assertForbidden();
+
+    expect($owner->teamRole($team))->toBe(TeamRole::Owner)
+        ->and($admin->teamRole($team))->toBe(TeamRole::Admin);
 });
 
 test('team member can be removed by owner', function () {
+    Notification::fake();
+
     $owner = User::factory()->create();
     $member = User::factory()->create();
     $team = Team::factory()->create();
@@ -85,27 +135,148 @@ test('team member can be removed by owner', function () {
         ->assertNoRedirect();
 
     expect($member->fresh()->belongsToTeam($team))->toBeFalse();
+
+    Notification::assertSentTo(
+        $member,
+        TeamMemberRemoved::class,
+        fn (TeamMemberRemoved $notification): bool => $notification->team->is($team),
+    );
 });
 
-test('team member cannot be removed by non owners', function () {
+test('team member cannot be removed by members', function () {
+    Notification::fake();
+
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    $otherMember = User::factory()->create();
+    $team = Team::factory()->create();
+
+    $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+    $team->members()->attach($member, ['role' => TeamRole::Member->value]);
+    $team->members()->attach($otherMember, ['role' => TeamRole::Member->value]);
+
+    $this->actingAs($member);
+
+    Livewire::test('pages::teams.remove-member-modal', ['team' => $team])
+        ->call('confirmRemoveMember', $otherMember->id, $otherMember->name)
+        ->call('removeMember')
+        ->assertForbidden();
+
+    expect($otherMember->fresh()->belongsToTeam($team))->toBeTrue();
+
+    Notification::assertNothingSent();
+});
+
+test('admins can remove other admins', function () {
+    Notification::fake();
+
     $owner = User::factory()->create();
     $admin = User::factory()->create();
-    $member = User::factory()->create();
+    $otherAdmin = User::factory()->create();
     $team = Team::factory()->create();
 
     $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
     $team->members()->attach($admin, ['role' => TeamRole::Admin->value]);
-    $team->members()->attach($member, ['role' => TeamRole::Member->value]);
+    $team->members()->attach($otherAdmin, ['role' => TeamRole::Admin->value]);
 
     $this->actingAs($admin);
 
     Livewire::test('pages::teams.remove-member-modal', ['team' => $team])
-        ->call('confirmRemoveMember', $member->id, $member->name)
+        ->call('confirmRemoveMember', $otherAdmin->id, $otherAdmin->name)
+        ->call('removeMember')
+        ->assertHasNoErrors()
+        ->assertDispatched('member-removed');
+
+    expect($otherAdmin->fresh()->belongsToTeam($team))->toBeFalse();
+
+    Notification::assertSentTo($otherAdmin, TeamMemberRemoved::class);
+});
+
+test('admins cannot remove the owner or themselves', function () {
+    $owner = User::factory()->create();
+    $admin = User::factory()->create();
+    $team = Team::factory()->create();
+
+    $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+    $team->members()->attach($admin, ['role' => TeamRole::Admin->value]);
+
+    $this->actingAs($admin);
+
+    Livewire::test('pages::teams.remove-member-modal', ['team' => $team])
+        ->call('confirmRemoveMember', $owner->id, $owner->name)
         ->call('removeMember')
         ->assertForbidden();
+
+    Livewire::test('pages::teams.remove-member-modal', ['team' => $team])
+        ->call('confirmRemoveMember', $admin->id, $admin->name)
+        ->call('removeMember')
+        ->assertForbidden();
+
+    expect($owner->fresh()->belongsToTeam($team))->toBeTrue()
+        ->and($admin->fresh()->belongsToTeam($team))->toBeTrue();
+});
+
+test('owner can transfer ownership to a member and becomes an admin', function () {
+    $owner = User::factory()->create();
+    $member = User::factory()->create();
+    $team = Team::factory()->create();
+
+    $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+    $team->members()->attach($member, ['role' => TeamRole::Member->value]);
+
+    $this->actingAs($owner);
+
+    Livewire::test('pages::teams.transfer-ownership-modal', ['team' => $team])
+        ->dispatch('confirm-transfer-ownership', memberId: $member->id, memberName: $member->name)
+        ->call('transferOwnership')
+        ->assertHasNoErrors()
+        ->assertDispatched('ownership-transferred');
+
+    expect($member->teamRole($team))->toBe(TeamRole::Owner)
+        ->and($owner->teamRole($team))->toBe(TeamRole::Admin)
+        ->and($owner->fresh()->can('leave', $team))->toBeTrue();
+});
+
+test('admins cannot transfer ownership', function () {
+    $owner = User::factory()->create();
+    $admin = User::factory()->create();
+    $team = Team::factory()->create();
+
+    $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+    $team->members()->attach($admin, ['role' => TeamRole::Admin->value]);
+
+    $this->actingAs($admin);
+
+    Livewire::test('pages::teams.transfer-ownership-modal', ['team' => $team])
+        ->call('confirmTransferOwnership', $admin->id, $admin->name)
+        ->call('transferOwnership')
+        ->assertForbidden();
+
+    expect($owner->teamRole($team))->toBe(TeamRole::Owner)
+        ->and($admin->teamRole($team))->toBe(TeamRole::Admin);
+});
+
+test('ownership cannot be transferred to someone outside the team', function () {
+    $owner = User::factory()->create();
+    $outsider = User::factory()->create();
+    $team = Team::factory()->create();
+
+    $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+
+    $this->actingAs($owner);
+
+    Livewire::test('pages::teams.transfer-ownership-modal', ['team' => $team])
+        ->call('confirmTransferOwnership', $outsider->id, $outsider->name)
+        ->call('transferOwnership')
+        ->assertForbidden();
+
+    expect($owner->teamRole($team))->toBe(TeamRole::Owner)
+        ->and($outsider->belongsToTeam($team))->toBeFalse();
 });
 
 test('owner cannot remove themselves via a tampered member id', function () {
+    Notification::fake();
+
     $owner = User::factory()->create();
     $team = Team::factory()->create();
 
@@ -119,6 +290,8 @@ test('owner cannot remove themselves via a tampered member id', function () {
         ->assertForbidden();
 
     expect($owner->fresh()->belongsToTeam($team))->toBeTrue();
+
+    Notification::assertNothingSent();
 });
 
 test('owner cannot promote a member to owner via updateMember', function () {

@@ -1,8 +1,8 @@
 <?php
 
-use App\Enums\TeamRole;
 use App\Models\Team;
 use App\Models\User;
+use App\Notifications\Teams\TeamMemberRemoved;
 use Flux\Flux;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Locked;
@@ -34,21 +34,20 @@ new class extends Component {
 
     public function removeMember(): void
     {
-        Gate::authorize('removeMember', $this->team);
-
-        $membership = $this->team->memberships()
-            ->where('user_id', $this->memberId)
-            ->firstOrFail();
-
-        abort_if($membership->role === TeamRole::Owner, 403);
-
         $user = User::findOrFail($this->memberId);
 
-        $membership->delete();
+        Gate::authorize('removeMember', [$this->team, $user]);
+
+        $this->team->memberships()
+            ->where('user_id', $user->id)
+            ->firstOrFail()
+            ->delete();
 
         if ($user->isCurrentTeam($this->team)) {
             $user->update(['current_team_id' => null]);
         }
+
+        $user->notify(new TeamMemberRemoved($this->team));
 
         Flux::modal('remove-member')->close();
 
