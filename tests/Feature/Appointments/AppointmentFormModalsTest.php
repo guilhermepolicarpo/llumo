@@ -14,10 +14,10 @@ test('members can create an appointment type from the modal', function () {
     $user->switchTeam($team);
 
     Livewire::test('appointments.create-appointment-type-modal')
-        ->set('name', 'Atendimento fraterno')
+        ->set('form.name', 'Atendimento fraterno')
         ->call('createAppointmentType')
         ->assertHasNoErrors()
-        ->assertSet('name', '')
+        ->assertSet('form.name', '')
         ->assertDispatched('appointment-type-created', appointmentTypeId: $team->appointmentTypes()->sole()->id);
 
     expect($team->appointmentTypes()->sole()->name)->toBe('Atendimento fraterno');
@@ -33,11 +33,11 @@ test('appointment type names are unique per team', function () {
     $user->switchTeam($team);
 
     Livewire::test('appointments.create-appointment-type-modal')
-        ->set('name', ' Passe ')
+        ->set('form.name', ' Passe ')
         ->call('createAppointmentType')
-        ->assertHasErrors(['name' => 'unique'])
+        ->assertHasErrors(['form.name' => 'unique'])
         ->assertNotDispatched('appointment-type-created')
-        ->set('name', 'Evangelhoterapia')
+        ->set('form.name', 'Evangelhoterapia')
         ->call('createAppointmentType')
         ->assertHasNoErrors();
 
@@ -96,11 +96,11 @@ test('an appointment type can be created to be attended with a record', function
     $user->switchTeam($team);
 
     Livewire::test('appointments.create-appointment-type-modal')
-        ->set('name', 'Tratamento')
-        ->set('requiresRecord', $requiresRecord)
+        ->set('form.name', 'Tratamento')
+        ->set('form.requiresRecord', $requiresRecord)
         ->call('createAppointmentType')
         ->assertHasNoErrors()
-        ->assertSet('requiresRecord', false);
+        ->assertSet('form.requiresRecord', false);
 
     expect($team->appointmentTypes()->sole()->requires_record)->toBe($requiresRecord);
 })->with([
@@ -116,11 +116,11 @@ test('an appointment type can be created with a daily limit, or without one', fu
     $user->switchTeam($team);
 
     Livewire::test('appointments.create-appointment-type-modal')
-        ->set('name', 'Tratamento de Cura')
-        ->set('dailyLimit', $dailyLimit)
+        ->set('form.name', 'Tratamento de Cura')
+        ->set('form.dailyLimit', $dailyLimit)
         ->call('createAppointmentType')
         ->assertHasNoErrors()
-        ->assertSet('dailyLimit', '');
+        ->assertSet('form.dailyLimit', '');
 
     expect($team->appointmentTypes()->sole()->daily_limit)->toBe($expected);
 })->with([
@@ -136,10 +136,10 @@ test('the daily limit of an appointment type must be a positive number', functio
     $user->switchTeam($team);
 
     Livewire::test('appointments.create-appointment-type-modal')
-        ->set('name', 'Tratamento de Cura')
-        ->set('dailyLimit', $dailyLimit)
+        ->set('form.name', 'Tratamento de Cura')
+        ->set('form.dailyLimit', $dailyLimit)
         ->call('createAppointmentType')
-        ->assertHasErrors('dailyLimit');
+        ->assertHasErrors('form.dailyLimit');
 
     expect($team->appointmentTypes()->exists())->toBeFalse();
 })->with(['zero' => ['0'], 'text' => ['vinte'], 'too large' => ['1000']]);

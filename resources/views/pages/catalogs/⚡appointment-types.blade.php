@@ -2,8 +2,7 @@
 
 use App\Actions\AppointmentTypes\CreateAppointmentType;
 use App\Actions\AppointmentTypes\UpdateAppointmentType;
-use App\Concerns\InteractsWithAppointmentTypeForm;
-use App\Enums\Weekday;
+use App\Livewire\Forms\AppointmentTypeForm;
 use App\Models\AppointmentType;
 use App\Models\Team;
 use Flux\Flux;
@@ -16,10 +15,7 @@ use Livewire\Component;
 
 new class extends Component
 {
-    use InteractsWithAppointmentTypeForm;
-
-    #[Locked]
-    public ?int $editingId = null;
+    public AppointmentTypeForm $form;
 
     #[Locked]
     public ?int $deletingId = null;
@@ -37,14 +33,13 @@ new class extends Component
      */
     public function closeAppointmentType(): void
     {
-        $fields = ['name', 'requiresRecord', 'dailyLimit', 'weekdays', 'editingId'];
-        $previousValues = $this->only($fields);
+        $previousValues = $this->form->all();
         $hadErrors = $this->getErrorBag()->isNotEmpty();
 
-        $this->reset($fields);
+        $this->form->reset();
         $this->resetValidation();
 
-        if (! $hadErrors && $this->only($fields) === $previousValues) {
+        if (! $hadErrors && $this->form->all() === $previousValues) {
             $this->skipRender();
         }
     }
@@ -55,11 +50,7 @@ new class extends Component
 
         Gate::authorize('update', $appointmentType);
 
-        $this->editingId = $appointmentType->id;
-        $this->name = $appointmentType->name;
-        $this->requiresRecord = $appointmentType->requires_record;
-        $this->dailyLimit = (string) $appointmentType->daily_limit;
-        $this->weekdays = $appointmentType->weekdays?->map(fn (Weekday $weekday): string => (string) $weekday->value)->all() ?? [];
+        $this->form->setAppointmentType($appointmentType);
         $this->resetValidation();
 
         Flux::modal('appointment-type')->show();
@@ -68,7 +59,7 @@ new class extends Component
     public function saveAppointmentType(CreateAppointmentType $createAppointmentType, UpdateAppointmentType $updateAppointmentType): void
     {
         $team = $this->team();
-        $appointmentType = $this->editingId !== null ? $this->findAppointmentType($this->editingId) : null;
+        $appointmentType = $this->form->editingId !== null ? $this->findAppointmentType($this->form->editingId) : null;
 
         if ($appointmentType !== null) {
             Gate::authorize('update', $appointmentType);
@@ -76,7 +67,7 @@ new class extends Component
             Gate::authorize('manage', [AppointmentType::class, $team]);
         }
 
-        $attributes = $this->validatedAppointmentTypeAttributes($team, $appointmentType);
+        $attributes = $this->form->validatedAttributes($team, $appointmentType);
 
         if ($appointmentType !== null) {
             $updateAppointmentType->handle($appointmentType, $attributes);
@@ -224,7 +215,7 @@ new class extends Component
     <flux:modal name="appointment-type" flyout variant="floating" :show="$errors->isNotEmpty()" class="md:w-lg" @close="closeAppointmentType">
         <form wire:submit="saveAppointmentType" class="space-y-6">
             <div>
-                <flux:heading size="lg">{{ $editingId !== null ? __('Edit appointment type') : __('New appointment type') }}</flux:heading>
+                <flux:heading size="lg">{{ $form->editingId !== null ? __('Edit appointment type') : __('New appointment type') }}</flux:heading>
                 <flux:subheading>{{ __('Types of appointment offered by this Spiritist Center.') }}</flux:subheading>
             </div>
 
