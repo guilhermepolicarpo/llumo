@@ -216,7 +216,7 @@ new class extends Component
                                 </div>
                             </flux:table.cell>
 
-                            <flux:table.cell class="whitespace-normal">
+                            <flux:table.cell>
                                 @php($incarnate = $book->authorsWithRole(AuthorRole::Incarnate))
                                 @php($spiritual = $book->authorsWithRole(AuthorRole::Spiritual))
                                 <div class="text-zinc-800 dark:text-white">{{ $incarnate->pluck('name')->join(', ') ?: '—' }}</div>
