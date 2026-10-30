@@ -10,7 +10,6 @@ test('admins can create, edit and delete appointment types', function () {
     [, $team] = actingAsTeamMember(TeamRole::Admin);
 
     $component = Livewire::test('pages::catalogs.appointment-types')
-        ->call('createAppointmentType')
         ->set('name', '  Desobsessão  ')
         ->set('requiresRecord', true)
         ->set('dailyLimit', '20')
@@ -73,7 +72,6 @@ test('admins can restrict an appointment type to the weekdays it takes place', f
     [, $team] = actingAsTeamMember(TeamRole::Admin);
 
     $component = Livewire::test('pages::catalogs.appointment-types')
-        ->call('createAppointmentType')
         ->set('name', 'Tratamento de cura')
         ->set('weekdays', ['3', '1'])
         ->call('saveAppointmentType')
@@ -111,4 +109,32 @@ test('appointment types of another team cannot be edited', function () {
     Livewire::test('pages::catalogs.appointment-types')
         ->call('editAppointmentType', $foreignType->id)
         ->assertNotFound();
+});
+
+test('closing the appointment type flyout clears the form so it opens empty for a new type', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Admin);
+    $appointmentType = AppointmentType::factory()->for($team)->create(['name' => 'Passe']);
+
+    Livewire::test('pages::catalogs.appointment-types')
+        ->call('editAppointmentType', $appointmentType->id)
+        ->set('dailyLimit', '1000')
+        ->call('saveAppointmentType')
+        ->assertHasErrors('dailyLimit')
+        ->call('closeAppointmentType')
+        ->assertSet('editingId', null)
+        ->assertSet('name', '')
+        ->assertSet('dailyLimit', '')
+        ->assertHasNoErrors();
+});
+
+test('closing an untouched appointment type flyout skips the re-render', function () {
+    actingAsTeamMember(TeamRole::Admin);
+
+    $component = Livewire::test('pages::catalogs.appointment-types')->call('closeAppointmentType');
+
+    expect($component->effects)->not->toHaveKey('html');
+
+    $component->set('name', 'Passe')->call('closeAppointmentType');
+
+    expect($component->effects)->toHaveKey('html');
 });

@@ -31,14 +31,22 @@ new class extends Component
         Gate::authorize('manage', [AppointmentType::class, $this->team()]);
     }
 
-    public function createAppointmentType(): void
+    /**
+     * Clear the form once the flyout closes, so it opens empty for a new appointment type.
+     * Skips the re-render when the form was already empty, e.g. after a save or an untouched "New".
+     */
+    public function closeAppointmentType(): void
     {
-        Gate::authorize('manage', [AppointmentType::class, $this->team()]);
+        $fields = ['name', 'requiresRecord', 'dailyLimit', 'weekdays', 'editingId'];
+        $previousValues = $this->only($fields);
+        $hadErrors = $this->getErrorBag()->isNotEmpty();
 
-        $this->reset('name', 'requiresRecord', 'dailyLimit', 'weekdays', 'editingId');
+        $this->reset($fields);
         $this->resetValidation();
 
-        Flux::modal('appointment-type')->show();
+        if (! $hadErrors && $this->only($fields) === $previousValues) {
+            $this->skipRender();
+        }
     }
 
     public function editAppointmentType(int $appointmentTypeId): void
@@ -78,7 +86,7 @@ new class extends Component
             $message = __('Appointment type created.');
         }
 
-        $this->reset('name', 'requiresRecord', 'dailyLimit', 'weekdays', 'editingId');
+        $this->closeAppointmentType();
 
         Flux::modal('appointment-type')->close();
 
@@ -147,9 +155,11 @@ new class extends Component
 
     <x-pages::team-settings.layout :heading="__('Appointment types')" :subheading="__('Types of appointment offered by this Spiritist Center.')">
         <x-slot:actions>
-            <flux:button variant="primary" icon="plus" wire:click="createAppointmentType" class="shrink-0" data-test="appointment-type-new-button">
-                {{ __('New appointment type') }}
-            </flux:button>
+            <flux:modal.trigger name="appointment-type">
+                <flux:button variant="primary" icon="plus" class="shrink-0" data-test="appointment-type-new-button">
+                    {{ __('New appointment type') }}
+                </flux:button>
+            </flux:modal.trigger>
         </x-slot:actions>
 
         <flux:card class="[--flux-card-padding:1rem]">
@@ -211,7 +221,7 @@ new class extends Component
         </flux:card>
     </x-pages::team-settings.layout>
 
-    <flux:modal name="appointment-type" flyout variant="floating" :show="$errors->isNotEmpty()" class="md:w-lg">
+    <flux:modal name="appointment-type" flyout variant="floating" :show="$errors->isNotEmpty()" class="md:w-lg" @close="closeAppointmentType">
         <form wire:submit="saveAppointmentType" class="space-y-6">
             <div>
                 <flux:heading size="lg">{{ $editingId !== null ? __('Edit appointment type') : __('New appointment type') }}</flux:heading>

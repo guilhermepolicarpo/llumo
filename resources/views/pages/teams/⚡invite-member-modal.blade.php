@@ -56,7 +56,7 @@ new class extends Component {
     }
 }; ?>
 
-<flux:modal name="invite-member" :show="$errors->isNotEmpty()" focusable class="max-w-lg">
+<flux:modal name="invite-member" flyout variant="floating" :show="$errors->isNotEmpty()" focusable class="md:w-lg">
     <form wire:submit="createInvitation" class="space-y-6">
         <div>
             <flux:heading size="lg">{{ __('Invite a Spiritist Center member') }}</flux:heading>
