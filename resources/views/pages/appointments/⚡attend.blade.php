@@ -12,7 +12,6 @@ use App\Enums\InfiltrationRemovalPlace;
 use App\Models\Appointment;
 use App\Models\AppointmentRecord;
 use App\Models\User;
-use App\Rules\AppointmentRecordRules;
 use Carbon\CarbonImmutable;
 use Flux\Flux;
 use Illuminate\Database\Eloquent\Collection;
@@ -97,9 +96,8 @@ new class extends Component
     public function returnToQueue(PerformAppointmentAction $performAppointmentAction, SaveAppointmentRecordDraft $saveAppointmentRecordDraft): void
     {
         Gate::authorize('perform', $this->appointment);
-        Gate::authorize('update', [AppointmentRecord::class, $this->appointment]);
 
-        $saveAppointmentRecordDraft->handle($this->appointment, Auth::user(), $this->only($this->draftProperties()));
+        $this->saveDraft($saveAppointmentRecordDraft);
 
         if (! $this->performAppointmentAction($performAppointmentAction, $this->appointment, AppointmentAction::ReturnToQueue)) {
             return;
@@ -160,9 +158,9 @@ new class extends Component
     {
         Gate::authorize('update', [AppointmentRecord::class, $this->appointment]);
 
-        $validated = $this->validate(AppointmentRecordRules::all($this->appointment));
+        $attributes = $this->form->validatedAttributes($this->appointment);
 
-        $saveAppointmentRecord->handle($this->appointment, Auth::user(), $this->recordAttributes($validated), $this->openedAt);
+        $saveAppointmentRecord->handle($this->appointment, Auth::user(), $attributes, $this->openedAt);
 
         unset($this->record);
         $this->restoredDraft = null;
@@ -368,8 +366,8 @@ new class extends Component
 
                         <flux:field>
                             <flux:label>{{ __('Appointment mentor') }}</flux:label>
-                            <x-catalog-picker :catalog="Catalog::Mentor" model="mentorId" :options="$this->mentors" :selected="$mentorId" test-id="appointment-record-mentor" />
-                            <flux:error name="mentorId" />
+                            <x-catalog-picker :catalog="Catalog::Mentor" model="form.mentorId" :options="$this->mentors" :selected="$form->mentorId" test-id="appointment-record-mentor" />
+                            <flux:error name="form.mentorId" />
                         </flux:field>
                     </div>
 
@@ -380,12 +378,12 @@ new class extends Component
 
                         <flux:field>
                             <flux:label>{{ __('Medications') }}</flux:label>
-                            <x-catalog-picker :catalog="Catalog::FluidicRemedy" model="fluidicRemedyIds" :options="$this->fluidicRemedies" :selected="$fluidicRemedyIds" multiple test-id="appointment-record-fluidic-remedies" />
-                            <flux:error name="fluidicRemedyIds" />
-                            <flux:error name="fluidicRemedyIds.*" />
+                            <x-catalog-picker :catalog="Catalog::FluidicRemedy" model="form.fluidicRemedyIds" :options="$this->fluidicRemedies" :selected="$form->fluidicRemedyIds" multiple test-id="appointment-record-fluidic-remedies" />
+                            <flux:error name="form.fluidicRemedyIds" />
+                            <flux:error name="form.fluidicRemedyIds.*" />
                         </flux:field>
 
-                        <flux:input wire:model="fluidInstructions" :label="__('How to take')" :placeholder="__('E.g. 3 times a day, every 3 hours')" data-test="appointment-record-fluid-instructions-input" />
+                        <flux:input wire:model="form.fluidInstructions" :label="__('How to take')" :placeholder="__('E.g. 3 times a day, every 3 hours')" data-test="appointment-record-fluid-instructions-input" />
                     </div>
 
                     <flux:separator variant="subtle" />
@@ -397,17 +395,17 @@ new class extends Component
                             <flux:label>{{ __('Recommended guidances') }}</flux:label>
                             <x-catalog-picker
                                 :catalog="Catalog::Guidance"
-                                model="guidanceIds"
+                                model="form.guidanceIds"
                                 :options="$this->guidances"
-                                :selected="$guidanceIds"
+                                :selected="$form->guidanceIds"
                                 multiple
-                                detail-model="guidanceDetails"
+                                detail-model="form.guidanceDetails"
                                 :detail-placeholder="__('Detail (optional)')"
                                 test-id="appointment-record-guidances"
                             />
                         </flux:field>
-                        <flux:error name="guidanceIds.*" />
-                        <flux:error name="guidanceDetails.*" />
+                        <flux:error name="form.guidanceIds.*" />
+                        <flux:error name="form.guidanceDetails.*" />
                     </div>
 
                     <flux:separator variant="subtle" />
@@ -415,19 +413,19 @@ new class extends Component
                     <div class="space-y-4">
                         <flux:heading size="lg">{{ __('Passes') }}</flux:heading>
 
-                        @foreach ($passPrescriptions as $index => $prescription)
+                        @foreach ($form->passPrescriptions as $index => $prescription)
                             <div class="space-y-2" wire:key="pass-prescription-{{ $index }}" data-test="appointment-record-pass-prescription">
                                 <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
                                     <flux:field class="min-w-0 flex-1">
                                         <flux:label>{{ __('Pass type') }}</flux:label>
-                                        <x-catalog-picker :catalog="Catalog::PassType" model="passPrescriptions.{{ $index }}.pass_type_id" :options="$this->passTypes" :selected="$prescription['pass_type_id']" :index="$index" test-id="appointment-record-pass-type-{{ $index }}" />
+                                        <x-catalog-picker :catalog="Catalog::PassType" model="form.passPrescriptions.{{ $index }}.pass_type_id" :options="$this->passTypes" :selected="$prescription['pass_type_id']" :index="$index" test-id="appointment-record-pass-type-{{ $index }}" />
                                     </flux:field>
 
                                     <div class="w-24">
-                                        <flux:input type="number" min="1" max="99" wire:model="passPrescriptions.{{ $index }}.quantity" :label="__('Quantity')" data-test="appointment-record-pass-quantity-input" />
+                                        <flux:input type="number" min="1" max="99" wire:model="form.passPrescriptions.{{ $index }}.quantity" :label="__('Quantity')" data-test="appointment-record-pass-quantity-input" />
                                     </div>
 
-                                    <flux:radio.group wire:model="passPrescriptions.{{ $index }}.mode" variant="segmented" :label="__('Mode')">
+                                    <flux:radio.group wire:model="form.passPrescriptions.{{ $index }}.mode" variant="segmented" :label="__('Mode')">
                                         @foreach ($this->modes as $modeOption)
                                             <flux:radio :value="$modeOption['value']" :label="$modeOption['label']" />
                                         @endforeach
@@ -436,9 +434,9 @@ new class extends Component
                                     <flux:button variant="ghost" size="sm" icon="x-mark" icon:variant="outline" class="self-end sm:mb-1.5" wire:click="removePassPrescription({{ $index }})" :aria-label="__('Remove pass')" data-test="appointment-record-remove-pass-button" />
                                 </div>
 
-                                <flux:error name="passPrescriptions.{{ $index }}.pass_type_id" />
-                                <flux:error name="passPrescriptions.{{ $index }}.quantity" />
-                                <flux:error name="passPrescriptions.{{ $index }}.mode" />
+                                <flux:error name="form.passPrescriptions.{{ $index }}.pass_type_id" />
+                                <flux:error name="form.passPrescriptions.{{ $index }}.quantity" />
+                                <flux:error name="form.passPrescriptions.{{ $index }}.mode" />
                             </div>
                         @endforeach
 
@@ -450,34 +448,34 @@ new class extends Component
                     <flux:separator variant="subtle" />
 
                     {{-- Picking another removal type does not send a request, so the section asks for the removal date's warning again. --}}
-                    <div class="space-y-4" x-on:catalog-picker-change="$wire.infiltrationRemoveOn && $wire.$refresh()" data-test="appointment-record-infiltration-section">
+                    <div class="space-y-4" x-on:catalog-picker-change="$wire.form.infiltrationRemoveOn && $wire.$refresh()" data-test="appointment-record-infiltration-section">
                         <flux:heading size="lg">{{ __('Infiltration') }}</flux:heading>
 
                         <div class="grid gap-4 sm:grid-cols-2">
-                            <flux:input wire:model.blur="infiltrationSite" :label="__('Site')" :placeholder="__('E.g. Right arm')" data-test="appointment-record-infiltration-site-input" />
-                            <x-date-input wire:model.live="infiltrationRemoveOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Remove on')" data-test="appointment-record-infiltration-remove-on-input" />
+                            <flux:input wire:model.blur="form.infiltrationSite" :label="__('Site')" :placeholder="__('E.g. Right arm')" data-test="appointment-record-infiltration-site-input" />
+                            <x-date-input wire:model.live="form.infiltrationRemoveOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Remove on')" data-test="appointment-record-infiltration-remove-on-input" />
                         </div>
 
-                        <flux:radio.group wire:model.live="infiltrationRemovalPlace" variant="segmented" :label="__('Where it is removed')" data-test="appointment-record-removal-place-radio">
+                        <flux:radio.group wire:model.live="form.infiltrationRemovalPlace" variant="segmented" :label="__('Where it is removed')" data-test="appointment-record-removal-place-radio">
                             @foreach ($this->removalPlaces as $placeOption)
                                 <flux:radio :value="$placeOption['value']" :label="$placeOption['label']" />
                             @endforeach
                         </flux:radio.group>
 
-                        @if (InfiltrationRemovalPlace::tryFrom($infiltrationRemovalPlace)?->schedulesRemoval())
+                        @if (InfiltrationRemovalPlace::tryFrom($form->infiltrationRemovalPlace)?->schedulesRemoval())
                             <flux:field>
                                 <flux:label>{{ __('Schedule the removal as') }}</flux:label>
                                 <x-catalog-picker
-                                    model="removalAppointmentTypeId"
+                                    model="form.removalAppointmentTypeId"
                                     :options="$this->appointmentTypes"
-                                    :selected="$removalAppointmentTypeId"
+                                    :selected="$form->removalAppointmentTypeId"
                                     :placeholder="__('Select a type...')"
                                     error-key="new_removalAppointmentTypeId"
                                     create="(name) => $wire.createAppointmentType(name, 'removalAppointmentTypeId')"
                                     cache-key="appointment_types"
                                     test-id="appointment-record-removal-type"
                                 />
-                                <flux:error name="removalAppointmentTypeId" />
+                                <flux:error name="form.removalAppointmentTypeId" />
                             </flux:field>
 
                             @if ($warning = $this->removalDayWarning)
@@ -494,7 +492,7 @@ new class extends Component
 
                         <div class="grid items-start gap-4 sm:grid-cols-2">
                             <div class="space-y-2">
-                                <x-date-input wire:model.live="returnOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Return date')" data-test="appointment-record-return-on-input" />
+                                <x-date-input wire:model.live="form.returnOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Return date')" data-test="appointment-record-return-on-input" />
 
                                 <div class="flex flex-wrap gap-1">
                                     @foreach ([7, 15, 30, 60] as $days)
@@ -505,25 +503,25 @@ new class extends Component
                                 </div>
 
                                 <div class="pt-2">
-                                    <flux:checkbox wire:model.live="schedulesReturn" :label="__('Schedule the return')" data-test="appointment-record-schedules-return-checkbox" />
+                                    <flux:checkbox wire:model.live="form.schedulesReturn" :label="__('Schedule the return')" data-test="appointment-record-schedules-return-checkbox" />
                                 </div>
                             </div>
 
-                            @if ($schedulesReturn)
+                            @if ($form->schedulesReturn)
                                 <div class="space-y-3">
                                     <flux:field>
                                         <flux:label>{{ __('Schedule the return as') }}</flux:label>
                                         <x-catalog-picker
-                                            model="returnAppointmentTypeId"
+                                            model="form.returnAppointmentTypeId"
                                             :options="$this->appointmentTypes"
-                                            :selected="$returnAppointmentTypeId"
+                                            :selected="$form->returnAppointmentTypeId"
                                             :placeholder="__('Select a type...')"
                                             error-key="new_returnAppointmentTypeId"
                                             create="(name) => $wire.createAppointmentType(name, 'returnAppointmentTypeId')"
                                             cache-key="appointment_types"
                                             test-id="appointment-record-return-type"
                                         />
-                                        <flux:error name="returnAppointmentTypeId" />
+                                        <flux:error name="form.returnAppointmentTypeId" />
                                     </flux:field>
 
                                     @if ($occupancy = $this->returnDayOccupancy)
@@ -555,7 +553,7 @@ new class extends Component
 
                     <div class="space-y-4">
                         <flux:heading size="lg">{{ __('Observations') }}</flux:heading>
-                        <flux:textarea wire:model="observations" rows="auto" :label="__('Appointment notes')" data-test="appointment-record-observations-input" />
+                        <flux:textarea wire:model="form.observations" rows="auto" :label="__('Appointment notes')" data-test="appointment-record-observations-input" />
                     </div>
 
                     <div class="sticky bottom-0 z-10 flex flex-col-reverse gap-2 border-t border-zinc-200 bg-white py-3 sm:flex-row sm:items-center sm:justify-end dark:border-white/10 dark:bg-zinc-800">

@@ -28,11 +28,11 @@ beforeEach(function () {
 
 test('saving a draft keeps the form state without validating or scheduling anything', function () {
     Livewire::test('pages::appointments.attend', ['appointment' => $this->appointment])
-        ->set('observations', 'Em andamento')
-        ->set('infiltrationSite', 'Braço')
-        ->set('infiltrationRemovalPlace', '')
-        ->set('returnOn', '2026-10-11')
-        ->set('schedulesReturn', true)
+        ->set('form.observations', 'Em andamento')
+        ->set('form.infiltrationSite', 'Braço')
+        ->set('form.infiltrationRemovalPlace', '')
+        ->set('form.returnOn', '2026-10-11')
+        ->set('form.schedulesReturn', true)
         ->call('saveDraft')
         ->assertHasNoErrors()
         ->assertReturned(__('Draft saved at :time', ['time' => '19:30']));
@@ -54,13 +54,13 @@ test('reopening the record restores the draft', function () {
     $remedy = FluidicRemedy::factory()->for($this->team)->create();
 
     Livewire::test('pages::appointments.attend', ['appointment' => $this->appointment])
-        ->set('observations', 'Em andamento')
-        ->set('fluidicRemedyIds', [(string) $remedy->id])
+        ->set('form.observations', 'Em andamento')
+        ->set('form.fluidicRemedyIds', [(string) $remedy->id])
         ->call('saveDraft');
 
     Livewire::test('pages::appointments.attend', ['appointment' => $this->appointment])
-        ->assertSet('observations', 'Em andamento')
-        ->assertSet('fluidicRemedyIds', [(string) $remedy->id])
+        ->assertSet('form.observations', 'Em andamento')
+        ->assertSet('form.fluidicRemedyIds', [(string) $remedy->id])
         ->assertSeeHtml('data-test="appointment-record-restored-draft"')
         ->assertSee('Ana Atendente');
 });
@@ -73,7 +73,7 @@ test('a draft older than the saved record is discarded', function () {
     AppointmentRecord::factory()->for($this->appointment)->create(['observations' => 'Ficha salva']);
 
     Livewire::test('pages::appointments.attend', ['appointment' => $this->appointment])
-        ->assertSet('observations', 'Ficha salva')
+        ->assertSet('form.observations', 'Ficha salva')
         ->assertDontSeeHtml('data-test="appointment-record-restored-draft"');
 
     expect($this->appointment->recordDraft()->exists())->toBeFalse();
@@ -83,8 +83,8 @@ test('saving or completing the record discards the draft', function (string $met
     AppointmentRecordDraft::factory()->for($this->appointment)->create();
 
     Livewire::test('pages::appointments.attend', ['appointment' => $this->appointment])
-        ->set('mentorId', (string) $this->mentor->id)
-        ->set('observations', 'Final')
+        ->set('form.mentorId', (string) $this->mentor->id)
+        ->set('form.observations', 'Final')
         ->call($method)
         ->assertHasNoErrors();
 
@@ -94,7 +94,7 @@ test('saving or completing the record discards the draft', function (string $met
 
 test('the draft left in the queue is restored for whoever attends next', function () {
     Livewire::test('pages::appointments.attend', ['appointment' => $this->appointment])
-        ->set('observations', 'Parou aqui')
+        ->set('form.observations', 'Parou aqui')
         ->call('returnToQueue');
 
     expect($this->appointment->fresh()->status)->toBe(AppointmentStatus::Waiting);
@@ -105,7 +105,7 @@ test('the draft left in the queue is restored for whoever attends next', functio
     $colleague->switchTeam($this->team);
 
     Livewire::test('pages::appointments.attend', ['appointment' => $this->appointment->fresh()])
-        ->assertSet('observations', 'Parou aqui');
+        ->assertSet('form.observations', 'Parou aqui');
 
     expect($this->appointment->fresh())
         ->status->toBe(AppointmentStatus::InProgress)
@@ -117,9 +117,9 @@ test('discarding the draft goes back to the saved record', function () {
     AppointmentRecordDraft::factory()->for($this->appointment)->create(['data' => ['observations' => 'Rascunho']]);
 
     Livewire::test('pages::appointments.attend', ['appointment' => $this->appointment])
-        ->assertSet('observations', 'Rascunho')
+        ->assertSet('form.observations', 'Rascunho')
         ->call('discardDraft')
-        ->assertSet('observations', 'Ficha salva')
+        ->assertSet('form.observations', 'Ficha salva')
         ->assertSet('restoredDraft', null)
         ->assertDontSeeHtml('data-test="appointment-record-restored-draft"');
 
@@ -137,10 +137,10 @@ test('a draft with unknown keys or mismatched types does not break the record', 
 
     Livewire::test('pages::appointments.attend', ['appointment' => $this->appointment])
         ->assertOk()
-        ->assertSet('observations', '')
-        ->assertSet('schedulesReturn', false)
-        ->assertSet('passPrescriptions', [['pass_type_id' => '1', 'quantity' => 2, 'mode' => 'in_person']])
-        ->assertSet('fluidInstructions', '3x ao dia')
+        ->assertSet('form.observations', '')
+        ->assertSet('form.schedulesReturn', false)
+        ->assertSet('form.passPrescriptions', [['pass_type_id' => '1', 'quantity' => 2, 'mode' => 'in_person']])
+        ->assertSet('form.fluidInstructions', '3x ao dia')
         ->assertSet('appointment.id', $this->appointment->id);
 });
 

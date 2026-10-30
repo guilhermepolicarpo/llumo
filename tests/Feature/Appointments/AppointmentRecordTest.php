@@ -51,19 +51,19 @@ test('members fill in the record of the appointment they attend', function () {
     $user->switchTeam($team);
 
     Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
-        ->set('mentorId', (string) $mentor->id)
-        ->set('fluidicRemedyIds', $remedies->map(fn (FluidicRemedy $remedy) => (string) $remedy->id)->all())
-        ->set('fluidInstructions', ' 3x ao dia ')
-        ->set('guidanceIds', [(string) $guidance->id])
-        ->set("guidanceDetails.{$guidance->id}", '7 dias')
+        ->set('form.mentorId', (string) $mentor->id)
+        ->set('form.fluidicRemedyIds', $remedies->map(fn (FluidicRemedy $remedy) => (string) $remedy->id)->all())
+        ->set('form.fluidInstructions', ' 3x ao dia ')
+        ->set('form.guidanceIds', [(string) $guidance->id])
+        ->set("form.guidanceDetails.{$guidance->id}", '7 dias')
         ->call('addPassPrescription')
-        ->set('passPrescriptions.0.pass_type_id', (string) $passType->id)
-        ->set('passPrescriptions.0.quantity', 5)
-        ->set('passPrescriptions.0.mode', AppointmentMode::Remote->value)
-        ->set('infiltrationSite', 'Braço direito')
-        ->assertSet('infiltrationRemoveOn', $appointment->scheduled_on->addDays(3)->toDateString())
-        ->set('infiltrationRemovalPlace', InfiltrationRemovalPlace::AtHome->value)
-        ->set('observations', 'Observação')
+        ->set('form.passPrescriptions.0.pass_type_id', (string) $passType->id)
+        ->set('form.passPrescriptions.0.quantity', 5)
+        ->set('form.passPrescriptions.0.mode', AppointmentMode::Remote->value)
+        ->set('form.infiltrationSite', 'Braço direito')
+        ->assertSet('form.infiltrationRemoveOn', $appointment->scheduled_on->addDays(3)->toDateString())
+        ->set('form.infiltrationRemovalPlace', InfiltrationRemovalPlace::AtHome->value)
+        ->set('form.observations', 'Observação')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -96,8 +96,8 @@ test('completing the appointment saves the record and finishes it', function () 
     $user->switchTeam($team);
 
     Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
-        ->set('mentorId', (string) Mentor::factory()->for($team)->create()->id)
-        ->set('observations', 'Tudo certo')
+        ->set('form.mentorId', (string) Mentor::factory()->for($team)->create()->id)
+        ->set('form.observations', 'Tudo certo')
         ->call('complete')
         ->assertHasNoErrors()
         ->assertRedirectToRoute('appointments.index');
@@ -122,7 +122,7 @@ test('whoever records an appointment someone else attends takes it over from whe
 
     $this->travelTo('2026-09-20 19:20:00');
 
-    $component->set('mentorId', (string) Mentor::factory()->for($team)->create()->id)
+    $component->set('form.mentorId', (string) Mentor::factory()->for($team)->create()->id)
         ->call($method)
         ->assertHasNoErrors();
 
@@ -146,7 +146,7 @@ test('returning to the queue keeps the unsaved record as a draft', function () {
     $user->switchTeam($team);
 
     Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
-        ->set('observations', 'Rascunho')
+        ->set('form.observations', 'Rascunho')
         ->call('returnToQueue')
         ->assertRedirectToRoute('appointments.index');
 
@@ -167,23 +167,23 @@ test('the record fields are validated', function () {
     $user->switchTeam($team);
 
     Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
-        ->set('mentorId', (string) Mentor::factory()->for($otherTeam)->create()->id)
-        ->set('fluidicRemedyIds', [(string) FluidicRemedy::factory()->for($team)->trashed()->create()->id])
+        ->set('form.mentorId', (string) Mentor::factory()->for($otherTeam)->create()->id)
+        ->set('form.fluidicRemedyIds', [(string) FluidicRemedy::factory()->for($team)->trashed()->create()->id])
         ->call('addPassPrescription')
-        ->set('passPrescriptions.0.pass_type_id', (string) PassType::factory()->for($team)->create()->id)
-        ->set('passPrescriptions.0.quantity', 100)
-        ->set('infiltrationSite', 'Braço')
-        ->set('infiltrationRemoveOn', $appointment->scheduled_on->subDay()->toDateString())
-        ->set('returnOn', '')
-        ->set('schedulesReturn', true)
+        ->set('form.passPrescriptions.0.pass_type_id', (string) PassType::factory()->for($team)->create()->id)
+        ->set('form.passPrescriptions.0.quantity', 100)
+        ->set('form.infiltrationSite', 'Braço')
+        ->set('form.infiltrationRemoveOn', $appointment->scheduled_on->subDay()->toDateString())
+        ->set('form.returnOn', '')
+        ->set('form.schedulesReturn', true)
         ->call('save')
         ->assertHasErrors([
-            'mentorId' => 'exists',
-            'fluidicRemedyIds.0' => 'exists',
-            'passPrescriptions.0.quantity' => 'between',
-            'infiltrationRemoveOn' => 'after',
-            'infiltrationRemovalPlace' => 'required_with',
-            'returnOn' => 'required_if_accepted',
+            'form.mentorId' => 'exists',
+            'form.fluidicRemedyIds.0' => 'exists',
+            'form.passPrescriptions.0.quantity' => 'between',
+            'form.infiltrationRemoveOn' => 'after',
+            'form.infiltrationRemovalPlace' => 'required_with',
+            'form.returnOn' => 'required_if_accepted',
         ]);
 
     expect($appointment->record()->exists())->toBeFalse();
@@ -271,10 +271,10 @@ test('completed records stay editable and the index opens them', function () {
         ->assertSeeHtml(route('appointments.attend', ['current_team' => $team, 'appointment' => $appointment]));
 
     Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
-        ->assertSet('observations', 'Anotação')
+        ->assertSet('form.observations', 'Anotação')
         ->assertDontSeeHtml('data-test="appointment-record-complete-button"')
         ->assertSeeHtml('data-test="appointment-record-print-button"')
-        ->set('observations', 'Corrigida')
+        ->set('form.observations', 'Corrigida')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -340,14 +340,14 @@ test('fluidic remedies keep the order they were picked in', function () {
     $user->switchTeam($team);
 
     Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
-        ->set('mentorId', (string) Mentor::factory()->for($team)->create()->id)
-        ->set('fluidicRemedyIds', $pickedOrder)
+        ->set('form.mentorId', (string) Mentor::factory()->for($team)->create()->id)
+        ->set('form.fluidicRemedyIds', $pickedOrder)
         ->assertSeeInOrder(['Vitamina D', 'Apneia', 'Calmante'])
         ->call('save')
         ->assertHasNoErrors();
 
     Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
-        ->assertSet('fluidicRemedyIds', $pickedOrder);
+        ->assertSet('form.fluidicRemedyIds', $pickedOrder);
 });
 
 test('follow-up dates must come after the appointment day', function (string $field) {
@@ -361,13 +361,13 @@ test('follow-up dates must come after the appointment day', function (string $fi
     $user->switchTeam($team);
 
     Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
-        ->set('mentorId', (string) Mentor::factory()->for($team)->create()->id)
-        ->set('infiltrationSite', 'Braço')
-        ->set('infiltrationRemovalPlace', InfiltrationRemovalPlace::AtHome->value)
-        ->set($field, $appointment->scheduled_on->toDateString())
+        ->set('form.mentorId', (string) Mentor::factory()->for($team)->create()->id)
+        ->set('form.infiltrationSite', 'Braço')
+        ->set('form.infiltrationRemovalPlace', InfiltrationRemovalPlace::AtHome->value)
+        ->set('form.'.$field, $appointment->scheduled_on->toDateString())
         ->call('save')
-        ->assertHasErrors([$field => 'after'])
-        ->set($field, $appointment->scheduled_on->addDay()->toDateString())
+        ->assertHasErrors(['form.'.$field => 'after'])
+        ->set('form.'.$field, $appointment->scheduled_on->addDay()->toDateString())
         ->call('save')
         ->assertHasNoErrors();
 })->with(['infiltrationRemoveOn', 'returnOn']);
@@ -383,9 +383,9 @@ test('the mentor is required to save the record', function () {
     $user->switchTeam($team);
 
     Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
-        ->set('observations', 'Sem mentor')
+        ->set('form.observations', 'Sem mentor')
         ->call('complete')
-        ->assertHasErrors(['mentorId' => 'required'])
+        ->assertHasErrors(['form.mentorId' => 'required'])
         ->assertNoRedirect();
 
     expect($appointment->record()->exists())->toBeFalse()

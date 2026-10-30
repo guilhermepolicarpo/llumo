@@ -8,14 +8,13 @@ use App\Actions\Catalogs\CreateCatalogEntry;
 use App\Enums\AppointmentMode;
 use App\Enums\Catalog;
 use App\Enums\InfiltrationRemovalPlace;
+use App\Livewire\Forms\AppointmentRecordForm;
 use App\Models\Appointment;
 use App\Models\AppointmentRecord;
-use App\Models\AppointmentRecordDraft;
 use App\Models\AppointmentType;
 use App\Models\FluidicRemedy;
 use App\Models\Guidance;
 use App\Models\Mentor;
-use App\Models\PassPrescription;
 use App\Models\PassType;
 use App\Rules\AppointmentTypeRules;
 use App\Rules\CatalogRules;
@@ -36,47 +35,7 @@ use Livewire\Attributes\Renderless;
  */
 trait InteractsWithAppointmentRecordForm
 {
-    public string $mentorId = '';
-
-    /**
-     * @var list<string>
-     */
-    public array $fluidicRemedyIds = [];
-
-    public string $fluidInstructions = '';
-
-    /**
-     * @var list<string>
-     */
-    public array $guidanceIds = [];
-
-    /**
-     * The optional detail of each selected guidance, keyed by guidance id.
-     *
-     * @var array<string, string>
-     */
-    public array $guidanceDetails = [];
-
-    /**
-     * @var list<array{pass_type_id: string, quantity: int|string, mode: string}>
-     */
-    public array $passPrescriptions = [];
-
-    public string $infiltrationSite = '';
-
-    public string $infiltrationRemoveOn = '';
-
-    public string $infiltrationRemovalPlace = '';
-
-    public string $removalAppointmentTypeId = '';
-
-    public string $returnOn = '';
-
-    public bool $schedulesReturn = false;
-
-    public string $returnAppointmentTypeId = '';
-
-    public string $observations = '';
+    public AppointmentRecordForm $form;
 
     /**
      * When and by whom the draft restored on mount was last changed, shown until it is saved or discarded.
@@ -142,8 +101,8 @@ trait InteractsWithAppointmentRecordForm
     #[Computed]
     public function returnDayOccupancy(): ?array
     {
-        $returnOn = $this->dateFrom($this->returnOn);
-        $returnType = $this->appointmentTypes->firstWhere('id', (int) $this->returnAppointmentTypeId);
+        $returnOn = $this->dateFrom($this->form->returnOn);
+        $returnType = $this->appointmentTypes->firstWhere('id', (int) $this->form->returnAppointmentTypeId);
 
         if ($returnOn === null || $returnType === null) {
             return null;
@@ -170,12 +129,12 @@ trait InteractsWithAppointmentRecordForm
     #[Computed]
     public function removalDayWarning(): ?string
     {
-        if (! InfiltrationRemovalPlace::tryFrom($this->infiltrationRemovalPlace)?->schedulesRemoval()) {
+        if (! InfiltrationRemovalPlace::tryFrom($this->form->infiltrationRemovalPlace)?->schedulesRemoval()) {
             return null;
         }
 
-        $removeOn = $this->dateFrom($this->infiltrationRemoveOn);
-        $removalType = $this->appointmentTypes->firstWhere('id', (int) $this->removalAppointmentTypeId);
+        $removeOn = $this->dateFrom($this->form->infiltrationRemoveOn);
+        $removalType = $this->appointmentTypes->firstWhere('id', (int) $this->form->removalAppointmentTypeId);
 
         if ($removeOn === null || $removalType === null || $removalType->isOfferedOn($removeOn)) {
             return null;
@@ -206,10 +165,10 @@ trait InteractsWithAppointmentRecordForm
      * Pre-fill the removal date three days after the appointment once an infiltration site is given,
      * moved to the next day the removal type takes place.
      */
-    public function updatedInfiltrationSite(): void
+    public function updatedFormInfiltrationSite(): void
     {
-        if (trim($this->infiltrationSite) !== '' && $this->infiltrationRemoveOn === '') {
-            $this->infiltrationRemoveOn = $this->nextOfferedDayFrom($this->removalAppointmentTypeId, $this->appointment->scheduled_on->addDays(3))->toDateString();
+        if (trim($this->form->infiltrationSite) !== '' && $this->form->infiltrationRemoveOn === '') {
+            $this->form->infiltrationRemoveOn = $this->nextOfferedDayFrom($this->form->removalAppointmentTypeId, $this->appointment->scheduled_on->addDays(3))->toDateString();
         }
     }
 
@@ -218,12 +177,12 @@ trait InteractsWithAppointmentRecordForm
      */
     public function setReturnInDays(int $days): void
     {
-        $this->returnOn = $this->nextOfferedDayFrom($this->returnAppointmentTypeId, $this->appointment->scheduled_on->addDays($days))->toDateString();
+        $this->form->returnOn = $this->nextOfferedDayFrom($this->form->returnAppointmentTypeId, $this->appointment->scheduled_on->addDays($days))->toDateString();
     }
 
     public function addPassPrescription(): void
     {
-        $this->passPrescriptions[] = [
+        $this->form->passPrescriptions[] = [
             'pass_type_id' => '',
             'quantity' => 1,
             'mode' => $this->appointment->mode->value,
@@ -232,9 +191,9 @@ trait InteractsWithAppointmentRecordForm
 
     public function removePassPrescription(int $index): void
     {
-        unset($this->passPrescriptions[$index]);
+        unset($this->form->passPrescriptions[$index]);
 
-        $this->passPrescriptions = array_values($this->passPrescriptions);
+        $this->form->passPrescriptions = array_values($this->form->passPrescriptions);
         $this->resetValidation();
     }
 
@@ -283,11 +242,11 @@ trait InteractsWithAppointmentRecordForm
         $entryId = (string) $entry->getKey();
 
         match ($catalog) {
-            Catalog::Mentor => $this->mentorId = $entryId,
-            Catalog::FluidicRemedy => $this->fluidicRemedyIds[] = $entryId,
-            Catalog::Guidance => $this->guidanceIds[] = $entryId,
-            Catalog::PassType => $index !== null && isset($this->passPrescriptions[$index])
-                ? $this->passPrescriptions[$index]['pass_type_id'] = $entryId
+            Catalog::Mentor => $this->form->mentorId = $entryId,
+            Catalog::FluidicRemedy => $this->form->fluidicRemedyIds[] = $entryId,
+            Catalog::Guidance => $this->form->guidanceIds[] = $entryId,
+            Catalog::PassType => $index !== null && isset($this->form->passPrescriptions[$index])
+                ? $this->form->passPrescriptions[$index]['pass_type_id'] = $entryId
                 : null,
         };
 
@@ -320,10 +279,10 @@ trait InteractsWithAppointmentRecordForm
         $validated = Validator::make([$errorKey => trim($name)], [$errorKey => AppointmentTypeRules::name($team)], [], [$errorKey => __('name')])->validate();
 
         $appointmentType = $createAppointmentType->handle($team, ['name' => $validated[$errorKey]]);
-        $this->{$target} = (string) $appointmentType->id;
+        $this->form->{$target} = (string) $appointmentType->id;
 
         unset($this->appointmentTypes);
-        $this->resetValidation([$errorKey, $target]);
+        $this->resetValidation([$errorKey, 'form.'.$target]);
 
         Flux::toast(variant: 'success', text: __('Appointment type created.'));
 
@@ -340,7 +299,7 @@ trait InteractsWithAppointmentRecordForm
     {
         Gate::authorize('update', [AppointmentRecord::class, $this->appointment]);
 
-        $draft = $saveAppointmentRecordDraft->handle($this->appointment, Auth::user(), $this->only($this->draftProperties()));
+        $draft = $saveAppointmentRecordDraft->handle($this->appointment, Auth::user(), $this->form->all());
 
         return __('Draft saved at :time', ['time' => $draft->updated_at->format('H:i')]);
     }
@@ -354,7 +313,6 @@ trait InteractsWithAppointmentRecordForm
 
         $this->appointment->recordDraft()->delete();
 
-        $this->reset($this->draftProperties());
         $this->restoredDraft = null;
         $this->resetValidation();
         $this->fillRecordForm($this->appointment->record()->first());
@@ -377,7 +335,7 @@ trait InteractsWithAppointmentRecordForm
             return;
         }
 
-        $this->fillFromDraft($draft);
+        $this->form->fillFromDraft($draft->data);
 
         $this->restoredDraft = [
             'time' => $draft->updated_at->format('d/m/Y H:i'),
@@ -386,145 +344,17 @@ trait InteractsWithAppointmentRecordForm
     }
 
     /**
-     * Apply the draft's values to the form, skipping unknown keys and values whose type no longer fits.
-     */
-    protected function fillFromDraft(AppointmentRecordDraft $draft): void
-    {
-        foreach ($this->draftProperties() as $property) {
-            if (! array_key_exists($property, $draft->data)) {
-                continue;
-            }
-
-            $value = $draft->data[$property];
-
-            $this->{$property} = match (true) {
-                $property === 'passPrescriptions' && is_array($value) => $this->draftPassPrescriptions($value),
-                is_array($this->{$property}) && is_array($value) => array_map(fn ($item) => is_scalar($item) ? (string) $item : '', $value),
-                is_string($this->{$property}) && is_scalar($value) => (string) $value,
-                is_bool($this->{$property}) && is_bool($value) => $value,
-                default => $this->{$property},
-            };
-        }
-
-        $this->fluidicRemedyIds = array_values(array_filter($this->fluidicRemedyIds, fn (string $id): bool => $id !== ''));
-        $this->guidanceIds = array_values(array_filter($this->guidanceIds, fn (string $id): bool => $id !== ''));
-    }
-
-    /**
-     * The form properties kept in a draft.
-     *
-     * @return list<string>
-     */
-    protected function draftProperties(): array
-    {
-        return [
-            'mentorId',
-            'fluidicRemedyIds',
-            'fluidInstructions',
-            'guidanceIds',
-            'guidanceDetails',
-            'passPrescriptions',
-            'infiltrationSite',
-            'infiltrationRemoveOn',
-            'infiltrationRemovalPlace',
-            'removalAppointmentTypeId',
-            'returnOn',
-            'schedulesReturn',
-            'returnAppointmentTypeId',
-            'observations',
-        ];
-    }
-
-    /**
-     * Rebuild the pass prescription rows of a draft, dropping rows that do not have the expected shape.
-     *
-     * @param  array<mixed>  $rows
-     * @return list<array{pass_type_id: string, quantity: int|string, mode: string}>
-     */
-    private function draftPassPrescriptions(array $rows): array
-    {
-        return array_values(array_map(fn (array $row): array => [
-            'pass_type_id' => (string) $row['pass_type_id'],
-            'quantity' => is_int($row['quantity']) ? $row['quantity'] : (string) $row['quantity'],
-            'mode' => (string) $row['mode'],
-        ], array_filter($rows, fn ($row): bool => is_array($row)
-            && is_scalar($row['pass_type_id'] ?? null)
-            && is_scalar($row['quantity'] ?? null)
-            && is_scalar($row['mode'] ?? null))));
-    }
-
-    /**
      * Hydrate the form with the appointment's saved record, or with the defaults for a new one.
      */
     protected function fillRecordForm(?AppointmentRecord $record): void
     {
-        $this->returnAppointmentTypeId = (string) $this->appointment->appointment_type_id;
-        $this->removalAppointmentTypeId = (string) ($this->lastRemovalAppointmentTypeId() ?? '');
+        $this->form->reset();
+        $this->form->returnAppointmentTypeId = (string) $this->appointment->appointment_type_id;
+        $this->form->removalAppointmentTypeId = (string) ($this->lastRemovalAppointmentTypeId() ?? '');
 
-        if ($record === null) {
-            return;
+        if ($record !== null) {
+            $this->form->fillFromRecord($record);
         }
-
-        $this->mentorId = (string) ($record->mentor_id ?? '');
-        $this->fluidicRemedyIds = $record->fluidicRemedies->map(fn ($remedy): string => (string) $remedy->id)->values()->all();
-        $this->fluidInstructions = $record->fluid_instructions ?? '';
-        $this->guidanceIds = $record->guidances->map(fn (Guidance $guidance): string => (string) $guidance->id)->values()->all();
-        $this->guidanceDetails = $record->guidances->mapWithKeys(fn (Guidance $guidance): array => [
-            (string) $guidance->id => $guidance->pivot->detail ?? '',
-        ])->all();
-        $this->passPrescriptions = $record->passPrescriptions->map(fn (PassPrescription $prescription): array => [
-            'pass_type_id' => (string) $prescription->pass_type_id,
-            'quantity' => $prescription->quantity,
-            'mode' => $prescription->mode->value,
-        ])->values()->all();
-        $this->infiltrationSite = $record->infiltration_site ?? '';
-        $this->infiltrationRemoveOn = $record->infiltration_remove_on?->toDateString() ?? '';
-        $this->infiltrationRemovalPlace = $record->infiltration_removal_place->value ?? '';
-        $this->returnOn = $record->return_on?->toDateString() ?? '';
-        $this->schedulesReturn = $record->return_appointment_id !== null;
-        $this->observations = $record->observations ?? '';
-
-        if ($record->infiltrationRemovalAppointment) {
-            $this->removalAppointmentTypeId = (string) $record->infiltrationRemovalAppointment->appointment_type_id;
-        }
-
-        if ($record->returnAppointment) {
-            $this->returnAppointmentTypeId = (string) $record->returnAppointment->appointment_type_id;
-        }
-    }
-
-    /**
-     * Map validated form data to the attribute shape expected by the save action.
-     *
-     * @param  array<string, mixed>  $validated
-     * @return array{mentor_id: ?int, fluidic_remedy_ids: array<int, int>, fluid_instructions: ?string, guidances: array<int, array{guidance_id: int, detail: ?string}>, pass_prescriptions: array<int, array{pass_type_id: int, quantity: int, mode: string}>, infiltration_site: ?string, infiltration_remove_on: ?string, infiltration_removal_place: ?string, removal_appointment_type_id: ?int, return_on: ?string, schedules_return: bool, return_appointment_type_id: ?int, observations: ?string}
-     */
-    protected function recordAttributes(array $validated): array
-    {
-        $guidanceIds = array_values(array_unique($validated['guidanceIds']));
-
-        return [
-            'mentor_id' => $this->nullableId($validated['mentorId']),
-            'fluidic_remedy_ids' => array_values(array_unique(array_map('intval', $validated['fluidicRemedyIds']))),
-            'fluid_instructions' => $validated['fluidInstructions'],
-            'guidances' => array_map(fn (string $guidanceId): array => [
-                'guidance_id' => (int) $guidanceId,
-                'detail' => $validated['guidanceDetails'][$guidanceId] ?? null,
-            ], $guidanceIds),
-            'pass_prescriptions' => array_map(fn (array $prescription): array => [
-                'pass_type_id' => (int) $prescription['pass_type_id'],
-                'quantity' => (int) $prescription['quantity'],
-                'mode' => $prescription['mode'],
-            ], $validated['passPrescriptions']),
-            'infiltration_site' => $validated['infiltrationSite'],
-            'infiltration_remove_on' => $validated['infiltrationRemoveOn'],
-            'infiltration_removal_place' => $validated['infiltrationRemovalPlace'],
-            'removal_appointment_type_id' => $this->nullableId($validated['removalAppointmentTypeId']),
-            'return_on' => $validated['returnOn'],
-            'schedules_return' => $validated['schedulesReturn'],
-            'return_appointment_type_id' => $this->nullableId($validated['returnAppointmentTypeId']),
-            'observations' => $validated['observations'],
-        ];
     }
 
     /**
@@ -592,10 +422,5 @@ trait InteractsWithAppointmentRecordForm
     private function catalogEntries(Catalog $catalog): Collection
     {
         return $this->appointment->team->{$catalog->relationName()}()->orderBy('name')->get(['id', 'name']);
-    }
-
-    private function nullableId(mixed $value): ?int
-    {
-        return $value === null || $value === '' ? null : (int) $value;
     }
 }
