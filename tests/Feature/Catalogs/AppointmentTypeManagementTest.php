@@ -4,15 +4,16 @@ use App\Enums\TeamRole;
 use App\Enums\Weekday;
 use App\Models\AppointmentType;
 use App\Models\User;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 
 test('admins can create, edit and delete appointment types', function () {
     [, $team] = actingAsTeamMember(TeamRole::Admin);
 
     $component = Livewire::test('pages::catalogs.appointment-types')
-        ->set('name', '  Desobsessão  ')
-        ->set('requiresRecord', true)
-        ->set('dailyLimit', '20')
+        ->set('form.name', '  Desobsessão  ')
+        ->set('form.requiresRecord', true)
+        ->set('form.dailyLimit', '20')
         ->call('saveAppointmentType')
         ->assertHasNoErrors();
 
@@ -25,12 +26,12 @@ test('admins can create, edit and delete appointment types', function () {
 
     $component
         ->call('editAppointmentType', $appointmentType->id)
-        ->assertSet('name', 'Desobsessão')
-        ->assertSet('requiresRecord', true)
-        ->assertSet('dailyLimit', '20')
-        ->set('name', 'Desobsessão coletiva')
-        ->set('requiresRecord', false)
-        ->set('dailyLimit', '')
+        ->assertSet('form.name', 'Desobsessão')
+        ->assertSet('form.requiresRecord', true)
+        ->assertSet('form.dailyLimit', '20')
+        ->set('form.name', 'Desobsessão coletiva')
+        ->set('form.requiresRecord', false)
+        ->set('form.dailyLimit', '')
         ->call('saveAppointmentType')
         ->assertHasNoErrors();
 
@@ -53,14 +54,14 @@ test('appointment type names must be unique within the team, except for the type
 
     Livewire::test('pages::catalogs.appointment-types')
         ->call('editAppointmentType', $other->id)
-        ->set('name', 'Passe')
+        ->set('form.name', 'Passe')
         ->call('saveAppointmentType')
-        ->assertHasErrors(['name' => 'unique'])
+        ->assertHasErrors(['form.name' => 'unique'])
         ->call('editAppointmentType', $existing->id)
-        ->set('dailyLimit', '1000')
+        ->set('form.dailyLimit', '1000')
         ->call('saveAppointmentType')
-        ->assertHasErrors(['dailyLimit' => 'between'])
-        ->set('dailyLimit', '10')
+        ->assertHasErrors(['form.dailyLimit' => 'between'])
+        ->set('form.dailyLimit', '10')
         ->call('saveAppointmentType')
         ->assertHasNoErrors();
 
@@ -72,8 +73,8 @@ test('admins can restrict an appointment type to the weekdays it takes place', f
     [, $team] = actingAsTeamMember(TeamRole::Admin);
 
     $component = Livewire::test('pages::catalogs.appointment-types')
-        ->set('name', 'Tratamento de cura')
-        ->set('weekdays', ['3', '1'])
+        ->set('form.name', 'Tratamento de cura')
+        ->set('form.weekdays', ['3', '1'])
         ->call('saveAppointmentType')
         ->assertHasNoErrors()
         ->assertSee('Seg, Qua');
@@ -84,11 +85,11 @@ test('admins can restrict an appointment type to the weekdays it takes place', f
 
     $component
         ->call('editAppointmentType', $appointmentType->id)
-        ->assertSet('weekdays', ['1', '3'])
-        ->set('weekdays', ['8'])
+        ->assertSet('form.weekdays', ['1', '3'])
+        ->set('form.weekdays', ['8'])
         ->call('saveAppointmentType')
-        ->assertHasErrors('weekdays.0')
-        ->set('weekdays', [])
+        ->assertHasErrors('form.weekdays.0')
+        ->set('form.weekdays', [])
         ->call('saveAppointmentType')
         ->assertHasNoErrors()
         ->assertSee('Qualquer dia');
@@ -117,13 +118,13 @@ test('closing the appointment type flyout clears the form so it opens empty for 
 
     Livewire::test('pages::catalogs.appointment-types')
         ->call('editAppointmentType', $appointmentType->id)
-        ->set('dailyLimit', '1000')
+        ->set('form.dailyLimit', '1000')
         ->call('saveAppointmentType')
-        ->assertHasErrors('dailyLimit')
+        ->assertHasErrors('form.dailyLimit')
         ->call('closeAppointmentType')
-        ->assertSet('editingId', null)
-        ->assertSet('name', '')
-        ->assertSet('dailyLimit', '')
+        ->assertSet('form.editingId', null)
+        ->assertSet('form.name', '')
+        ->assertSet('form.dailyLimit', '')
         ->assertHasNoErrors();
 });
 
@@ -134,7 +135,25 @@ test('closing an untouched appointment type flyout skips the re-render', functio
 
     expect($component->effects)->not->toHaveKey('html');
 
-    $component->set('name', 'Passe')->call('closeAppointmentType');
+    $component->set('form.name', 'Passe')->call('closeAppointmentType');
 
     expect($component->effects)->toHaveKey('html');
 });
+
+test('daily limit errors name the field by its translated attribute', function () {
+    actingAsTeamMember(TeamRole::Admin);
+
+    $component = Livewire::test('pages::catalogs.appointment-types')
+        ->set('form.name', 'Passe')
+        ->set('form.dailyLimit', '1000')
+        ->call('saveAppointmentType');
+
+    expect($component->errors()->first('form.dailyLimit'))->toContain('limite diário de agendamentos');
+});
+
+test('the browser cannot choose which appointment type the form edits', function () {
+    actingAsTeamMember(TeamRole::Admin);
+
+    Livewire::test('pages::catalogs.appointment-types')
+        ->set('form.editingId', 1);
+})->throws(CannotUpdateLockedPropertyException::class);
