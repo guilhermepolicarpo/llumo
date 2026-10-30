@@ -1,7 +1,7 @@
 <?php
 
 use App\Actions\AppointmentTypes\CreateAppointmentType;
-use App\Concerns\InteractsWithAppointmentTypeForm;
+use App\Livewire\Forms\AppointmentTypeForm;
 use App\Models\AppointmentType;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 
 new class extends Component {
-    use InteractsWithAppointmentTypeForm;
+    public AppointmentTypeForm $form;
 
     public function createAppointmentType(CreateAppointmentType $createAppointmentType): void
     {
@@ -17,9 +17,9 @@ new class extends Component {
 
         Gate::authorize('create', [AppointmentType::class, $team]);
 
-        $appointmentType = $createAppointmentType->handle($team, $this->validatedAppointmentTypeAttributes($team));
+        $appointmentType = $createAppointmentType->handle($team, $this->form->validatedAttributes($team));
 
-        $this->reset('name', 'requiresRecord', 'dailyLimit', 'weekdays');
+        $this->form->reset();
 
         Flux::modal('create-appointment-type')->close();
 

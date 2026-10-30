@@ -32,9 +32,6 @@ parameters:
             path: app/Concerns/InteractsWithAppointmentRecordForm.php
         -
             identifier: trait.unused
-            path: app/Concerns/InteractsWithAppointmentTypeForm.php
-        -
-            identifier: trait.unused
             path: app/Concerns/InteractsWithAssistedPersonPicker.php
         -
             identifier: trait.unused
