@@ -498,7 +498,7 @@ new class extends Component
                 icon="magnifying-glass"
                 :placeholder="__('Search by name...')"
                 clearable
-                class="min-w-0 max-sm:flex-1 sm:w-72"
+                class="min-w-0 max-sm:basis-full sm:w-72"
                 data-test="appointments-search-input"
             />
 
