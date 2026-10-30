@@ -64,14 +64,22 @@ new class extends Component
         $this->resetPage();
     }
 
-    public function createEntry(): void
+    /**
+     * Clear the form once the flyout closes, so it opens empty for a new entry.
+     * Skips the re-render when the form was already empty, e.g. after a save or an untouched "New".
+     */
+    public function closeEntry(): void
     {
-        Gate::authorize('manage', [$this->catalog->modelClass(), $this->team()]);
+        $fields = ['name', 'editingId'];
+        $previousValues = $this->only($fields);
+        $hadErrors = $this->getErrorBag()->isNotEmpty();
 
-        $this->reset('name', 'editingId');
+        $this->reset($fields);
         $this->resetValidation();
 
-        Flux::modal('catalog-entry')->show();
+        if (! $hadErrors && $this->only($fields) === $previousValues) {
+            $this->skipRender();
+        }
     }
 
     public function editEntry(int $entryId): void
@@ -112,7 +120,7 @@ new class extends Component
             $message = $this->catalog->newEntryLabel();
         }
 
-        $this->reset('name', 'editingId');
+        $this->closeEntry();
 
         Flux::modal('catalog-entry')->close();
 
@@ -194,9 +202,11 @@ new class extends Component
 
     <x-pages::team-settings.layout :heading="$catalog->label()" :subheading="$catalog->description()">
         <x-slot:actions>
-            <flux:button variant="primary" icon="plus" wire:click="createEntry" class="shrink-0" data-test="catalog-entry-new-button">
-                {{ $catalog->newEntryTitle() }}
-            </flux:button>
+            <flux:modal.trigger name="catalog-entry">
+                <flux:button variant="primary" icon="plus" class="shrink-0" data-test="catalog-entry-new-button">
+                    {{ $catalog->newEntryTitle() }}
+                </flux:button>
+            </flux:modal.trigger>
         </x-slot:actions>
 
         <flux:input
@@ -279,7 +289,7 @@ new class extends Component
         </flux:card>
     </x-pages::team-settings.layout>
 
-    <flux:modal name="catalog-entry" flyout variant="floating" :show="$errors->isNotEmpty()" class="md:w-lg">
+    <flux:modal name="catalog-entry" flyout variant="floating" :show="$errors->isNotEmpty()" class="md:w-lg" @close="closeEntry">
         <form wire:submit="saveEntry" class="space-y-6">
             <div>
                 <flux:heading size="lg">{{ $editingId !== null ? $catalog->editEntryTitle() : $catalog->newEntryTitle() }}</flux:heading>

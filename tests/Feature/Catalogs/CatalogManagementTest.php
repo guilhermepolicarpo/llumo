@@ -32,7 +32,6 @@ test('admins can create, rename and delete catalog entries', function (Catalog $
     [, $team] = actingAsTeamMember(TeamRole::Admin);
 
     $component = Livewire::test('pages::catalogs.index', ['catalog' => $catalog])
-        ->call('createEntry')
         ->set('name', '  Primeira  ')
         ->call('saveEntry')
         ->assertHasNoErrors();
@@ -98,7 +97,6 @@ test('catalog entry names must be unique among the team active entries', functio
     FluidicRemedy::factory()->for($team)->trashed()->create(['name' => 'Fluídico excluído']);
 
     Livewire::test('pages::catalogs.index', ['catalog' => Catalog::FluidicRemedy])
-        ->call('createEntry')
         ->set('name', 'Fluídico A')
         ->call('saveEntry')
         ->assertHasErrors(['name' => 'unique'])
@@ -109,7 +107,6 @@ test('catalog entry names must be unique among the team active entries', functio
         ->call('editEntry', $existing->id)
         ->call('saveEntry')
         ->assertHasNoErrors()
-        ->call('createEntry')
         ->set('name', 'Fluídico excluído')
         ->call('saveEntry')
         ->assertHasNoErrors();

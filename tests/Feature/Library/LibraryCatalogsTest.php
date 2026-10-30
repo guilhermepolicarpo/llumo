@@ -11,7 +11,6 @@ test('admins can create, rename and delete entries of the library catalogs', fun
     [, $team] = actingAsTeamMember(TeamRole::Admin);
 
     $component = Livewire::test('pages::catalogs.index', ['libraryCatalog' => $catalog])
-        ->call('createEntry')
         ->set('name', '  FEB  ')
         ->call('saveEntry')
         ->assertHasNoErrors();
@@ -37,7 +36,6 @@ test('an entry name must be unique within the catalog', function () {
     Author::factory()->for($team)->create(['name' => 'Emmanuel']);
 
     Livewire::test('pages::catalogs.index', ['libraryCatalog' => LibraryCatalog::Author])
-        ->call('createEntry')
         ->set('name', 'Emmanuel')
         ->call('saveEntry')
         ->assertHasErrors('name');
