@@ -1,13 +1,12 @@
 <?php
 
+use App\Actions\Teams\SendTeamInvitation;
 use App\Enums\TeamRole;
 use App\Models\Team;
-use App\Notifications\Teams\TeamInvitation as TeamInvitationNotification;
 use App\Rules\UniqueTeamInvitation;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -24,7 +23,7 @@ new class extends Component {
         $this->team = $team;
     }
 
-    public function createInvitation(): void
+    public function createInvitation(SendTeamInvitation $sendTeamInvitation): void
     {
         Gate::authorize('inviteMember', $this->team);
 
@@ -37,11 +36,9 @@ new class extends Component {
             'email' => $validated['inviteEmail'],
             'role' => TeamRole::from($validated['inviteRole']),
             'invited_by' => Auth::id(),
-            'expires_at' => now()->addDays(3),
         ]);
 
-        Notification::route('mail', $invitation->email)
-            ->notify(new TeamInvitationNotification($invitation));
+        $sendTeamInvitation->handle($invitation);
 
         $this->reset('inviteEmail', 'inviteRole');
 

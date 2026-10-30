@@ -294,6 +294,8 @@
   "Keep invitation": "Manter convite",
   "Are you sure you want to cancel the invitation for :email?": "Tem certeza de que deseja cancelar o convite para :email?",
   "Invitation cancelled.": "Convite cancelado.",
+  "Resend invitation": "Reenviar convite",
+  "Invitation resent.": "Convite reenviado.",
   "Pending invitations": "Convites pendentes",
   "Invitations that have not been accepted yet": "Convites que ainda não foram aceitos",
   "Invitation accepted.": "Convite aceito.",
