@@ -74,13 +74,13 @@ new class extends Component
 <section class="w-full">
     <x-page-header :heading="__('Assisted people')" :subheading="__('People assisted by this Spiritist Center')" :separator="false">
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
             <flux:input
                 wire:model.live.debounce.300ms="search"
                 icon="magnifying-glass"
                 :placeholder="__('Search by name...')"
                 clearable
-                class="max-sm:flex-1 sm:w-64"
+                class="max-sm:basis-full sm:w-64"
                 data-test="assisted-people-search-input"
             />
 

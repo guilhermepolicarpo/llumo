@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Teams\SendTeamInvitation;
 use App\Data\TeamPermissions;
 use App\Enums\TeamRole;
 use App\Models\Team;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Renderless;
 use Livewire\Component;
 
 new class extends Component
@@ -41,6 +43,21 @@ new class extends Component
         $membership->update(['role' => TeamRole::from($validated['role'])]);
 
         Flux::toast(variant: 'success', text: __('Member role updated.'));
+    }
+
+    #[Renderless]
+    public function resendInvitation(string $invitationCode, SendTeamInvitation $sendTeamInvitation): void
+    {
+        Gate::authorize('inviteMember', $this->team);
+
+        $invitation = $this->team->invitations()
+            ->whereNull('accepted_at')
+            ->where('code', $invitationCode)
+            ->firstOrFail();
+
+        $sendTeamInvitation->handle($invitation);
+
+        Flux::toast(variant: 'success', text: __('Invitation resent.'));
     }
 
     #[Computed]
@@ -130,6 +147,7 @@ new class extends Component
                                                     as="button"
                                                     type="button"
                                                     icon="key"
+                                                    icon:variant="outline"
                                                     wire:click="$dispatch('confirm-transfer-ownership', { memberId: {{ $member->id }}, memberName: @js($member->name) })"
                                                     data-test="member-transfer-ownership"
                                                 >
@@ -184,18 +202,36 @@ new class extends Component
                                     </div>
                                 </div>
 
-                                @if ($this->permissions->canCancelInvitation)
-                                    <flux:tooltip :content="__('Cancel invitation')">
-                                        <flux:button
-                                            variant="ghost"
-                                            size="sm"
-                                            icon="x-mark"
-                                            :aria-label="__('Cancel invitation')"
-                                            wire:click="$dispatch('confirm-cancel-invitation', { invitationCode: @js($invitation->code), invitationEmail: @js($invitation->email) })"
-                                            data-test="invitation-cancel-button"
-                                        />
-                                    </flux:tooltip>
-                                @endif
+                                <div class="flex shrink-0 items-center gap-1">
+                                    @if ($this->permissions->canCreateInvitation)
+                                        <flux:tooltip :content="__('Resend invitation')">
+                                            <flux:button
+                                                variant="ghost"
+                                                size="sm"
+                                                icon="arrow-path"
+                                                icon:variant="outline"
+                                                :aria-label="__('Resend invitation')"
+                                                wire:click="resendInvitation(@js($invitation->code))"
+                                                wire:loading.attr="disabled"
+                                                wire:target="resendInvitation"
+                                                data-test="invitation-resend-button"
+                                            />
+                                        </flux:tooltip>
+                                    @endif
+
+                                    @if ($this->permissions->canCancelInvitation)
+                                        <flux:tooltip :content="__('Cancel invitation')">
+                                            <flux:button
+                                                variant="ghost"
+                                                size="sm"
+                                                icon="x-mark"
+                                                :aria-label="__('Cancel invitation')"
+                                                wire:click="$dispatch('confirm-cancel-invitation', { invitationCode: @js($invitation->code), invitationEmail: @js($invitation->email) })"
+                                                data-test="invitation-cancel-button"
+                                            />
+                                        </flux:tooltip>
+                                    @endif
+                                </div>
                             </div>
                         @endforeach
                     </div>

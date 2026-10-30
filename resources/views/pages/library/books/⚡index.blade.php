@@ -145,13 +145,13 @@ new class extends Component
 
 <section class="w-full">
     <x-page-header :heading="__('Books')" :subheading="__('The library of this Spiritist Center')" :separator="false" stack-until="lg">
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
             <flux:input
                 wire:model.live.debounce.300ms="search"
                 icon="magnifying-glass"
                 :placeholder="__('Search by title, author, collection or ISBN...')"
                 clearable
-                class="min-w-0 max-sm:flex-1 sm:w-72"
+                class="min-w-0 max-sm:basis-full sm:w-72"
                 data-test="books-search-input"
             />
 
@@ -216,7 +216,7 @@ new class extends Component
                                 </div>
                             </flux:table.cell>
 
-                            <flux:table.cell class="whitespace-normal">
+                            <flux:table.cell>
                                 @php($incarnate = $book->authorsWithRole(AuthorRole::Incarnate))
                                 @php($spiritual = $book->authorsWithRole(AuthorRole::Spiritual))
                                 <div class="text-zinc-800 dark:text-white">{{ $incarnate->pluck('name')->join(', ') ?: '—' }}</div>

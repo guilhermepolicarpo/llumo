@@ -464,8 +464,8 @@ new class extends Component
                     <flux:card.subheading>{{ trans_choice(':count scheduled appointment|:count scheduled appointments', array_sum($this->upcomingCounts)) }}</flux:card.subheading>
                 </flux:card.header>
 
-                <flux:card.body class="overflow-x-auto">
-                    <ul class="grid min-w-md grid-cols-7 gap-2">
+                <flux:card.body>
+                    <ul class="grid grid-cols-7 gap-1 sm:gap-2">
                         @foreach ($this->upcomingCounts as $day => $count)
                             @php($date = Date::parse($day))
                             <li wire:key="upcoming-{{ $day }}">

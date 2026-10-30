@@ -4,6 +4,7 @@ use App\Enums\TeamRole;
 use App\Models\Team;
 use App\Models\TeamInvitation;
 use App\Models\User;
+use App\Notifications\Teams\TeamInvitation as TeamInvitationNotification;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
@@ -92,6 +93,60 @@ test('confirming cancellation from the shared modal sets the target invitation a
         ->assertSet('invitationCode', $invitation->code)
         ->assertSet('invitationEmail', $invitation->email)
         ->assertSee($invitation->email);
+});
+
+test('pending invitations can be resent with a renewed expiration', function () {
+    Notification::fake();
+
+    $owner = User::factory()->create();
+    $team = Team::factory()->create();
+
+    $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+
+    $invitation = TeamInvitation::factory()->expired()->create([
+        'team_id' => $team->id,
+        'invited_by' => $owner->id,
+    ]);
+
+    $this->actingAs($owner);
+
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.members')
+        ->call('resendInvitation', $invitation->code)
+        ->assertHasNoErrors();
+
+    expect($invitation->fresh()->expires_at->isFuture())->toBeTrue();
+
+    Notification::assertSentOnDemand(
+        TeamInvitationNotification::class,
+        fn (TeamInvitationNotification $notification, array $channels, object $notifiable) => $notifiable->routes['mail'] === $invitation->email,
+    );
+});
+
+test('invitations from another team cannot be resent', function () {
+    Notification::fake();
+
+    $owner = User::factory()->create();
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+
+    $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
+
+    $invitation = TeamInvitation::factory()->create([
+        'team_id' => $otherTeam->id,
+        'invited_by' => $owner->id,
+    ]);
+
+    $this->actingAs($owner);
+
+    auth()->user()->switchTeam($team);
+
+    Livewire::test('pages::team-settings.members')
+        ->call('resendInvitation', $invitation->code)
+        ->assertNotFound();
+
+    Notification::assertNothingSent();
 });
 
 test('team invitations can be accepted', function () {
