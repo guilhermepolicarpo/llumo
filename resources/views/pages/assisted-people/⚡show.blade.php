@@ -463,7 +463,7 @@ new class extends Component
                                                 </div>
                                             </div>
 
-                                            <div class="flex items-center gap-2">
+                                            <div class="flex flex-wrap items-center gap-2">
                                                 @if ($record && $appointment->hasPrintableAttendanceSheet())
                                                     <flux:button
                                                         variant="ghost"

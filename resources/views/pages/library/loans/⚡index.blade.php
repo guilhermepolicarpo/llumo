@@ -219,13 +219,13 @@ new class extends Component
 
 <section class="w-full">
     <x-page-header :heading="__('Loans')" :subheading="__('Books lent to the assisted people')" :separator="false">
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
             <flux:input
                 wire:model.live.debounce.300ms="search"
                 icon="magnifying-glass"
                 :placeholder="__('Search by person, title or code...')"
                 clearable
-                class="max-sm:flex-1 sm:w-80"
+                class="max-sm:basis-full sm:w-80"
                 data-test="loans-search-input"
             />
 

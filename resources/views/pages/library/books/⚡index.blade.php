@@ -145,13 +145,13 @@ new class extends Component
 
 <section class="w-full">
     <x-page-header :heading="__('Books')" :subheading="__('The library of this Spiritist Center')" :separator="false" stack-until="lg">
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
             <flux:input
                 wire:model.live.debounce.300ms="search"
                 icon="magnifying-glass"
                 :placeholder="__('Search by title, author, collection or ISBN...')"
                 clearable
-                class="min-w-0 max-sm:flex-1 sm:w-72"
+                class="min-w-0 max-sm:basis-full sm:w-72"
                 data-test="books-search-input"
             />
 
