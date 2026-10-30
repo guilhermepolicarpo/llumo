@@ -45,10 +45,10 @@ test('catalog entries created inline are trimmed and selected', function (Catalo
     expect($entry->name)->toBe('Nova entrada')
         ->and($selection($component))->toBe((string) $entry->id);
 })->with([
-    'mentor' => [Catalog::Mentor, fn ($component) => $component->get('mentorId')],
-    'fluidic remedy' => [Catalog::FluidicRemedy, fn ($component) => $component->get('fluidicRemedyIds')[0]],
-    'guidance' => [Catalog::Guidance, fn ($component) => $component->get('guidanceIds')[0]],
-    'pass type' => [Catalog::PassType, fn ($component) => $component->get('passPrescriptions')[0]['pass_type_id']],
+    'mentor' => [Catalog::Mentor, fn ($component) => $component->get('form.mentorId')],
+    'fluidic remedy' => [Catalog::FluidicRemedy, fn ($component) => $component->get('form.fluidicRemedyIds')[0]],
+    'guidance' => [Catalog::Guidance, fn ($component) => $component->get('form.guidanceIds')[0]],
+    'pass type' => [Catalog::PassType, fn ($component) => $component->get('form.passPrescriptions')[0]['pass_type_id']],
 ]);
 
 test('catalog entry names are unique per team', function (Catalog $catalog) {
@@ -70,11 +70,11 @@ test('catalog entries of another team cannot be selected', function () {
     $otherTeam = teamOwnedBy(User::factory()->create());
 
     $component
-        ->set('guidanceIds', [(string) Catalog::Guidance->modelClass()::factory()->for($otherTeam)->create()->id])
+        ->set('form.guidanceIds', [(string) Catalog::Guidance->modelClass()::factory()->for($otherTeam)->create()->id])
         ->call('addPassPrescription')
-        ->set('passPrescriptions.0.pass_type_id', (string) Catalog::PassType->modelClass()::factory()->for($otherTeam)->create()->id)
+        ->set('form.passPrescriptions.0.pass_type_id', (string) Catalog::PassType->modelClass()::factory()->for($otherTeam)->create()->id)
         ->call('save')
-        ->assertHasErrors(['guidanceIds.0' => 'exists', 'passPrescriptions.0.pass_type_id' => 'exists']);
+        ->assertHasErrors(['form.guidanceIds.0' => 'exists', 'form.passPrescriptions.0.pass_type_id' => 'exists']);
 });
 
 test('follow-up appointment types can be created inline and are selected', function (string $target) {
@@ -92,7 +92,7 @@ test('follow-up appointment types can be created inline and are selected', funct
     $component->assertReturned(['id' => (string) $appointmentType->id, 'name' => 'Retirada de infiltração']);
 
     expect($appointmentType->requires_record)->toBeFalse()
-        ->and($component->get($target))->toBe((string) $appointmentType->id);
+        ->and($component->get('form.'.$target))->toBe((string) $appointmentType->id);
 })->with(['removalAppointmentTypeId', 'returnAppointmentTypeId']);
 
 test('appointment types cannot be created inline into other form fields', function () {
@@ -145,7 +145,7 @@ test('selected catalog entries are named on the page', function () {
     $remedies = Catalog::FluidicRemedy->modelClass()::factory()->for($team)->count(2)->sequence(['name' => 'Calmante'], ['name' => 'Vitamina D'])->create();
 
     $component
-        ->set('fluidicRemedyIds', [(string) $remedies[1]->id])
+        ->set('form.fluidicRemedyIds', [(string) $remedies[1]->id])
         ->assertSee('Vitamina D')
         ->assertDontSee('Calmante');
 });
@@ -153,10 +153,10 @@ test('selected catalog entries are named on the page', function () {
 test('the picker x-data does not change with the selection, so saving does not re-create it', function () {
     [$component, $team] = attendWithCatalogs();
     $remedy = Catalog::FluidicRemedy->modelClass()::factory()->for($team)->create(['name' => 'Calmante']);
-    $pickerData = fn (string $html): string => str($html)->match('/x-data="(catalogPicker\(\{\s*model: \'fluidicRemedyIds\'.*?\}\))"/s')->toString();
+    $pickerData = fn (string $html): string => str($html)->match('/x-data="(catalogPicker\(\{\s*model: \'form.fluidicRemedyIds\'.*?\}\))"/s')->toString();
 
     $before = $pickerData($component->html());
-    $after = $pickerData($component->set('fluidicRemedyIds', [(string) $remedy->id])->html());
+    $after = $pickerData($component->set('form.fluidicRemedyIds', [(string) $remedy->id])->html());
 
     expect($before)->not->toBe('')
         ->and($after)->toBe($before)
