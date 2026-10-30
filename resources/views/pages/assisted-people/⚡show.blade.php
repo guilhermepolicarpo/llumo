@@ -365,8 +365,8 @@ new class extends Component
                             default => null,
                         };
                     @endphp
-                    <li class="flex gap-4" wire:key="upcoming-{{ $appointment->id }}" data-test="assisted-person-history-upcoming-entry">
-                        <div class="flex w-14 shrink-0 flex-col items-center pt-1">
+                    <li class="flex gap-3 sm:gap-4" wire:key="upcoming-{{ $appointment->id }}" data-test="assisted-person-history-upcoming-entry">
+                        <div class="flex w-8 shrink-0 flex-col items-center sm:w-14 pt-1">
                             <span class="text-[11px]/[14px] font-semibold tracking-wide text-zinc-500 uppercase dark:text-zinc-400">{{ $appointment->scheduled_on->translatedFormat('M') }}</span>
                             <span class="text-[22px]/[26px] font-semibold text-zinc-900 dark:text-white">{{ $appointment->scheduled_on->format('d') }}</span>
                             <span class="text-[11px]/[14px] font-semibold tracking-wide text-zinc-500 uppercase dark:text-zinc-400">{{ $appointment->scheduled_on->isToday() ? __('today') : $appointment->scheduled_on->translatedFormat('D') }}</span>
@@ -412,8 +412,8 @@ new class extends Component
 
             <div>
                 @foreach ($this->previousAppointments->groupBy(fn (Appointment $appointment) => $appointment->scheduled_on->format('Y-m')) as $month => $appointments)
-                    <div class="flex gap-4" wire:key="month-{{ $month }}">
-                        <span class="w-14 shrink-0"></span>
+                    <div class="flex gap-3 sm:gap-4" wire:key="month-{{ $month }}">
+                        <span class="w-8 shrink-0 sm:w-14"></span>
                         <div aria-hidden="true" class="flex w-3 shrink-0 justify-center">
                             <span @class(['w-px bg-zinc-200 dark:bg-white/10', 'invisible' => $loop->first])></span>
                         </div>
@@ -431,8 +431,8 @@ new class extends Component
                                 $isLast = $isLastMonth && $loop->last && ! $hasMore;
                                 $record = $appointment->filledRecord();
                             @endphp
-                            <li class="flex gap-4" wire:key="previous-{{ $appointment->id }}" data-test="assisted-person-history-entry">
-                                <div @class(['flex w-14 shrink-0 flex-col items-center', 'pt-1.5' => $isMissed, 'pt-4' => ! $isMissed])>
+                            <li class="flex gap-3 sm:gap-4" wire:key="previous-{{ $appointment->id }}" data-test="assisted-person-history-entry">
+                                <div @class(['flex w-8 shrink-0 flex-col items-center sm:w-14', 'pt-1.5' => $isMissed, 'pt-4' => ! $isMissed])>
                                     <span @class(['text-[22px]/[26px] font-semibold', 'text-zinc-500 dark:text-zinc-400' => $isMissed, 'text-zinc-900 dark:text-white' => ! $isMissed])>{{ $appointment->scheduled_on->format('d') }}</span>
                                     <span class="text-[11px]/[14px] font-semibold tracking-wide text-zinc-500 uppercase dark:text-zinc-400">{{ $appointment->scheduled_on->translatedFormat('D') }}</span>
                                 </div>
