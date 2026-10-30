@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Forms;
 
+use App\Concerns\NormalizesBlankStrings;
 use App\Models\Appointment;
 use App\Models\AppointmentRecord;
 use App\Models\Guidance;
@@ -11,6 +12,8 @@ use Livewire\Form;
 
 class AppointmentRecordForm extends Form
 {
+    use NormalizesBlankStrings;
+
     public string $mentorId = '';
 
     /**
@@ -125,7 +128,7 @@ class AppointmentRecordForm extends Form
         $guidanceIds = array_values(array_unique($validated['guidanceIds']));
 
         return [
-            'mentor_id' => $this->nullableId($validated['mentorId']),
+            'mentor_id' => $this->blankToNullInteger($validated['mentorId']),
             'fluidic_remedy_ids' => array_values(array_unique(array_map('intval', $validated['fluidicRemedyIds']))),
             'fluid_instructions' => $validated['fluidInstructions'],
             'guidances' => array_map(fn (string $guidanceId): array => [
@@ -140,10 +143,10 @@ class AppointmentRecordForm extends Form
             'infiltration_site' => $validated['infiltrationSite'],
             'infiltration_remove_on' => $validated['infiltrationRemoveOn'],
             'infiltration_removal_place' => $validated['infiltrationRemovalPlace'],
-            'removal_appointment_type_id' => $this->nullableId($validated['removalAppointmentTypeId']),
+            'removal_appointment_type_id' => $this->blankToNullInteger($validated['removalAppointmentTypeId']),
             'return_on' => $validated['returnOn'],
             'schedules_return' => $validated['schedulesReturn'],
-            'return_appointment_type_id' => $this->nullableId($validated['returnAppointmentTypeId']),
+            'return_appointment_type_id' => $this->blankToNullInteger($validated['returnAppointmentTypeId']),
             'observations' => $validated['observations'],
         ];
     }
@@ -164,10 +167,5 @@ class AppointmentRecordForm extends Form
             && is_scalar($row['pass_type_id'] ?? null)
             && is_scalar($row['quantity'] ?? null)
             && is_scalar($row['mode'] ?? null))));
-    }
-
-    private function nullableId(mixed $value): ?int
-    {
-        return $value === null || $value === '' ? null : (int) $value;
     }
 }

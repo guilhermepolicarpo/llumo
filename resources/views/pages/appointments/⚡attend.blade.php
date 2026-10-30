@@ -96,9 +96,8 @@ new class extends Component
     public function returnToQueue(PerformAppointmentAction $performAppointmentAction, SaveAppointmentRecordDraft $saveAppointmentRecordDraft): void
     {
         Gate::authorize('perform', $this->appointment);
-        Gate::authorize('update', [AppointmentRecord::class, $this->appointment]);
 
-        $saveAppointmentRecordDraft->handle($this->appointment, Auth::user(), $this->form->all());
+        $this->saveDraft($saveAppointmentRecordDraft);
 
         if (! $this->performAppointmentAction($performAppointmentAction, $this->appointment, AppointmentAction::ReturnToQueue)) {
             return;
