@@ -28,7 +28,7 @@
 
     <flux:separator class="md:hidden" />
 
-    <div class="flex-1 self-stretch max-md:pt-6">
+    <div class="min-w-0 flex-1 self-stretch max-md:pt-6">
         <div class="w-full max-w-2xl">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>

@@ -113,7 +113,7 @@ new class extends Component
                     <flux:field>
                         <flux:label>{{ __('Logo') }}</flux:label>
 
-                        <div class="flex items-center gap-4">
+                        <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
                             @php($logoPreviewUrl = $logo?->isPreviewable() ? $logo->temporaryUrl() : $team->logo_url)
 
                             @if ($logoPreviewUrl)
@@ -125,7 +125,7 @@ new class extends Component
                                 <flux:avatar size="xl" :name="$team->name" data-test="team-logo-preview" />
                             @endif
 
-                            <div class="flex flex-1 flex-col gap-2">
+                            <div class="flex min-w-0 flex-1 flex-col gap-2">
                                 <flux:input
                                     type="file"
                                     wire:model="logo"
@@ -134,7 +134,7 @@ new class extends Component
                                     data-test="team-logo-input"
                                 />
 
-                                <div class="flex items-center gap-3">
+                                <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
                                     <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">
                                         {{ __('PNG, JPG or WEBP up to 2 MB.') }}
                                     </flux:text>
