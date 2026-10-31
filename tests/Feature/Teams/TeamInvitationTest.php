@@ -33,6 +33,23 @@ test('team invitations can be created', function () {
     ]);
 });
 
+test('team invitation emails are stored in lowercase', function () {
+    Notification::fake();
+
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+
+    Livewire::test('pages::teams.invite-member-modal', ['team' => $team])
+        ->set('inviteEmail', 'Invited@Example.com')
+        ->set('inviteRole', TeamRole::Member->value)
+        ->call('createInvitation')
+        ->assertHasNoErrors();
+
+    $this->assertDatabaseHas('team_invitations', [
+        'team_id' => $team->id,
+        'email' => 'invited@example.com',
+    ]);
+});
+
 test('team invitations cannot be created by members', function () {
     $owner = User::factory()->create();
     $member = User::factory()->create();
@@ -277,4 +294,24 @@ test('expired invitations cannot be accepted', function () {
     $response->assertHasErrors(['invitation']);
 
     expect($invitedUser->fresh()->belongsToTeam($team))->toBeFalse();
+});
+
+test('invitation emails link existing users to the login page', function () {
+    User::factory()->create(['email' => 'invited@example.com']);
+
+    $invitation = TeamInvitation::factory()->create(['email' => 'Invited@Example.com']);
+
+    $mail = (new TeamInvitationNotification($invitation))->toMail(new stdClass);
+
+    expect($mail->actionText)->toBe(__('Log in'))
+        ->and($mail->actionUrl)->toBe(route('login', ['invitation' => $invitation->code]));
+});
+
+test('invitation emails link new users to the registration page', function () {
+    $invitation = TeamInvitation::factory()->create(['email' => 'newcomer@example.com']);
+
+    $mail = (new TeamInvitationNotification($invitation))->toMail(new stdClass);
+
+    expect($mail->actionText)->toBe(__('Register'))
+        ->and($mail->actionUrl)->toBe(route('register', ['invitation' => $invitation->code]));
 });

@@ -3,6 +3,7 @@
 namespace App\Notifications\Teams;
 
 use App\Models\TeamInvitation as TeamInvitationModel;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -32,11 +33,17 @@ class TeamInvitation extends Notification implements ShouldQueue
 
     /**
      * Get the mail representation of the notification.
+     *
+     * Invited people who already have an account are sent to log in, everyone else to register.
      */
     public function toMail(object $notifiable): MailMessage
     {
         $team = $this->invitation->team;
         $inviter = $this->invitation->inviter;
+
+        [$instruction, $actionText, $actionRoute] = $this->invitedEmailHasAccount()
+            ? [__('Log in and visit your dashboard to accept or decline this invitation.'), __('Log in'), 'login']
+            : [__('Create your account to join the Spiritist Center.'), __('Register'), 'register'];
 
         return (new MailMessage)
             ->subject(__("You've been invited to join :teamName", ['teamName' => $team->name]))
@@ -44,11 +51,18 @@ class TeamInvitation extends Notification implements ShouldQueue
                 'inviterName' => $inviter->name,
                 'teamName' => $team->name,
             ]))
-            ->line(__('Log in and visit your dashboard to accept or decline this invitation.'))
-            ->action(
-                __('Log in'),
-                route('login', ['invitation' => $this->invitation->code]),
-            );
+            ->line($instruction)
+            ->action($actionText, route($actionRoute, ['invitation' => $this->invitation->code]));
+    }
+
+    /**
+     * Determine whether a user is already registered with the invited email address.
+     */
+    private function invitedEmailHasAccount(): bool
+    {
+        return User::query()
+            ->where('email', $this->invitation->email)
+            ->exists();
     }
 
     /**

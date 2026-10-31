@@ -3,7 +3,6 @@
 namespace App\Rules;
 
 use App\Models\Team;
-use App\Models\TeamInvitation;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Translation\PotentiallyTranslatedString;
@@ -25,7 +24,7 @@ class UniqueTeamInvitation implements ValidationRule
         $email = strtolower($value);
 
         $isMember = $this->team->members()
-            ->whereRaw('LOWER(email) = ?', [$email])
+            ->where('email', $email)
             ->exists();
 
         if ($isMember) {
@@ -34,13 +33,9 @@ class UniqueTeamInvitation implements ValidationRule
             return;
         }
 
-        $hasPendingInvitation = TeamInvitation::where('team_id', $this->team->id)
-            ->whereRaw('LOWER(email) = ?', [$email])
-            ->whereNull('accepted_at')
-            ->where(function ($query) {
-                $query->whereNull('expires_at')
-                    ->orWhere('expires_at', '>', now());
-            })
+        $hasPendingInvitation = $this->team->invitations()
+            ->where('email', $email)
+            ->pending()
             ->exists();
 
         if ($hasPendingInvitation) {

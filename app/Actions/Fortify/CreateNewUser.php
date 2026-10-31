@@ -83,7 +83,7 @@ class CreateNewUser implements CreatesNewUsers
             ]);
         }
 
-        if (Str::lower($invitation->email) !== Str::lower($input['email'])) {
+        if ($invitation->email !== Str::lower($input['email'])) {
             throw ValidationException::withMessages([
                 'email' => [__('This invitation was sent to a different email address.')],
             ]);

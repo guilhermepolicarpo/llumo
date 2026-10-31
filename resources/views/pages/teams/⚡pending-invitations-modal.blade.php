@@ -4,7 +4,6 @@ use App\Actions\Teams\AcceptTeamInvitation;
 use App\Models\TeamInvitation;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -25,11 +24,9 @@ new class extends Component {
     #[Computed]
     public function pendingInvitations(): \Illuminate\Support\Collection
     {
-        $email = Str::lower(Auth::user()->email);
-
         return TeamInvitation::query()
             ->with(['inviter', 'team'])
-            ->whereRaw('LOWER(email) = ?', [$email])
+            ->where('email', Auth::user()->email)
             ->pending()
             ->latest()
             ->get()
@@ -71,7 +68,7 @@ new class extends Component {
             ]);
         }
 
-        if (Str::lower($invitation->email) !== Str::lower(Auth::user()->email)) {
+        if ($invitation->email !== Auth::user()->email) {
             throw ValidationException::withMessages([
                 'invitation' => [__('This invitation was sent to a different email address.')],
             ]);
