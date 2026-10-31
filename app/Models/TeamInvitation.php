@@ -110,6 +110,8 @@ class TeamInvitation extends Model
 
     /**
      * Store the email in lowercase so lookups match regardless of how it was typed.
+     *
+     * @return Attribute<never, string>
      */
     protected function email(): Attribute
     {
