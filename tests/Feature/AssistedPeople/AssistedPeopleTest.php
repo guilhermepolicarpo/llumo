@@ -478,7 +478,7 @@ test('the index shows the age in years, or in months when under a year old', fun
 
     $team->assistedPeople()->create([
         'name' => 'Ana',
-        'birth_date' => today()->subYears($years)->subMonths($months)->toDateString(),
+        'birth_date' => today()->subYearsNoOverflow($years)->subMonthsNoOverflow($months)->toDateString(),
     ]);
 
     $this->actingAs($user);
