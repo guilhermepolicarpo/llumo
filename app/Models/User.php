@@ -46,7 +46,7 @@ class User extends Authenticatable implements PasskeyUser
     /**
      * Store the email in lowercase so lookups match regardless of how it was typed.
      *
-     * @return Attribute<never, string>
+     * @return Attribute<string, string>
      */
     protected function email(): Attribute
     {
