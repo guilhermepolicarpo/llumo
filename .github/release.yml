@@ -1,0 +1,26 @@
+changelog:
+  exclude:
+    labels:
+      - duplicate
+      - invalid
+      - wontfix
+  categories:
+    - title: Novidades / New features
+      labels:
+        - enhancement
+        - accessibility
+    - title: Correções / Bug fixes
+      labels:
+        - bug
+    - title: Documentação / Documentation
+      labels:
+        - documentation
+    - title: Manutenção / Maintenance
+      labels:
+        - refactor
+        - chore
+        - dependencies
+        - github_actions
+    - title: Outras mudanças / Other changes
+      labels:
+        - "*"
