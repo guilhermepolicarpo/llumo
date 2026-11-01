@@ -119,6 +119,16 @@ Next:
 Beyond the modules, also on the radar:
 
 - **Docker image and deployment guide** — to make self-hosting as simple as possible
+- **Reminders** — appointment, follow-up, and book return notices by email or messaging app, to reduce no-shows
+- **Self-scheduling** — a public page for each center where assisted persons pick the session type and day, respecting daily limits
+- **Digital card for assisted persons** — fluidic dosage and guidance available on the phone via QR code
+- **QR code check-in** — arrival registered at the front desk without typing
+- **Insights** — sessions per month, no-show rate, most requested types, and most borrowed books on the dashboard
+- **Volunteer schedule** — who attends each day, with shift swaps between mediums and pass givers
+- **Courses and study groups** — classes (ESDE, children's evangelization, youth) with attendance tracking
+- **PWA and offline mode** — filling in sessions even with unstable internet, syncing later
+- **LGPD compliance** — consent terms, export and anonymization of assisted persons' data, and access logs
+- **Network of centers** — optional integration between instances to share library collections and refer assisted persons
 
 ## Contributing
 

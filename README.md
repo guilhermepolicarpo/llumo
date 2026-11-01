@@ -117,6 +117,16 @@ A seguir:
 Além dos módulos, no radar:
 
 - **Imagem Docker e guia de deploy** — para tornar o self-host o mais simples possível
+- **Lembretes** — avisos de agendamento, retorno e devolução de livros por e-mail ou mensageiro, para reduzir faltas
+- **Autoagendamento** — página pública da casa onde o assistido escolhe o tipo de atendimento e o dia, respeitando os limites diários
+- **Ficha digital do assistido** — posologia dos fluídicos e orientações acessíveis no celular por QR code
+- **Check-in por QR code** — registro da chegada na recepção sem digitação
+- **Indicadores** — atendimentos por mês, taxa de faltas, tipos mais procurados e livros mais emprestados na tela de início
+- **Escala de voluntários** — quem atende em cada dia, com troca de plantão entre médiuns e passistas
+- **Cursos e grupos de estudo** — turmas (ESDE, evangelização, mocidade) com controle de presença
+- **PWA e modo offline** — preenchimento do atendimento mesmo com internet instável, sincronizando depois
+- **Conformidade com a LGPD** — termo de consentimento, exportação e anonimização dos dados do assistido e registro de acessos
+- **Rede entre casas** — integração opcional entre instâncias para compartilhar acervo e encaminhar assistidos
 
 ## Contribuindo
 
