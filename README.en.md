@@ -135,6 +135,17 @@ Beyond the modules, also on the radar:
 - **PWA and offline mode** — filling in sessions even with unstable internet, syncing later
 - **LGPD compliance** — consent terms, export and anonymization of assisted persons' data, and access logs
 - **Network of centers** — optional integration between instances to share library collections and refer assisted persons
+- **Artificial intelligence** — optional features, enabled per center, that support daily work without ever suggesting spiritual treatment (fluidics, passes, and guidance are up to the mentor and mediums)
+  - Paper record digitization: photos of old records become assisted persons and sessions in llumo
+  - Book cataloging from a photo of the cover or copyright page, including old books without an ISBN
+  - Dictation of notes during sessions
+  - Natural language questions about the center's numbers ("how many remote sessions in March?")
+  - Factual summary of the assisted person's history before the session
+  - No-show prediction, with an extra reminder for those likely to miss
+  - Library books related to the guidance recorded in the session
+  - Outlines and discussion questions for study groups
+  - Scheduling by WhatsApp conversation ("I'd like to book for Thursday")
+  - Configurable provider: external API or local model (Ollama) for self-hosting, with per-center usage logs and care for sensitive data (LGPD, art. 11)
 
 ## Contributing
 

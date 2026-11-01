@@ -133,6 +133,17 @@ Além dos módulos, no radar:
 - **PWA e modo offline** — preenchimento do atendimento mesmo com internet instável, sincronizando depois
 - **Conformidade com a LGPD** — termo de consentimento, exportação e anonimização dos dados do assistido e registro de acessos
 - **Rede entre casas** — integração opcional entre instâncias para compartilhar acervo e encaminhar assistidos
+- **Inteligência artificial** — recursos opcionais, ativados por casa, que apoiam a rotina sem nunca sugerir tratamento espiritual (fluídicos, passes e orientações cabem ao mentor e aos médiuns)
+  - Digitalização de fichas de papel: fotos das fichas antigas viram assistidos e atendimentos no llumo
+  - Cadastro de livros por foto da capa ou da página de créditos, inclusive livros antigos sem ISBN
+  - Ditado das observações durante o atendimento
+  - Perguntas em linguagem natural sobre os números da casa ("quantos atendimentos a distância em março?")
+  - Resumo factual do histórico do assistido antes do atendimento
+  - Previsão de faltas, com lembrete reforçado para quem tende a faltar
+  - Livros do acervo relacionados às orientações registradas no atendimento
+  - Roteiros e perguntas de discussão para os grupos de estudo
+  - Agendamento por conversa no WhatsApp ("quero marcar para quinta")
+  - Provedor configurável: API externa ou modelo local (Ollama) no self-host, com registro de uso por casa e atenção aos dados sensíveis (LGPD, art. 11)
 
 ## Contribuindo
 
