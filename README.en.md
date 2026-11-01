@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  Management for Spiritist centers — free, self-hosted and built with care.
+  Management for Spiritist centers — free, in the cloud or on your own server, and built with care.
 </p>
 
 <p align="center">
@@ -13,6 +13,7 @@
 <p align="center">
   <a href="https://github.com/guilhermepolicarpo/llumo/actions/workflows/tests.yml"><img src="https://github.com/guilhermepolicarpo/llumo/actions/workflows/tests.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license"></a>
+  <a href="https://github.com/guilhermepolicarpo/llumo/releases/latest"><img src="https://img.shields.io/github/v/release/guilhermepolicarpo/llumo" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/PHP-8.3%2B-777BB4" alt="PHP 8.3+">
   <img src="https://img.shields.io/badge/Laravel-13-FF2D20" alt="Laravel 13">
 </p>
@@ -25,17 +26,24 @@ The name comes from Esperanto *lumo* (light), a language with a historical conne
 
 Two principles guide the project:
 
-- **The center's data belongs to the center.** llumo is self-hosted: you install it on your own server and keep full control over the information of the people you assist.
+- **The center's data belongs to the center.** Use llumo cloud without installing anything, or install llumo on your own server and keep full control over the information of the people you assist.
 - **Free software.** Open source under the MIT license, with no license fees and no vendor lock-in.
 
 > [!NOTE]
-> llumo is in active development. The modules for the center's daily work — assisted persons, scheduling, sessions and library — already work and are covered by tests, but there is no stable release yet. See the [roadmap](#roadmap) for what comes next.
+> llumo is in active development. The modules for the center's daily work — assisted persons, scheduling, sessions and library — already work and are covered by tests. Versions are still `0.x` and may bring larger changes from one to the next. See the [releases](https://github.com/guilhermepolicarpo/llumo/releases) and the [roadmap](#roadmap).
 
 <p align="center">
   <img src="art/screenshots/agendamentos.png" alt="llumo's scheduling screen: the day's schedule with search, filters, a notice about sessions awaiting a record, and the list of assisted persons with the Check in and Attend actions">
 </p>
 
 <p align="center"><em>Scheduling: the day's schedule, with check-in and the session for each assisted person (interface in Brazilian Portuguese).</em></p>
+
+## How to use
+
+There are two ways to use llumo, with the same features:
+
+- **llumo cloud — [llumo.app.br](https://llumo.app.br).** Create an account, register your center and start using it, with nothing to install. It is hosted by the project's maintainer and always runs the latest version of the code. Ideal for centers without someone to look after a server.
+- **On your own server (self-hosted).** Install one of the [published releases](https://github.com/guilhermepolicarpo/llumo/releases) and follow the [installation](#installation) steps below. Your data stays entirely on your infrastructure.
 
 ## Features
 
@@ -149,7 +157,7 @@ Beyond the modules, also on the radar:
 
 ## Contributing
 
-Contributions are very welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, coding standards and the pull request workflow.
+Contributions are very welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, coding standards and the pull request workflow. To get started, look for issues labeled [`good first issue`](https://github.com/guilhermepolicarpo/llumo/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22).
 
 By participating in this project, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
 

@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  Gestão para centros espíritas — livre, self-hosted e feito com carinho.
+  Gestão para centros espíritas — livre, na nuvem ou no seu servidor, e feito com carinho.
 </p>
 
 <p align="center">
@@ -13,6 +13,7 @@
 <p align="center">
   <a href="https://github.com/guilhermepolicarpo/llumo/actions/workflows/tests.yml"><img src="https://github.com/guilhermepolicarpo/llumo/actions/workflows/tests.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="Licença MIT"></a>
+  <a href="https://github.com/guilhermepolicarpo/llumo/releases/latest"><img src="https://img.shields.io/github/v/release/guilhermepolicarpo/llumo" alt="Última versão"></a>
   <img src="https://img.shields.io/badge/PHP-8.3%2B-777BB4" alt="PHP 8.3+">
   <img src="https://img.shields.io/badge/Laravel-13-FF2D20" alt="Laravel 13">
 </p>
@@ -25,17 +26,24 @@ O nome vem do esperanto *lumo* (luz), língua com ligação histórica com o mov
 
 Duas premissas guiam o projeto:
 
-- **Os dados da casa pertencem à casa.** O llumo é self-hosted: você o instala no seu próprio servidor e mantém o controle total das informações dos assistidos.
+- **Os dados da casa pertencem à casa.** Use o llumo cloud sem instalar nada ou instale o llumo no seu próprio servidor e mantenha o controle total das informações dos assistidos.
 - **Software livre.** Código aberto sob licença MIT, sem custo de licença e sem dependência de um fornecedor.
 
 > [!NOTE]
-> O llumo está em desenvolvimento ativo. Os módulos do dia a dia da casa — assistidos, agendamentos, atendimentos e biblioteca — já funcionam e são cobertos por testes, mas ainda não há uma versão estável lançada. Veja o [roadmap](#roadmap) para o que vem a seguir.
+> O llumo está em desenvolvimento ativo. Os módulos do dia a dia da casa — assistidos, agendamentos, atendimentos e biblioteca — já funcionam e são cobertos por testes. As versões ainda são `0.x`: podem trazer mudanças maiores entre uma e outra. Veja as [releases](https://github.com/guilhermepolicarpo/llumo/releases) e o [roadmap](#roadmap).
 
 <p align="center">
   <img src="art/screenshots/agendamentos.png" alt="Tela de agendamentos do llumo: agenda do dia com busca, filtros, aviso de atendimentos pendentes e a lista de assistidos com as ações Receber e Atender">
 </p>
 
 <p align="center"><em>Agendamentos: a agenda do dia, com a recepção e o atendimento dos assistidos.</em></p>
+
+## Como usar
+
+Há duas formas de usar o llumo, com os mesmos recursos:
+
+- **llumo cloud — [llumo.app.br](https://llumo.app.br).** Crie sua conta, cadastre a casa e comece a usar, sem instalar nada. É hospedado pelo mantenedor do projeto e roda sempre a versão mais recente do código. Ideal para casas que não têm alguém para cuidar de um servidor.
+- **No seu servidor (self-hosted).** Instale a partir de uma das [versões publicadas](https://github.com/guilhermepolicarpo/llumo/releases) e siga a [instalação](#instalação) abaixo. Os dados ficam inteiramente na sua infraestrutura.
 
 ## Funcionalidades
 
@@ -147,7 +155,7 @@ Além dos módulos, no radar:
 
 ## Contribuindo
 
-Contribuições são muito bem-vindas. Veja o [CONTRIBUTING.md](CONTRIBUTING.md) para o setup local, os padrões de código e o fluxo de pull request.
+Contribuições são muito bem-vindas. Veja o [CONTRIBUTING.md](CONTRIBUTING.md) para o setup local, os padrões de código e o fluxo de pull request. Para começar, procure as issues marcadas com [`good first issue`](https://github.com/guilhermepolicarpo/llumo/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22).
 
 Ao participar do projeto, você concorda em seguir o nosso [Código de Conduta](CODE_OF_CONDUCT.md).
 
