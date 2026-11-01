@@ -62,6 +62,33 @@ There are two ways to use llumo, with the same features:
 
 The core domain flow is: **assisted person → scheduling → session**. The assisted person is registered, a session is scheduled and, in the record of that session, the team notes the spiritual mentor who acted through the medium and the fluidics prescribed. Mentors are protective spirits and guides — more evolved spirits who guide, protect and support a person's moral and spiritual growth, carrying out the spiritual healing during the session. The fluidics stay linked to the session in which they were prescribed, forming the assisted person's history.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="art/screenshots/inicio.png" alt="llumo's home screen: progress of the day's sessions, assisted persons at the front desk in order of arrival, pending items and overdue loans">
+      <p align="center"><em>Home: the center's day, the front desk and what needs attention.</em></p>
+    </td>
+    <td width="50%">
+      <img src="art/screenshots/atendimento.png" alt="llumo's session record with the mentor, fluidic remedies and dosage filled in, next to the assisted person's details">
+      <p align="center"><em>Session record: mentor, fluidic remedies, guidance and passes.</em></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="art/screenshots/assistido.png" alt="An assisted person's history in llumo: a timeline of past sessions with fluidic remedies, guidance, passes and notes">
+      <p align="center"><em>Assisted person's history: everything done in each session.</em></p>
+    </td>
+    <td width="50%">
+      <img src="art/screenshots/biblioteca.png" alt="llumo's library collection: books with authors, categories and available copies">
+      <p align="center"><em>Library: the center's collection and available copies.</em></p>
+    </td>
+  </tr>
+</table>
+
+<p align="center"><em>The interface is in Brazilian Portuguese.</em></p>
+
 ## Stack
 
 PHP 8.3+ · Laravel 13 · Livewire 4 (single-file components) · Flux UI 2 · Tailwind CSS 4 · Laravel Fortify · Laravel PDF (DomPDF) · Pest 5 · PHPStan level 7 · Pint · SQLite (default) · Vite 8 / vite-plus

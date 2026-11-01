@@ -62,6 +62,31 @@ Há duas formas de usar o llumo, com os mesmos recursos:
 
 O fluxo central do domínio é: **assistido → agendamento → atendimento**. O assistido é cadastrado, tem um atendimento agendado e, no registro desse atendimento, anotam-se o mentor espiritual que atuou através do médium e os fluídicos prescritos por ele. Os mentores são espíritos protetores e guias — espíritos mais evoluídos que orientam, protegem e auxiliam na evolução moral e espiritual, realizando o tratamento espiritual e de cura durante o atendimento. Os fluídicos ficam vinculados ao atendimento em que foram prescritos, formando o histórico do assistido.
 
+## Telas
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="art/screenshots/inicio.png" alt="Tela de início do llumo: progresso dos atendimentos do dia, assistidos na recepção por ordem de chegada, pendências e empréstimos atrasados">
+      <p align="center"><em>Início: o dia da casa, a recepção e o que precisa de atenção.</em></p>
+    </td>
+    <td width="50%">
+      <img src="art/screenshots/atendimento.png" alt="Ficha de atendimento do llumo com mentor, fluídicos e posologia preenchidos, ao lado dos dados do assistido">
+      <p align="center"><em>Ficha de atendimento: mentor, fluídicos, orientações e passes.</em></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="art/screenshots/assistido.png" alt="Histórico do assistido no llumo: linha do tempo dos atendimentos anteriores com fluídicos, orientações, passes e observações">
+      <p align="center"><em>Histórico do assistido: tudo o que foi feito em cada atendimento.</em></p>
+    </td>
+    <td width="50%">
+      <img src="art/screenshots/biblioteca.png" alt="Acervo da biblioteca no llumo: livros com autores, categorias e exemplares disponíveis">
+      <p align="center"><em>Biblioteca: o acervo da casa e os exemplares disponíveis.</em></p>
+    </td>
+  </tr>
+</table>
+
 ## Stack
 
 PHP 8.3+ · Laravel 13 · Livewire 4 (single-file components) · Flux UI 2 · Tailwind CSS 4 · Laravel Fortify · Laravel PDF (DomPDF) · Pest 5 · PHPStan level 7 · Pint · SQLite (padrão) · Vite 8 / vite-plus
