@@ -117,7 +117,13 @@ A seguir:
 Além dos módulos, no radar:
 
 - **Imagem Docker e guia de deploy** — para tornar o self-host o mais simples possível
-- **Lembretes** — avisos de agendamento, retorno e devolução de livros por e-mail ou mensageiro, para reduzir faltas
+- **Lembretes** — avisos de agendamento, retorno e devolução de livros, para reduzir faltas
+  - E-mail como canal padrão e link "Enviar no WhatsApp" (`wa.me`) com a mensagem pronta, ambos sem custo
+  - Bot do Telegram como opção automática gratuita
+  - WhatsApp oficial (Cloud API da Meta) opcional, com botões para o assistido confirmar ou cancelar e o agendamento atualizado automaticamente
+  - Provedor configurável: um número único para todas as casas da instância ou o número próprio de cada casa
+  - Nome da casa em toda mensagem, limite de envio por casa, opção de não receber mais e consentimento do assistido registrado (LGPD)
+  - Registro dos envios por casa, para acompanhar o uso e o custo
 - **Autoagendamento** — página pública da casa onde o assistido escolhe o tipo de atendimento e o dia, respeitando os limites diários
 - **Ficha digital do assistido** — posologia dos fluídicos e orientações acessíveis no celular por QR code
 - **Check-in por QR code** — registro da chegada na recepção sem digitação

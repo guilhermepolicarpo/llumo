@@ -119,7 +119,13 @@ Next:
 Beyond the modules, also on the radar:
 
 - **Docker image and deployment guide** — to make self-hosting as simple as possible
-- **Reminders** — appointment, follow-up, and book return notices by email or messaging app, to reduce no-shows
+- **Reminders** — appointment, follow-up, and book return notices, to reduce no-shows
+  - Email as the default channel and a "Send on WhatsApp" (`wa.me`) link with the message pre-filled, both free
+  - Telegram bot as a free automated option
+  - Optional official WhatsApp (Meta Cloud API), with buttons for assisted persons to confirm or cancel and the appointment updated automatically
+  - Configurable provider: a single number for all centers on the instance or each center's own number
+  - Center name in every message, per-center sending limits, opt-out, and recorded consent from assisted persons (LGPD)
+  - Per-center message log, to track usage and cost
 - **Self-scheduling** — a public page for each center where assisted persons pick the session type and day, respecting daily limits
 - **Digital card for assisted persons** — fluidic dosage and guidance available on the phone via QR code
 - **QR code check-in** — arrival registered at the front desk without typing
