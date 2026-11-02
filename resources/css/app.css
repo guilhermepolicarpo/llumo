@@ -28,10 +28,44 @@
     --color-accent-foreground: var(--color-white);
 
     --animate-sun-turn: sun-turn linear both;
+    --animate-sun-rise: sun-rise linear both;
+    --animate-sky-reveal: sky-reveal linear both;
+    --animate-star-appear: star-appear linear both;
+    --animate-dot-light: dot-light linear both;
 
     @keyframes sun-turn {
         to {
             rotate: 1turn;
+        }
+    }
+
+    @keyframes sun-rise {
+        from {
+            translate: 0 50%;
+            rotate: -45deg;
+        }
+    }
+
+    @keyframes sky-reveal {
+        from {
+            clip-path: inset(0 100% 0 0);
+        }
+
+        to {
+            clip-path: inset(0);
+        }
+    }
+
+    @keyframes star-appear {
+        from {
+            opacity: 0;
+        }
+    }
+
+    @keyframes dot-light {
+        from {
+            opacity: 0.3;
+            scale: 0.7;
         }
     }
 }

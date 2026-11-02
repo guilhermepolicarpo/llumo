@@ -9,6 +9,8 @@
     $cloudUrl = 'https://llumo.app.br';
     $container = 'mx-auto w-full max-w-370 px-5 sm:px-8 lg:px-12 xl:px-15';
     $mutedOnNight = 'text-white/70';
+    $railDotMotion = '[&>span:nth-child(2)]:motion-safe:animate-dot-light [&>span:nth-child(2)]:motion-safe:[animation-range:cover_47%_cover_50%] [&>span:nth-child(2)]:motion-safe:[animation-timeline:view()]';
+    $skyItemMotion = 'lg:motion-safe:animate-star-appear lg:motion-safe:[animation-range:cover_calc(15%+var(--x)*.3)_cover_calc(22%+var(--x)*.3)] lg:motion-safe:[animation-timeline:--sky]';
     $hasOpenRegistration = (bool) config('llumo.open_registration');
 
     $primaryAction = $hasOpenRegistration
@@ -294,7 +296,12 @@
                 <div class="relative">
                     {{-- The light walks down the rail as the page scrolls, past the end of this block, and stops on the 00:05 dot. --}}
                     <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 -bottom-[calc(7.5rem+47px)] z-10 hidden grid-cols-[minmax(0,4fr)_6rem_minmax(0,8fr)] gap-x-6 lg:grid">
-                        <div class="col-start-2 flex justify-center">
+                        <div class="relative col-start-2 flex justify-center">
+                            {{-- The rail lights up behind the marker, starting from the first dot. --}}
+                            <div class="absolute inset-x-0 top-[1.8125rem] bottom-0 flex justify-center overflow-y-clip">
+                                <div class="sticky top-[-50vh] -mt-[100vh] h-screen w-px shrink-0 self-start bg-blue-500"></div>
+                            </div>
+
                             <div class="sticky top-[calc(50vh-1.125rem)] mt-2.75 flex h-9 items-center gap-1.5 self-start rounded-full border border-zinc-200 bg-white ps-2 pe-3 shadow-xs dark:border-zinc-600 dark:bg-zinc-700">
                                 <x-app-logo-icon class="size-5 fill-none stroke-current text-accent-content motion-safe:animate-sun-turn motion-safe:[animation-timeline:scroll(root)]" />
                                 <span class="text-xs font-semibold tabular-nums" data-site-clock>{{ $steps[0]['hour'] }}</span>
@@ -318,7 +325,7 @@
                                     @endif
                                 </div>
 
-                                <x-assisted-people.timeline-rail :status="$step['status']" :first="$loop->first" class="col-start-1 row-span-2 row-start-1 lg:col-start-2 lg:row-span-1 lg:justify-self-center" />
+                                <x-assisted-people.timeline-rail :status="$step['status']" :first="$loop->first" class="col-start-1 row-span-2 row-start-1 lg:col-start-2 lg:row-span-1 lg:justify-self-center {{ $railDotMotion }}" />
 
                                 @if ($step['image'])
                                     <figure class="{{ $step['aspect'] ?? 'aspect-1625/1124' }} relative col-start-2 row-start-2 mb-16 self-start overflow-hidden rounded-xl border border-zinc-800/10 bg-white shadow-lg lg:col-start-3 lg:row-start-1 lg:mb-24 dark:border-white/10">
@@ -350,7 +357,7 @@
 
                             <div aria-hidden="true" class="col-start-1 row-span-2 row-start-1 flex flex-col items-center lg:col-start-2 lg:row-span-1 lg:justify-self-center">
                                 <span class="h-16 w-px shrink-0 bg-zinc-200 lg:h-26 dark:bg-white/10"></span>
-                                <x-assisted-people.timeline-rail :status="AppointmentStatus::Scheduled" class="grow" />
+                                <x-assisted-people.timeline-rail :status="AppointmentStatus::Scheduled" class="grow {{ $railDotMotion }}" />
                             </div>
 
                             <ul class="col-start-2 row-start-2 grid grid-cols-[repeat(auto-fit,minmax(min(17.5rem,100%),1fr))] content-start gap-x-10 gap-y-9 pb-16 lg:col-start-3 lg:row-start-1 lg:pt-26 lg:pb-26">
@@ -379,7 +386,7 @@
 
                         <div aria-hidden="true" class="col-start-1 row-span-2 row-start-1 flex flex-col items-center lg:col-start-2 lg:row-span-1 lg:justify-self-center">
                             <span class="h-20 w-px shrink-0 bg-white/10 lg:h-30"></span>
-                            <x-assisted-people.timeline-rail :status="AppointmentStatus::NoShow" :last="true" class="grow" />
+                            <x-assisted-people.timeline-rail :status="AppointmentStatus::NoShow" :last="true" class="grow {{ $railDotMotion }}" />
                         </div>
 
                         <div class="col-start-2 row-start-2 pb-16 lg:col-start-3 lg:row-start-1 lg:pt-30 lg:pb-26">
@@ -488,8 +495,8 @@
                         </p>
                     </div>
 
-                    <div class="relative lg:h-150">
-                        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" class="absolute inset-0 hidden size-full text-white/15 lg:block">
+                    <div class="relative [view-timeline-name:--sky] lg:h-150">
+                        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" class="absolute inset-0 hidden size-full text-white/15 lg:block lg:motion-safe:animate-sky-reveal lg:motion-safe:[animation-range:cover_15%_cover_50%] lg:motion-safe:[animation-timeline:--sky]">
                             @foreach ($constellations as [$from, $to])
                                 <line x1="{{ $sky[$from]['x'] }}" y1="{{ $sky[$from]['y'] }}" x2="{{ $sky[$to]['x'] }}" y2="{{ $sky[$to]['y'] }}" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke" />
                             @endforeach
@@ -497,8 +504,8 @@
 
                         <ul class="flex flex-col gap-3.5 py-2 lg:absolute lg:inset-0 lg:block lg:py-0">
                             @foreach ($nextModules as $module)
-                                <li style="--x: {{ $module['x'] }}%; --y: {{ $module['y'] }}%" class="flex gap-3 lg:absolute lg:top-(--y) lg:left-(--x) lg:w-80 lg:-translate-x-3.5 lg:-translate-y-3.5">
-                                    <x-app-logo-icon aria-hidden="true" class="size-7 shrink-0 fill-none stroke-current text-blue-300" />
+                                <li style="--x: {{ $module['x'] }}%; --y: {{ $module['y'] }}%" class="flex gap-3 lg:absolute lg:top-(--y) lg:left-(--x) lg:w-80 lg:-translate-x-3.5 lg:-translate-y-3.5 {{ $skyItemMotion }}">
+                                    <x-app-logo-icon aria-hidden="true" class="size-7 shrink-0 fill-none stroke-current text-blue-300 motion-safe:animate-sun-turn motion-safe:[animation-timeline:scroll(root)]" />
                                     <div>
                                         <p class="text-xl font-medium">{{ $module['title'] }}</p>
                                         <p class="text-sm {{ $mutedOnNight }}">{{ $module['description'] }}</p>
@@ -507,7 +514,7 @@
                             @endforeach
 
                             @foreach ($radar as $star)
-                                <li style="--x: {{ $star['x'] }}%; --y: {{ $star['y'] }}%" class="flex items-center gap-2.5 text-sm text-zinc-200 lg:absolute lg:top-(--y) lg:left-(--x) lg:-translate-x-0.75 lg:-translate-y-2.5">
+                                <li style="--x: {{ $star['x'] }}%; --y: {{ $star['y'] }}%" class="flex items-center gap-2.5 text-sm text-zinc-200 lg:absolute lg:top-(--y) lg:left-(--x) lg:-translate-x-0.75 lg:-translate-y-2.5 {{ $skyItemMotion }}">
                                     <span aria-hidden="true" class="{{ $star['dot'] }} shrink-0 rounded-full bg-white"></span>
                                     {{ $star['label'] }}
                                 </li>
@@ -525,8 +532,8 @@
                         <flux:button href="#instalar" class="h-11! px-5!" data-test="closing-install">{{ __('Install on your server') }}</flux:button>
                     </div>
 
-                    <div aria-hidden="true" class="mt-16 h-[clamp(16.25rem,31vw,28.125rem)] w-[clamp(32.5rem,62vw,56.25rem)] shrink-0 overflow-hidden">
-                        <x-app-logo-icon class="h-[200%] w-full fill-none stroke-current text-blue-700" />
+                    <div aria-hidden="true" class="mt-16 h-[clamp(16.25rem,31vw,28.125rem)] w-[clamp(32.5rem,62vw,56.25rem)] shrink-0 overflow-hidden [view-timeline-name:--closing-sun]">
+                        <x-app-logo-icon class="h-[200%] w-full fill-none stroke-current text-blue-700 motion-safe:animate-sun-rise motion-safe:[animation-range:entry_0%_entry_100%] motion-safe:[animation-timeline:--closing-sun]" />
                     </div>
                 </section>
             </div>
