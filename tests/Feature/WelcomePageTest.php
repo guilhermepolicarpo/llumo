@@ -78,3 +78,27 @@ test('the llumo cloud card points to the hosted service on any installation', fu
     'open registration' => true,
     'closed registration' => false,
 ]);
+
+test('search engines are pointed to llumo cloud from any installation', function () {
+    config(['app.url' => 'https://casa.example']);
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertSeeHtml('<link rel="canonical" href="https://llumo.app.br/">')
+        ->assertSeeHtml('<meta property="og:url" content="https://llumo.app.br/">');
+});
+
+test('the site describes the product to search engines as structured data', function () {
+    $content = (string) $this->get(route('home'))->assertOk()->getContent();
+
+    preg_match('/<script type="application\/ld\+json">(.*?)<\/script>/s', $content, $matches);
+
+    expect(json_decode($matches[1], true))
+        ->toMatchArray(['@type' => 'SoftwareApplication', 'name' => 'llumo', 'url' => 'https://llumo.app.br/']);
+});
+
+test('other pages keep their own address in the link preview', function () {
+    $this->get(route('login'))
+        ->assertOk()
+        ->assertSeeHtml('<meta property="og:url" content="'.route('login').'">');
+});

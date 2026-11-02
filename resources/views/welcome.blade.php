@@ -4,9 +4,23 @@
 
 {{-- This page is cached by the CDN: it can't depend on the session or the database, only on how the installation is configured. --}}
 @php
-    $pageTitle = __('Management for Spiritist centers').' - '.config('app.name', 'Laravel');
+    $pageTitle = __('llumo: management system for Spiritist centers');
+    $pageDescription = __('Management system for Spiritist centers: assisted persons, appointments, sessions and library in one place. Free software, in the cloud or on your own server.');
     $repositoryUrl = 'https://github.com/guilhermepolicarpo/llumo';
     $cloudUrl = 'https://llumo.app.br';
+    $siteUrl = $cloudUrl.'/';
+    $structuredData = [
+        '@context' => 'https://schema.org',
+        '@type' => 'SoftwareApplication',
+        'name' => 'llumo',
+        'description' => $pageDescription,
+        'url' => $siteUrl,
+        'applicationCategory' => 'BusinessApplication',
+        'operatingSystem' => 'Web',
+        'inLanguage' => 'pt-BR',
+        'license' => 'https://opensource.org/licenses/MIT',
+        'sameAs' => $repositoryUrl,
+    ];
     $container = 'mx-auto w-full max-w-370 px-5 sm:px-8 lg:px-12 xl:px-15';
     $largeButton = 'h-11! px-5!';
     $railColumns = 'lg:grid-cols-[minmax(0,4fr)_6rem_minmax(0,8fr)] lg:gap-x-6';
@@ -202,7 +216,10 @@
 
         <title>{{ $pageTitle }}</title>
 
-        @include('partials.link-preview', ['title' => $pageTitle])
+        {{-- Every installation serves this same page, so search engines are pointed to a single address. --}}
+        <link rel="canonical" href="{{ $siteUrl }}">
+
+        @include('partials.link-preview', ['title' => $pageTitle, 'description' => $pageDescription, 'url' => $siteUrl])
 
         <link rel="icon" href="/favicon.ico" sizes="any">
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -220,11 +237,14 @@
         @endif
 
         @fluxAppearance
+
+        <script type="application/ld+json">{!! json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>
     </head>
     {{-- The body shares the sky's blue, so overscrolling past either end of the page stays in the same color. --}}
     <body class="min-h-screen bg-blue-700 antialiased">
         {{-- The sky, the night and the footer are always dark: only the lit house follows the appearance setting. --}}
         <div class="overflow-x-clip bg-white text-zinc-800 [--site-surface:var(--color-white)] dark:bg-zinc-800 dark:text-white dark:[--site-surface:var(--color-zinc-800)]">
+            <main>
             <section class="dark relative overflow-hidden bg-blue-700 text-white">
                 <x-app-logo-icon aria-hidden="true" class="absolute top-117.5 left-1/2 size-[clamp(62.5rem,120vw,112.5rem)] -translate-x-1/2 -translate-y-1/2 fill-none stroke-current text-blue-600 motion-safe:supports-[animation-timeline:scroll()]:animate-sun-set motion-safe:supports-[animation-timeline:scroll()]:[animation-range:0_100vh] motion-safe:supports-[animation-timeline:scroll()]:[animation-timeline:scroll(root)]" />
 
@@ -274,7 +294,7 @@
                 </div>
 
                 <div class="relative mt-[clamp(3rem,5vw,4.5rem)] pb-16 bg-[linear-gradient(to_bottom,transparent_62%,var(--site-surface)_62%)]">
-                    <figure class="motion-safe:animate-hero-enter motion-safe:[animation-delay:480ms] mx-auto max-w-330 px-5 sm:px-8 lg:px-15">
+                    <figure class="mx-auto max-w-330 px-5 sm:px-8 lg:px-15">
                         <div class="overflow-hidden rounded-xl border border-white/25 bg-white shadow-2xl">
                             <img
                                 src="{{ $screenshotUrl('inicio', 1600) }}"
@@ -548,6 +568,8 @@
                     </div>
                 </section>
             </div>
+
+            </main>
 
             <footer class="dark bg-blue-700 text-white">
                 <div class="{{ $container }} pt-16 pb-8">

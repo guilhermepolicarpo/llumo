@@ -940,7 +940,6 @@
   "View all": "Ver todos",
   "Next :count day|Next :count days": "Próximo :count dia|Próximos :count dias",
   "Management for Spiritist centers: assisted people, appointments, attendances and library in one place.": "Gestão para centros espíritas: assistidos, agendamentos, atendimentos e biblioteca em um só lugar.",
-  "Management for Spiritist centers": "Gestão para centros espíritas",
   "Site sections": "Seções do site",
   "A night at the house": "Uma noite na casa",
   "How to use": "Como usar",
@@ -1052,5 +1051,7 @@
   "How to contribute": "Como contribuir",
   "Code of conduct": "Código de conduta",
   "Report a vulnerability": "Reportar uma vulnerabilidade",
-  "lumo: light, in Esperanto.": "lumo: luz, em esperanto."
+  "lumo: light, in Esperanto.": "lumo: luz, em esperanto.",
+  "llumo: management system for Spiritist centers": "llumo: sistema de gestão para centros espíritas",
+  "Management system for Spiritist centers: assisted persons, appointments, sessions and library in one place. Free software, in the cloud or on your own server.": "Sistema de gestão para centros espíritas: assistidos, agendamentos, atendimentos e biblioteca em um só lugar. Software livre, na nuvem ou no seu servidor."
 }
