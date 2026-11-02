@@ -12,7 +12,7 @@
     $hasOpenRegistration = (bool) config('llumo.open_registration');
 
     $primaryAction = $hasOpenRegistration
-        ? ['label' => __('Create your account'), 'href' => route('register'), 'icon' => null]
+        ? ['label' => __('Use llumo cloud'), 'href' => route('register'), 'icon' => null]
         : ['label' => __('Use llumo cloud'), 'href' => $cloudUrl, 'icon' => 'arrow-up-right'];
 
     $steps = [
@@ -216,8 +216,8 @@
             <section class="dark relative overflow-hidden bg-blue-700 text-white">
                 <x-app-logo-icon aria-hidden="true" class="absolute top-117.5 left-1/2 size-[clamp(62.5rem,120vw,112.5rem)] -translate-x-1/2 -translate-y-1/2 fill-none stroke-current text-blue-600 motion-safe:animate-sun-turn motion-safe:[animation-range:0_800vh] motion-safe:[animation-timeline:scroll(root)]" />
 
-                <header class="{{ $container }} relative flex flex-wrap items-center justify-between gap-x-8 gap-y-4 py-5">
-                    <a href="{{ route('home') }}" class="flex items-center gap-2.5" data-test="site-logo">
+                <header class="{{ $container }} relative flex flex-wrap items-center justify-between gap-x-8 gap-y-4 py-5 lg:grid lg:grid-cols-[1fr_auto_1fr]">
+                    <a href="{{ route('home') }}" class="flex items-center gap-2.5 justify-self-start" data-test="site-logo">
                         <span class="flex size-8 items-center justify-center rounded-md bg-white text-blue-700">
                             <x-app-logo-icon aria-hidden="true" class="size-5 fill-none stroke-current" />
                         </span>
@@ -231,8 +231,10 @@
                         <flux:navbar.item href="#roadmap" :accent="false" class="dark:text-white!" data-test="nav-roadmap">{{ __('Roadmap') }}</flux:navbar.item>
                     </flux:navbar>
 
-                    <div class="flex flex-wrap items-center gap-2">
-                        <flux:button variant="ghost" icon="folder-git-2" icon:variant="outline" :href="$repositoryUrl" class="max-sm:hidden" data-test="nav-repository">{{ __('Repository') }}</flux:button>
+                    <div class="flex flex-wrap items-center gap-2 justify-self-end lg:flex-nowrap">
+                        <flux:button variant="ghost" square :href="$repositoryUrl" :aria-label="__('Repository')" class="max-sm:hidden" data-test="nav-repository">
+                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="size-5"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+                        </flux:button>
 
                         <flux:button variant="ghost" :href="route('login')" class="border border-white/40" data-test="nav-login">{{ __('Log in') }}</flux:button>
 
@@ -260,7 +262,7 @@
                     <p class="mt-5 text-sm text-blue-50">{{ __('MIT license · Same features both ways · 0.x versions, in active development') }}</p>
                 </div>
 
-                <div class="relative mt-[clamp(3rem,5vw,4.5rem)] bg-[linear-gradient(to_bottom,transparent_62%,var(--site-surface)_62%)]">
+                <div class="relative mt-[clamp(3rem,5vw,4.5rem)] pb-16 bg-[linear-gradient(to_bottom,transparent_62%,var(--site-surface)_62%)]">
                     <figure class="mx-auto max-w-330 px-5 sm:px-8 lg:px-15">
                         <div class="overflow-hidden rounded-xl border border-white/25 bg-white shadow-2xl">
                             <img
@@ -276,7 +278,7 @@
                 </div>
             </section>
 
-            <section class="mx-auto max-w-330 px-5 py-[clamp(4.5rem,9vw,8.5rem)] sm:px-8 lg:px-15">
+            <section class="mx-auto max-w-330 px-5 pt-[clamp(1.5rem,5vw,4.5rem)] pb-[clamp(4.5rem,9vw,8.5rem)] sm:px-8 lg:px-15">
                 <p class="max-w-265 text-[clamp(1.625rem,3.2vw,2.75rem)] leading-[1.22] font-medium tracking-[-0.02em] text-pretty">
                     <span class="text-zinc-500 dark:text-white/70">{{ __('Lumo means light in Esperanto, a language tied to the history of the Spiritist movement.') }}</span>
                     {{ __('That is what llumo brings to the everyday life of the house: clarity about who arrived, who is waiting, who has been attended and what still needs attention.') }}
@@ -290,8 +292,8 @@
                 </div>
 
                 <div class="relative">
-                    {{-- The light walks down the rail as the page scrolls, and stops when the house closes. --}}
-                    <div aria-hidden="true" class="pointer-events-none absolute inset-0 z-10 hidden grid-cols-[minmax(0,4fr)_6rem_minmax(0,8fr)] gap-x-6 lg:grid">
+                    {{-- The light walks down the rail as the page scrolls, past the end of this block, and stops on the 00:05 dot. --}}
+                    <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-0 -bottom-[calc(7.5rem+47px)] z-10 hidden grid-cols-[minmax(0,4fr)_6rem_minmax(0,8fr)] gap-x-6 lg:grid">
                         <div class="col-start-2 flex justify-center">
                             <div class="sticky top-[calc(50vh-1.125rem)] mt-2.75 flex h-9 items-center gap-1.5 self-start rounded-full border border-zinc-200 bg-white ps-2 pe-3 shadow-xs dark:border-zinc-600 dark:bg-zinc-700">
                                 <x-app-logo-icon class="size-5 fill-none stroke-current text-accent-content motion-safe:animate-sun-turn motion-safe:[animation-timeline:scroll(root)]" />
@@ -369,7 +371,7 @@
 
             <div class="dark bg-zinc-950 text-white">
                 <div class="{{ $container }}">
-                    <div class="grid grid-cols-[0.75rem_minmax(0,1fr)] gap-x-4 gap-y-6 lg:grid-cols-[minmax(0,4fr)_6rem_minmax(0,8fr)] lg:gap-x-6 lg:gap-y-0">
+                    <div class="grid grid-cols-[0.75rem_minmax(0,1fr)] gap-x-4 gap-y-6 lg:grid-cols-[minmax(0,4fr)_6rem_minmax(0,8fr)] lg:gap-x-6 lg:gap-y-0" data-site-hour="00:05">
                         <div class="col-start-2 row-start-1 flex flex-col items-start gap-3 pt-21.25 lg:col-start-1 lg:pt-31.25">
                             <p class="text-[2.75rem] leading-12 font-medium tracking-[-0.02em] tabular-nums">00:05</p>
                             <flux:badge size="sm" :color="AppointmentStatus::NoShow->color()">{{ AppointmentStatus::NoShow->label() }}</flux:badge>
