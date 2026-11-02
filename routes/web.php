@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 Route::view('/', 'welcome')
     ->name('home')
     ->withoutMiddleware('web')
-    ->middleware(SetCacheHeaders::using('public;max_age=300;s_maxage=604800'));
+    ->middleware(SetCacheHeaders::using('public;max_age=300;s_maxage=604800;etag'));
 
 Route::livewire('onboarding', 'pages::onboarding.index')
     ->middleware(['auth', 'verified'])

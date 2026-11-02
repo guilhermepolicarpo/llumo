@@ -126,7 +126,7 @@ select:focus[data-flux-control],
 [data-picker-trigger][aria-expanded="true"],
 [data-picker-trigger]:focus-visible,
 [data-picker-trigger]:has(:focus-visible) {
-    @apply outline-2 -outline-offset-1 outline-accent dark:outline-accent-content;
+    @apply outline-2 -outline-offset-1 outline-accent-content;
 }
 
 /* Logo */

@@ -25,9 +25,7 @@ test('the site runs no database queries and sets no cookies so the CDN can cache
 test('the site tells shared caches and browsers how long to keep it', function () {
     $cacheControl = $this->get(route('home'))->headers->get('Cache-Control');
 
-    expect($cacheControl)->toContain('public')
-        ->and($cacheControl)->toContain('max-age=300')
-        ->and($cacheControl)->toContain('s-maxage=604800');
+    expect($cacheControl)->toContain('public', 'max-age=300', 's-maxage=604800');
 });
 
 test('the site is the same for guests and signed-in people', function () {
@@ -60,7 +58,7 @@ test('a closed installation sends visitors to llumo cloud and only offers loggin
         ->and(siteLinkHref($response, 'nav-login'))->toBe(route('login'));
 });
 
-test('an installation with open registration offers creating an account', function () {
+test('an installation with open registration sends the main action to its own registration', function () {
     config(['llumo.open_registration' => true]);
 
     $response = $this->get(route('home'))->assertOk();

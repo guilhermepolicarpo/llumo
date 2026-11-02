@@ -7,6 +7,7 @@
     'offset' => 'card',
     'first' => false,
     'last' => false,
+    'dotClass' => '',
 ])
 
 @php
@@ -32,6 +33,6 @@
         'h-[26px]' => $isUpcoming,
         'invisible' => $first,
     ])></span>
-    <span @class(['shrink-0 rounded-full', $offset === 'card' ? 'size-3' : 'size-2.5', $dotClasses])></span>
+    <span @class(['shrink-0 rounded-full', $offset === 'card' ? 'size-3' : 'size-2.5', $dotClasses, $dotClass])></span>
     <span @class(['grow', $lineClasses, 'invisible' => $last])></span>
 </div>
