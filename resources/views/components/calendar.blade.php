@@ -67,7 +67,7 @@
                         x-bind:aria-current="day.isToday ? 'date' : null"
                         x-bind:aria-disabled="day.disabled"
                         x-bind:class="day.inMonth ? 'text-zinc-800 dark:text-white' : 'text-zinc-400 dark:text-zinc-500'"
-                        class="group flex h-9.5 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg text-sm max-sm:h-11 not-aria-pressed:hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent aria-[current=date]:font-semibold aria-[current=date]:not-aria-pressed:text-accent-content aria-pressed:bg-accent aria-pressed:font-semibold aria-pressed:text-accent-foreground aria-disabled:cursor-default aria-disabled:text-zinc-300! aria-disabled:hover:bg-transparent dark:not-aria-pressed:hover:bg-white/10 dark:aria-disabled:text-zinc-600!"
+                        class="group flex h-9.5 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg text-sm max-sm:h-11 not-aria-pressed:hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent-content aria-[current=date]:font-semibold aria-[current=date]:not-aria-pressed:text-accent-content aria-pressed:bg-accent aria-pressed:font-semibold aria-pressed:text-accent-foreground aria-disabled:cursor-default aria-disabled:text-zinc-300! aria-disabled:hover:bg-transparent dark:not-aria-pressed:hover:bg-white/10 dark:aria-disabled:text-zinc-600!"
                         data-test="calendar-day"
                     >
                         <span x-text="day.number"></span>

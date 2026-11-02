@@ -1,5 +1,5 @@
 @php
-    $description = __('Management for Spiritist centers: assisted people, appointments, attendances and library in one place.');
+    $description ??= __('Management for Spiritist centers: assisted people, appointments, attendances and library in one place.');
 @endphp
 
 <meta name="description" content="{{ $description }}">
@@ -7,7 +7,7 @@
 <meta property="og:site_name" content="{{ config('app.name', 'Laravel') }}">
 <meta property="og:title" content="{{ $title }}">
 <meta property="og:description" content="{{ $description }}">
-<meta property="og:url" content="{{ url()->current() }}">
+<meta property="og:url" content="{{ $url ?? url()->current() }}">
 <meta property="og:image" content="{{ asset('og-image.png') }}">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">

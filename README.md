@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  Gestão para centros espíritas — livre, self-hosted e feito com carinho.
+  Gestão para centros espíritas — livre, na nuvem ou no seu servidor, e feito com carinho.
 </p>
 
 <p align="center">
@@ -13,6 +13,7 @@
 <p align="center">
   <a href="https://github.com/guilhermepolicarpo/llumo/actions/workflows/tests.yml"><img src="https://github.com/guilhermepolicarpo/llumo/actions/workflows/tests.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="Licença MIT"></a>
+  <a href="https://github.com/guilhermepolicarpo/llumo/releases/latest"><img src="https://img.shields.io/github/v/release/guilhermepolicarpo/llumo" alt="Última versão"></a>
   <img src="https://img.shields.io/badge/PHP-8.3%2B-777BB4" alt="PHP 8.3+">
   <img src="https://img.shields.io/badge/Laravel-13-FF2D20" alt="Laravel 13">
 </p>
@@ -25,17 +26,24 @@ O nome vem do esperanto *lumo* (luz), língua com ligação histórica com o mov
 
 Duas premissas guiam o projeto:
 
-- **Os dados da casa pertencem à casa.** O llumo é self-hosted: você o instala no seu próprio servidor e mantém o controle total das informações dos assistidos.
+- **Os dados da casa pertencem à casa.** Use o llumo cloud sem instalar nada ou instale o llumo no seu próprio servidor e mantenha o controle total das informações dos assistidos.
 - **Software livre.** Código aberto sob licença MIT, sem custo de licença e sem dependência de um fornecedor.
 
 > [!NOTE]
-> O llumo está em desenvolvimento ativo. Os módulos do dia a dia da casa — assistidos, agendamentos, atendimentos e biblioteca — já funcionam e são cobertos por testes, mas ainda não há uma versão estável lançada. Veja o [roadmap](#roadmap) para o que vem a seguir.
+> O llumo está em desenvolvimento ativo. Os módulos do dia a dia da casa — assistidos, agendamentos, atendimentos e biblioteca — já funcionam e são cobertos por testes. As versões ainda são `0.x`: podem trazer mudanças maiores entre uma e outra. Veja as [releases](https://github.com/guilhermepolicarpo/llumo/releases) e o [roadmap](#roadmap).
 
 <p align="center">
   <img src="art/screenshots/agendamentos.png" alt="Tela de agendamentos do llumo: agenda do dia com busca, filtros, aviso de atendimentos pendentes e a lista de assistidos com as ações Receber e Atender">
 </p>
 
 <p align="center"><em>Agendamentos: a agenda do dia, com a recepção e o atendimento dos assistidos.</em></p>
+
+## Como usar
+
+Há duas formas de usar o llumo, com os mesmos recursos:
+
+- **llumo cloud — [llumo.app.br](https://llumo.app.br).** Crie sua conta, cadastre a casa e comece a usar, sem instalar nada. É hospedado pelo mantenedor do projeto e roda sempre a versão mais recente do código. Ideal para casas que não têm alguém para cuidar de um servidor.
+- **No seu servidor (self-hosted).** Instale a partir de uma das [versões publicadas](https://github.com/guilhermepolicarpo/llumo/releases) e siga a [instalação](#instalação) abaixo. Os dados ficam inteiramente na sua infraestrutura.
 
 ## Funcionalidades
 
@@ -53,6 +61,31 @@ Duas premissas guiam o projeto:
 | Assistência social | Gestão de doações e ações assistenciais aos assistidos. | 🚧 Planejado |
 
 O fluxo central do domínio é: **assistido → agendamento → atendimento**. O assistido é cadastrado, tem um atendimento agendado e, no registro desse atendimento, anotam-se o mentor espiritual que atuou através do médium e os fluídicos prescritos por ele. Os mentores são espíritos protetores e guias — espíritos mais evoluídos que orientam, protegem e auxiliam na evolução moral e espiritual, realizando o tratamento espiritual e de cura durante o atendimento. Os fluídicos ficam vinculados ao atendimento em que foram prescritos, formando o histórico do assistido.
+
+## Telas
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="art/screenshots/inicio.png" alt="Tela de início do llumo: progresso dos atendimentos do dia, assistidos na recepção por ordem de chegada, pendências e empréstimos atrasados">
+      <p align="center"><em>Início: o dia da casa, a recepção e o que precisa de atenção.</em></p>
+    </td>
+    <td width="50%">
+      <img src="art/screenshots/atendimento.png" alt="Ficha de atendimento do llumo com mentor, fluídicos e posologia preenchidos, ao lado dos dados do assistido">
+      <p align="center"><em>Ficha de atendimento: mentor, fluídicos, orientações e passes.</em></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="art/screenshots/assistido.png" alt="Histórico do assistido no llumo: linha do tempo dos atendimentos anteriores com fluídicos, orientações, passes e observações">
+      <p align="center"><em>Histórico do assistido: tudo o que foi feito em cada atendimento.</em></p>
+    </td>
+    <td width="50%">
+      <img src="art/screenshots/biblioteca.png" alt="Acervo da biblioteca no llumo: livros com autores, categorias e exemplares disponíveis">
+      <p align="center"><em>Biblioteca: o acervo da casa e os exemplares disponíveis.</em></p>
+    </td>
+  </tr>
+</table>
 
 ## Stack
 
@@ -117,10 +150,37 @@ A seguir:
 Além dos módulos, no radar:
 
 - **Imagem Docker e guia de deploy** — para tornar o self-host o mais simples possível
+- **Lembretes** — avisos de agendamento, retorno e devolução de livros, para reduzir faltas
+  - E-mail como canal padrão e link "Enviar no WhatsApp" (`wa.me`) com a mensagem pronta, ambos sem custo
+  - Bot do Telegram como opção automática gratuita
+  - WhatsApp oficial (Cloud API da Meta) opcional, com botões para o assistido confirmar ou cancelar e o agendamento atualizado automaticamente
+  - Provedor configurável: um número único para todas as casas da instância ou o número próprio de cada casa
+  - Nome da casa em toda mensagem, limite de envio por casa, opção de não receber mais e consentimento do assistido registrado (LGPD)
+  - Registro dos envios por casa, para acompanhar o uso e o custo
+- **Autoagendamento** — página pública da casa onde o assistido escolhe o tipo de atendimento e o dia, respeitando os limites diários
+- **Ficha digital do assistido** — posologia dos fluídicos e orientações acessíveis no celular por QR code
+- **Check-in por QR code** — registro da chegada na recepção sem digitação
+- **Indicadores** — atendimentos por mês, taxa de faltas, tipos mais procurados e livros mais emprestados na tela de início
+- **Escala de voluntários** — quem atende em cada dia, com troca de plantão entre médiuns e passistas
+- **Cursos e grupos de estudo** — turmas (ESDE, evangelização, mocidade) com controle de presença
+- **PWA e modo offline** — preenchimento do atendimento mesmo com internet instável, sincronizando depois
+- **Conformidade com a LGPD** — termo de consentimento, exportação e anonimização dos dados do assistido e registro de acessos
+- **Rede entre casas** — integração opcional entre instâncias para compartilhar acervo e encaminhar assistidos
+- **Inteligência artificial** — recursos opcionais, ativados por casa, que apoiam a rotina sem nunca sugerir tratamento espiritual (fluídicos, passes e orientações cabem ao mentor e aos médiuns)
+  - Digitalização de fichas de papel: fotos das fichas antigas viram assistidos e atendimentos no llumo
+  - Cadastro de livros por foto da capa ou da página de créditos, inclusive livros antigos sem ISBN
+  - Ditado das observações durante o atendimento
+  - Perguntas em linguagem natural sobre os números da casa ("quantos atendimentos a distância em março?")
+  - Resumo factual do histórico do assistido antes do atendimento
+  - Previsão de faltas, com lembrete reforçado para quem tende a faltar
+  - Livros do acervo relacionados às orientações registradas no atendimento
+  - Roteiros e perguntas de discussão para os grupos de estudo
+  - Agendamento por conversa no WhatsApp ("quero marcar para quinta")
+  - Provedor configurável: API externa ou modelo local (Ollama) no self-host, com registro de uso por casa e atenção aos dados sensíveis (LGPD, art. 11)
 
 ## Contribuindo
 
-Contribuições são muito bem-vindas. Veja o [CONTRIBUTING.md](CONTRIBUTING.md) para o setup local, os padrões de código e o fluxo de pull request.
+Contribuições são muito bem-vindas. Veja o [CONTRIBUTING.md](CONTRIBUTING.md) para o setup local, os padrões de código e o fluxo de pull request. Para começar, procure as issues marcadas com [`good first issue`](https://github.com/guilhermepolicarpo/llumo/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22).
 
 Ao participar do projeto, você concorda em seguir o nosso [Código de Conduta](CODE_OF_CONDUCT.md).
 

@@ -17,6 +17,12 @@ return Application::configure(basePath: dirname(__DIR__))
             SetTeamUrlDefaults::class,
         ]);
 
+        // The prefix header is left out: it would end up in the URLs of the home page, which is cached for every visitor.
+        $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR
+            | Request::HEADER_X_FORWARDED_HOST
+            | Request::HEADER_X_FORWARDED_PORT
+            | Request::HEADER_X_FORWARDED_PROTO);
+
         $middleware->redirectUsersTo(fn (Request $request): string => $request->user()->homeUrl());
     })
     ->withExceptions(function (Exceptions $exceptions): void {

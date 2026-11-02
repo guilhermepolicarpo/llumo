@@ -4,11 +4,16 @@ use App\Actions\Appointments\BuildAttendanceSheets;
 use App\Http\Middleware\EnsureTeamMembership;
 use App\Models\Appointment;
 use App\Models\Team;
+use Illuminate\Http\Middleware\SetCacheHeaders;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'welcome')->name('home');
+// The public site is served from the CDN so the server can scale to zero: it must stay out of the web group, since session cookies prevent caching.
+Route::view('/', 'welcome')
+    ->name('home')
+    ->withoutMiddleware('web')
+    ->middleware(SetCacheHeaders::using('public;max_age=300;s_maxage=604800;etag'));
 
 Route::livewire('onboarding', 'pages::onboarding.index')
     ->middleware(['auth', 'verified'])

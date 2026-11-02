@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  Management for Spiritist centers — free, self-hosted and built with care.
+  Management for Spiritist centers — free, in the cloud or on your own server, and built with care.
 </p>
 
 <p align="center">
@@ -13,6 +13,7 @@
 <p align="center">
   <a href="https://github.com/guilhermepolicarpo/llumo/actions/workflows/tests.yml"><img src="https://github.com/guilhermepolicarpo/llumo/actions/workflows/tests.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license"></a>
+  <a href="https://github.com/guilhermepolicarpo/llumo/releases/latest"><img src="https://img.shields.io/github/v/release/guilhermepolicarpo/llumo" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/PHP-8.3%2B-777BB4" alt="PHP 8.3+">
   <img src="https://img.shields.io/badge/Laravel-13-FF2D20" alt="Laravel 13">
 </p>
@@ -25,17 +26,24 @@ The name comes from Esperanto *lumo* (light), a language with a historical conne
 
 Two principles guide the project:
 
-- **The center's data belongs to the center.** llumo is self-hosted: you install it on your own server and keep full control over the information of the people you assist.
+- **The center's data belongs to the center.** Use llumo cloud without installing anything, or install llumo on your own server and keep full control over the information of the people you assist.
 - **Free software.** Open source under the MIT license, with no license fees and no vendor lock-in.
 
 > [!NOTE]
-> llumo is in active development. The modules for the center's daily work — assisted persons, scheduling, sessions and library — already work and are covered by tests, but there is no stable release yet. See the [roadmap](#roadmap) for what comes next.
+> llumo is in active development. The modules for the center's daily work — assisted persons, scheduling, sessions and library — already work and are covered by tests. Versions are still `0.x` and may bring larger changes from one to the next. See the [releases](https://github.com/guilhermepolicarpo/llumo/releases) and the [roadmap](#roadmap).
 
 <p align="center">
   <img src="art/screenshots/agendamentos.png" alt="llumo's scheduling screen: the day's schedule with search, filters, a notice about sessions awaiting a record, and the list of assisted persons with the Check in and Attend actions">
 </p>
 
 <p align="center"><em>Scheduling: the day's schedule, with check-in and the session for each assisted person (interface in Brazilian Portuguese).</em></p>
+
+## How to use
+
+There are two ways to use llumo, with the same features:
+
+- **llumo cloud — [llumo.app.br](https://llumo.app.br).** Create an account, register your center and start using it, with nothing to install. It is hosted by the project's maintainer and always runs the latest version of the code. Ideal for centers without someone to look after a server.
+- **On your own server (self-hosted).** Install one of the [published releases](https://github.com/guilhermepolicarpo/llumo/releases) and follow the [installation](#installation) steps below. Your data stays entirely on your infrastructure.
 
 ## Features
 
@@ -53,6 +61,33 @@ Two principles guide the project:
 | Social assistance | Management of donations and assistance actions for assisted persons. | 🚧 Planned |
 
 The core domain flow is: **assisted person → scheduling → session**. The assisted person is registered, a session is scheduled and, in the record of that session, the team notes the spiritual mentor who acted through the medium and the fluidics prescribed. Mentors are protective spirits and guides — more evolved spirits who guide, protect and support a person's moral and spiritual growth, carrying out the spiritual healing during the session. The fluidics stay linked to the session in which they were prescribed, forming the assisted person's history.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="art/screenshots/inicio.png" alt="llumo's home screen: progress of the day's sessions, assisted persons at the front desk in order of arrival, pending items and overdue loans">
+      <p align="center"><em>Home: the center's day, the front desk and what needs attention.</em></p>
+    </td>
+    <td width="50%">
+      <img src="art/screenshots/atendimento.png" alt="llumo's session record with the mentor, fluidic remedies and dosage filled in, next to the assisted person's details">
+      <p align="center"><em>Session record: mentor, fluidic remedies, guidance and passes.</em></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="art/screenshots/assistido.png" alt="An assisted person's history in llumo: a timeline of past sessions with fluidic remedies, guidance, passes and notes">
+      <p align="center"><em>Assisted person's history: everything done in each session.</em></p>
+    </td>
+    <td width="50%">
+      <img src="art/screenshots/biblioteca.png" alt="llumo's library collection: books with authors, categories and available copies">
+      <p align="center"><em>Library: the center's collection and available copies.</em></p>
+    </td>
+  </tr>
+</table>
+
+<p align="center"><em>The interface is in Brazilian Portuguese.</em></p>
 
 ## Stack
 
@@ -119,10 +154,37 @@ Next:
 Beyond the modules, also on the radar:
 
 - **Docker image and deployment guide** — to make self-hosting as simple as possible
+- **Reminders** — appointment, follow-up, and book return notices, to reduce no-shows
+  - Email as the default channel and a "Send on WhatsApp" (`wa.me`) link with the message pre-filled, both free
+  - Telegram bot as a free automated option
+  - Optional official WhatsApp (Meta Cloud API), with buttons for assisted persons to confirm or cancel and the appointment updated automatically
+  - Configurable provider: a single number for all centers on the instance or each center's own number
+  - Center name in every message, per-center sending limits, opt-out, and recorded consent from assisted persons (LGPD)
+  - Per-center message log, to track usage and cost
+- **Self-scheduling** — a public page for each center where assisted persons pick the session type and day, respecting daily limits
+- **Digital card for assisted persons** — fluidic dosage and guidance available on the phone via QR code
+- **QR code check-in** — arrival registered at the front desk without typing
+- **Insights** — sessions per month, no-show rate, most requested types, and most borrowed books on the dashboard
+- **Volunteer schedule** — who attends each day, with shift swaps between mediums and pass givers
+- **Courses and study groups** — classes (ESDE, children's evangelization, youth) with attendance tracking
+- **PWA and offline mode** — filling in sessions even with unstable internet, syncing later
+- **LGPD compliance** — consent terms, export and anonymization of assisted persons' data, and access logs
+- **Network of centers** — optional integration between instances to share library collections and refer assisted persons
+- **Artificial intelligence** — optional features, enabled per center, that support daily work without ever suggesting spiritual treatment (fluidics, passes, and guidance are up to the mentor and mediums)
+  - Paper record digitization: photos of old records become assisted persons and sessions in llumo
+  - Book cataloging from a photo of the cover or copyright page, including old books without an ISBN
+  - Dictation of notes during sessions
+  - Natural language questions about the center's numbers ("how many remote sessions in March?")
+  - Factual summary of the assisted person's history before the session
+  - No-show prediction, with an extra reminder for those likely to miss
+  - Library books related to the guidance recorded in the session
+  - Outlines and discussion questions for study groups
+  - Scheduling by WhatsApp conversation ("I'd like to book for Thursday")
+  - Configurable provider: external API or local model (Ollama) for self-hosting, with per-center usage logs and care for sensitive data (LGPD, art. 11)
 
 ## Contributing
 
-Contributions are very welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, coding standards and the pull request workflow.
+Contributions are very welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, coding standards and the pull request workflow. To get started, look for issues labeled [`good first issue`](https://github.com/guilhermepolicarpo/llumo/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22).
 
 By participating in this project, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
 
