@@ -23,14 +23,14 @@
     --color-zinc-900: var(--color-slate-900);
     --color-zinc-950: var(--color-slate-950);
 
-    --color-accent: var(--color-blue-500);
+    --color-accent: var(--color-blue-600);
     --color-accent-content: var(--color-blue-600);
     --color-accent-foreground: var(--color-white);
 }
 
 @layer theme {
     .dark {
-        --color-accent: var(--color-blue-500);
+        --color-accent: var(--color-blue-600);
         --color-accent-content: var(--color-blue-400);
         --color-accent-foreground: var(--color-white);
     }
@@ -60,7 +60,7 @@ select:focus[data-flux-control],
 [data-picker-trigger][aria-expanded="true"],
 [data-picker-trigger]:focus-visible,
 [data-picker-trigger]:has(:focus-visible) {
-    @apply outline-2 -outline-offset-1 outline-accent;
+    @apply outline-2 -outline-offset-1 outline-accent dark:outline-accent-content;
 }
 
 /* Logo */
