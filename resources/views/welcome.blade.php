@@ -34,8 +34,7 @@
             'title' => __('Someone arrives at the front desk'),
             'description' => __('One click on Check in and the arrival is recorded, in order. The front desk sees who is in the house and for how long, and nobody needs to ask who is next.'),
             'image' => 'inicio',
-            'alt' => __("A close-up of llumo's home screen: the day's progress and the list of people at the front desk now, in order of arrival"),
-            'crop' => 'absolute top-[-47%] left-[-41%] h-auto w-[196%] max-w-none',
+            'alt' => __("llumo's home screen: progress of the day's sessions, assisted persons at the front desk in order of arrival, pending items and overdue loans"),
         ],
         [
             'hour' => '18:50',
@@ -216,7 +215,7 @@
         {{-- The sky, the night and the footer are always dark: only the lit house follows the appearance setting. --}}
         <div class="overflow-x-clip bg-white text-zinc-800 [--site-surface:var(--color-white)] dark:bg-zinc-800 dark:text-white dark:[--site-surface:var(--color-zinc-800)]">
             <section class="dark relative overflow-hidden bg-blue-700 text-white">
-                <x-app-logo-icon aria-hidden="true" class="absolute top-117.5 left-1/2 size-[clamp(62.5rem,120vw,112.5rem)] -translate-x-1/2 -translate-y-1/2 fill-none stroke-current text-blue-600 motion-safe:animate-sun-turn motion-safe:[animation-range:0_800vh] motion-safe:[animation-timeline:scroll(root)]" />
+                <x-app-logo-icon aria-hidden="true" class="absolute top-117.5 left-1/2 size-[clamp(62.5rem,120vw,112.5rem)] -translate-x-1/2 -translate-y-1/2 fill-none stroke-current text-blue-600 motion-safe:supports-[animation-timeline:scroll()]:animate-sun-set motion-safe:supports-[animation-timeline:scroll()]:[animation-range:0_100vh] motion-safe:supports-[animation-timeline:scroll()]:[animation-timeline:scroll(root)]" />
 
                 <header class="{{ $container }} relative flex flex-wrap items-center justify-between gap-x-8 gap-y-4 py-5 lg:grid lg:grid-cols-[1fr_auto_1fr]">
                     <a href="{{ route('home') }}" class="flex items-center gap-2.5 justify-self-start" data-test="site-logo">
@@ -247,25 +246,25 @@
                 </header>
 
                 <div class="relative mx-auto flex max-w-295 flex-col items-center px-5 pt-[clamp(3.5rem,7vw,6.5rem)] text-center sm:px-8">
-                    <h1 class="text-[clamp(2.75rem,6.5vw,6rem)] leading-[1.02] font-medium tracking-[-0.035em] text-balance">
+                    <h1 class="motion-safe:animate-hero-enter text-[clamp(2.75rem,6.5vw,6rem)] leading-[1.02] font-medium tracking-[-0.035em] text-balance">
                         {{ __('Take care of whoever arrives.') }}
                         <span class="block text-blue-200">{{ __('llumo takes care of the rest.') }}</span>
                     </h1>
 
-                    <p class="mt-7 max-w-165 text-[clamp(1.0625rem,1.5vw,1.25rem)] leading-normal text-pretty">
+                    <p class="motion-safe:animate-hero-enter motion-safe:[animation-delay:120ms] mt-7 max-w-165 text-[clamp(1.0625rem,1.5vw,1.25rem)] leading-normal text-pretty">
                         {{ __('Assisted persons, appointments, sessions and library of a Spiritist center in one place. Free software, in the cloud or on your own server.') }}
                     </p>
 
-                    <div class="mt-9 flex flex-wrap justify-center gap-3">
+                    <div class="mt-9 flex flex-wrap justify-center gap-3 motion-safe:animate-hero-enter motion-safe:[animation-delay:240ms]">
                         <flux:button variant="primary" :href="$primaryAction['href']" :icon:trailing="$primaryAction['icon']" icon:variant="outline" class="h-11! px-5! [--color-accent-foreground:var(--color-blue-700)] [--color-accent:var(--color-white)]" data-test="hero-primary-action">{{ $primaryAction['label'] }}</flux:button>
                         <flux:button variant="ghost" href="#instalar" class="h-11! border border-white/40 px-5!" data-test="hero-install">{{ __('Install on your server') }}</flux:button>
                     </div>
 
-                    <p class="mt-5 text-sm text-blue-50">{{ __('MIT license · Same features both ways · 0.x versions, in active development') }}</p>
+                    <p class="mt-5 text-sm text-blue-50 motion-safe:animate-hero-enter motion-safe:[animation-delay:360ms]">{{ __('MIT license · Same features both ways · 0.x versions, in active development') }}</p>
                 </div>
 
                 <div class="relative mt-[clamp(3rem,5vw,4.5rem)] pb-16 bg-[linear-gradient(to_bottom,transparent_62%,var(--site-surface)_62%)]">
-                    <figure class="mx-auto max-w-330 px-5 sm:px-8 lg:px-15">
+                    <figure class="motion-safe:animate-hero-enter motion-safe:[animation-delay:480ms] mx-auto max-w-330 px-5 sm:px-8 lg:px-15">
                         <div class="overflow-hidden rounded-xl border border-white/25 bg-white shadow-2xl">
                             <img
                                 src="{{ Vite::asset('resources/images/screenshots/inicio.png') }}"
@@ -328,7 +327,7 @@
                                 <x-assisted-people.timeline-rail :status="$step['status']" :first="$loop->first" class="col-start-1 row-span-2 row-start-1 lg:col-start-2 lg:row-span-1 lg:justify-self-center {{ $railDotMotion }}" />
 
                                 @if ($step['image'])
-                                    <figure class="{{ $step['aspect'] ?? 'aspect-1625/1124' }} relative col-start-2 row-start-2 mb-16 self-start overflow-hidden rounded-xl border border-zinc-800/10 bg-white shadow-lg lg:col-start-3 lg:row-start-1 lg:mb-24 dark:border-white/10">
+                                    <figure class="{{ $step['aspect'] ?? 'aspect-1625/1124' }} motion-safe:animate-screen-rise motion-safe:[animation-range:entry_0%_entry_40%] motion-safe:[animation-timeline:view()] relative col-start-2 row-start-2 mb-16 self-start overflow-hidden rounded-xl border border-zinc-800/10 bg-white shadow-lg lg:col-start-3 lg:row-start-1 lg:mb-24 dark:border-white/10">
                                         <img
                                             src="{{ Vite::asset('resources/images/screenshots/'.$step['image'].'.png') }}"
                                             width="2732"

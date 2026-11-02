@@ -32,6 +32,30 @@
     --animate-sky-reveal: sky-reveal linear both;
     --animate-star-appear: star-appear linear both;
     --animate-dot-light: dot-light linear both;
+    --animate-sun-set: sun-set linear both;
+    --animate-hero-enter: hero-enter 700ms ease-out both;
+    --animate-screen-rise: screen-rise linear both;
+
+    @keyframes sun-set {
+        to {
+            translate: -50% -10%;
+            rotate: 45deg;
+        }
+    }
+
+    @keyframes hero-enter {
+        from {
+            opacity: 0;
+            translate: 0 1rem;
+        }
+    }
+
+    @keyframes screen-rise {
+        from {
+            opacity: 0;
+            translate: 0 3rem;
+        }
+    }
 
     @keyframes sun-turn {
         to {
