@@ -21,6 +21,12 @@
         ? ['href' => route('register'), 'icon' => null]
         : ['href' => $cloudUrl, 'icon' => 'arrow-up-right'];
 
+    $screenshotUrl = fn (string $name, int $width): string => Vite::asset("resources/images/screenshots/{$name}-{$width}.webp");
+    $screenshotSrcset = fn (string $name): string => collect([800, 1600, 2732])
+        ->map(fn (int $width): string => $screenshotUrl($name, $width)." {$width}w")
+        ->implode(', ');
+    $heroImageSizes = '(min-width: 1320px) 1200px, 92vw';
+
     $sections = [
         ['key' => 'night', 'label' => __('A night at the house'), 'href' => '#noite'],
         ['key' => 'how-to-use', 'label' => __('How to use'), 'href' => '#como-usar'],
@@ -204,7 +210,7 @@
 
         @fonts
 
-        <link rel="preload" as="image" fetchpriority="high" href="{{ Vite::asset('resources/images/screenshots/inicio.webp') }}">
+        <link rel="preload" as="image" fetchpriority="high" imagesrcset="{{ $screenshotSrcset('inicio') }}" imagesizes="{{ $heroImageSizes }}">
 
         {{-- The styles travel inside the page: a copy cached before a deploy keeps working after the hashed CSS file is gone. --}}
         @if (Vite::isRunningHot())
@@ -271,7 +277,9 @@
                     <figure class="motion-safe:animate-hero-enter motion-safe:[animation-delay:480ms] mx-auto max-w-330 px-5 sm:px-8 lg:px-15">
                         <div class="overflow-hidden rounded-xl border border-white/25 bg-white shadow-2xl">
                             <img
-                                src="{{ Vite::asset('resources/images/screenshots/inicio.webp') }}"
+                                src="{{ $screenshotUrl('inicio', 1600) }}"
+                                srcset="{{ $screenshotSrcset('inicio') }}"
+                                sizes="{{ $heroImageSizes }}"
                                 width="2732"
                                 height="1536"
                                 fetchpriority="high"
@@ -331,7 +339,9 @@
                                 @if ($step['image'])
                                     <figure class="{{ $step['aspect'] ?? 'aspect-1625/1124' }} motion-safe:animate-screen-rise motion-safe:[animation-range:entry_0%_entry_40%] motion-safe:[animation-timeline:view()] relative col-start-2 row-start-2 mb-16 self-start overflow-hidden rounded-xl border border-zinc-800/10 bg-white shadow-lg lg:col-start-3 lg:row-start-1 lg:mb-24 dark:border-white/10">
                                         <img
-                                            src="{{ Vite::asset('resources/images/screenshots/'.$step['image'].'.webp') }}"
+                                            src="{{ $screenshotUrl($step['image'], 1600) }}"
+                                            srcset="{{ $screenshotSrcset($step['image']) }}"
+                                            sizes="(min-width: 1024px) min(67vw, 1000px), 110vw"
                                             width="2732"
                                             height="1536"
                                             loading="lazy"
