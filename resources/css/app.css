@@ -26,6 +26,14 @@
     --color-accent: var(--color-blue-600);
     --color-accent-content: var(--color-blue-600);
     --color-accent-foreground: var(--color-white);
+
+    --animate-sun-turn: sun-turn linear both;
+
+    @keyframes sun-turn {
+        to {
+            rotate: 1turn;
+        }
+    }
 }
 
 @layer theme {
