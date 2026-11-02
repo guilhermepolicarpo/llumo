@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Testing\TestResponse;
 
@@ -101,4 +102,17 @@ test('other pages keep their own address in the link preview', function () {
     $this->get(route('login'))
         ->assertOk()
         ->assertSeeHtml('<meta property="og:url" content="'.route('login').'">');
+});
+
+test('a forged proxy prefix can not change the links of the cached page', function () {
+    TrustProxies::at('*');
+
+    $response = $this->withHeader('X-Forwarded-Prefix', '.example.invalid')
+        ->get(route('home'))
+        ->assertOk()
+        ->assertDontSee('example.invalid');
+
+    expect(siteLinkHref($response, 'nav-login'))->toBe(route('login'));
+
+    TrustProxies::flushState();
 });
