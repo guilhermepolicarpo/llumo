@@ -267,7 +267,7 @@
                     <figure class="motion-safe:animate-hero-enter motion-safe:[animation-delay:480ms] mx-auto max-w-330 px-5 sm:px-8 lg:px-15">
                         <div class="overflow-hidden rounded-xl border border-white/25 bg-white shadow-2xl">
                             <img
-                                src="{{ Vite::asset('resources/images/screenshots/inicio.png') }}"
+                                src="{{ Vite::asset('resources/images/screenshots/inicio.webp') }}"
                                 width="2732"
                                 height="1536"
                                 fetchpriority="high"
@@ -329,7 +329,7 @@
                                 @if ($step['image'])
                                     <figure class="{{ $step['aspect'] ?? 'aspect-1625/1124' }} motion-safe:animate-screen-rise motion-safe:[animation-range:entry_0%_entry_40%] motion-safe:[animation-timeline:view()] relative col-start-2 row-start-2 mb-16 self-start overflow-hidden rounded-xl border border-zinc-800/10 bg-white shadow-lg lg:col-start-3 lg:row-start-1 lg:mb-24 dark:border-white/10">
                                         <img
-                                            src="{{ Vite::asset('resources/images/screenshots/'.$step['image'].'.png') }}"
+                                            src="{{ Vite::asset('resources/images/screenshots/'.$step['image'].'.webp') }}"
                                             width="2732"
                                             height="1536"
                                             loading="lazy"
