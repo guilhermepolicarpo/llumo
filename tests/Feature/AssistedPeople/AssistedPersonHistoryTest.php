@@ -227,6 +227,31 @@ test('an upcoming appointment scheduled by a record says so', function () {
         ->assertSee(__('return from the record of :date', ['date' => '20/09']));
 });
 
+test('a completed appointment tells who entered it in the system and when', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $person = AssistedPerson::factory()->for($team)->create();
+    Appointment::factory()->for($team)->completed()->create([
+        'assisted_person_id' => $person,
+        'attendant_id' => User::factory()->create(['name' => 'Jessica Nunes']),
+        'started_at' => today()->setTime(22, 1),
+        'finished_at' => today()->setTime(22, 8),
+    ]);
+
+    Livewire::test('pages::assisted-people.show', ['assistedPerson' => $person])
+        ->assertSeeHtml('data-test="assisted-person-history-system-entry"')
+        ->assertSee(__('Entered in the system by :user, from :start to :end.', ['user' => 'Jessica Nunes', 'start' => '22:01', 'end' => '22:08']));
+});
+
+test('an appointment left in progress does not tell a system entry', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $person = AssistedPerson::factory()->for($team)->create();
+    Appointment::factory()->for($team)->inProgress()->create(['assisted_person_id' => $person, 'scheduled_on' => today()->subWeek()]);
+
+    Livewire::test('pages::assisted-people.show', ['assistedPerson' => $person])
+        ->assertSee(AppointmentStatus::InProgress->label())
+        ->assertDontSeeHtml('data-test="assisted-person-history-system-entry"');
+});
+
 test('the history header shows the full address', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);

@@ -45,6 +45,7 @@ use Illuminate\Support\Carbon;
  * @property-read AppointmentRecord|null $returnOfRecord
  * @property-read AppointmentRecord|null $infiltrationRemovalOfRecord
  * @property-read string $description
+ * @property-read string|null $system_entry_summary
  */
 #[Fillable([
     'team_id',
@@ -319,6 +320,31 @@ class Appointment extends Model
     protected function description(): Attribute
     {
         return Attribute::make(get: fn (): string => $this->assistedPerson->name.' ('.$this->scheduled_on->format('d/m/Y').')');
+    }
+
+    /**
+     * Get who entered the concluded attendance in the system and when, or null while there is no such entry.
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function systemEntrySummary(): Attribute
+    {
+        return Attribute::make(get: function (): ?string {
+            if ($this->status !== AppointmentStatus::Completed || ! $this->started_at || ! $this->finished_at) {
+                return null;
+            }
+
+            $start = $this->started_at->format('H:i');
+            $end = $this->finished_at->format('H:i');
+            $user = $this->attendant?->name;
+
+            return __(match (true) {
+                $user && $start === $end => 'Entered in the system by :user, at :start.',
+                (bool) $user => 'Entered in the system by :user, from :start to :end.',
+                $start === $end => 'Entered in the system at :start.',
+                default => 'Entered in the system from :start to :end.',
+            }, ['user' => $user, 'start' => $start, 'end' => $end]);
+        });
     }
 
     /**

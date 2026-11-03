@@ -62,20 +62,17 @@
             'test' => 'appointment-details-attending',
         ];
 
-        $isEntered = $status === AppointmentStatus::Completed && $appointment->started_at && $appointment->finished_at;
+        $systemEntry = $appointment->system_entry_summary;
 
         $steps[] = [
             'label' => __('Concluded'),
             'detail' => match (true) {
-                $isEntered && $appointment->attendant && $appointment->started_at->format('H:i') === $appointment->finished_at->format('H:i') => __('Entered in the system by :user, at :start.', ['user' => $appointment->attendant->name, 'start' => $appointment->started_at->format('H:i')]),
-                $isEntered && $appointment->attendant => __('Entered in the system by :user, from :start to :end.', ['user' => $appointment->attendant->name, 'start' => $appointment->started_at->format('H:i'), 'end' => $appointment->finished_at->format('H:i')]),
-                $isEntered && $appointment->started_at->format('H:i') === $appointment->finished_at->format('H:i') => __('Entered in the system at :start.', ['start' => $appointment->started_at->format('H:i')]),
-                $isEntered => __('Entered in the system from :start to :end.', ['start' => $appointment->started_at->format('H:i'), 'end' => $appointment->finished_at->format('H:i')]),
+                (bool) $systemEntry => $systemEntry,
                 $status !== AppointmentStatus::Completed && $appointment->usesRecord() => __('when the appointment record is saved'),
                 default => null,
             },
             'state' => $status === AppointmentStatus::Completed ? 'done' : 'upcoming',
-            'test' => $isEntered ? 'appointment-details-system-entry' : 'appointment-details-conclusion',
+            'test' => $systemEntry ? 'appointment-details-system-entry' : 'appointment-details-conclusion',
         ];
     }
 @endphp

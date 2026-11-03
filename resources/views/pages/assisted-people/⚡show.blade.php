@@ -89,7 +89,7 @@ new class extends Component
     {
         return $this->filteredAppointments()
             ->past()
-            ->with(['appointmentType', 'record.mentor', 'record.fluidicRemedies', 'record.guidances', 'record.passPrescriptions.passType'])
+            ->with(['appointmentType', 'attendant', 'record.mentor', 'record.fluidicRemedies', 'record.guidances', 'record.passPrescriptions.passType'])
             ->orderByDesc('scheduled_on')
             ->orderByDesc('id')
             ->limit($this->limit)
@@ -555,6 +555,12 @@ new class extends Component
                                                     <dd class="whitespace-pre-line text-zinc-800 dark:text-zinc-200">{{ $record->observations }}</dd>
                                                 @endif
                                             </dl>
+                                        @endif
+
+                                        @if ($systemEntry = $appointment->system_entry_summary)
+                                            <div class="text-end text-[13px] text-zinc-500 dark:text-zinc-400" data-test="assisted-person-history-system-entry">
+                                                {{ $systemEntry }}
+                                            </div>
                                         @endif
                                     </div>
                                 @endif
