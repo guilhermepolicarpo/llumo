@@ -174,8 +174,6 @@ test('the record fields are validated', function () {
         ->set('form.passPrescriptions.0.quantity', 100)
         ->set('form.infiltrationSite', 'Braço')
         ->set('form.infiltrationRemoveOn', $appointment->scheduled_on->subDay()->toDateString())
-        ->set('form.returnOn', '')
-        ->set('form.schedulesReturn', true)
         ->call('save')
         ->assertHasErrors([
             'form.mentorId' => 'exists',
@@ -183,7 +181,6 @@ test('the record fields are validated', function () {
             'form.passPrescriptions.0.quantity' => 'between',
             'form.infiltrationRemoveOn' => 'after',
             'form.infiltrationRemovalPlace' => 'required_with',
-            'form.returnOn' => 'required_if_accepted',
         ]);
 
     expect($appointment->record()->exists())->toBeFalse();

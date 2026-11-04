@@ -315,7 +315,6 @@ class DatabaseSeeder extends Seeder
      *     infiltration_removal_place: ?string,
      *     removal_appointment_type_id: ?int,
      *     return_on: ?string,
-     *     schedules_return: bool,
      *     return_appointment_type_id: ?int,
      *     observations: ?string,
      * }
@@ -348,7 +347,6 @@ class DatabaseSeeder extends Seeder
             'infiltration_removal_place' => $removalPlace?->value,
             'removal_appointment_type_id' => $removalPlace?->schedulesRemoval() ? $infiltrationRemoval->id : null,
             'return_on' => fake()->boolean(60) ? $returnOn->toDateString() : null,
-            'schedules_return' => true,
             'return_appointment_type_id' => $appointment->appointment_type_id,
             'observations' => fake()->optional(0.4)->randomElement([
                 'Relatou melhora das dores desde o último atendimento.',

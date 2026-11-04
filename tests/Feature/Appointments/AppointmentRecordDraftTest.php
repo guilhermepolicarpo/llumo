@@ -32,7 +32,6 @@ test('saving a draft keeps the form state without validating or scheduling anyth
         ->set('form.infiltrationSite', 'Braço')
         ->set('form.infiltrationRemovalPlace', '')
         ->set('form.returnOn', '2026-10-11')
-        ->set('form.schedulesReturn', true)
         ->call('saveDraft')
         ->assertHasNoErrors()
         ->assertReturned(__('Draft saved at :time', ['time' => '19:30']));
@@ -44,7 +43,6 @@ test('saving a draft keeps the form state without validating or scheduling anyth
             'observations' => 'Em andamento',
             'infiltrationSite' => 'Braço',
             'returnOn' => '2026-10-11',
-            'schedulesReturn' => true,
         ])
         ->and($this->appointment->record()->exists())->toBeFalse()
         ->and(Appointment::query()->count())->toBe(1);
@@ -129,7 +127,6 @@ test('discarding the draft goes back to the saved record', function () {
 test('a draft with unknown keys or mismatched types does not break the record', function () {
     AppointmentRecordDraft::factory()->for($this->appointment)->create(['data' => [
         'observations' => ['not', 'a', 'string'],
-        'schedulesReturn' => 'yes',
         'passPrescriptions' => [['pass_type_id' => '1', 'quantity' => 2, 'mode' => 'in_person'], 'broken', ['quantity' => 3]],
         'appointment' => 'hijack',
         'fluidInstructions' => '3x ao dia',
@@ -138,7 +135,6 @@ test('a draft with unknown keys or mismatched types does not break the record', 
     Livewire::test('pages::appointments.attend', ['appointment' => $this->appointment])
         ->assertOk()
         ->assertSet('form.observations', '')
-        ->assertSet('form.schedulesReturn', false)
         ->assertSet('form.passPrescriptions', [['pass_type_id' => '1', 'quantity' => 2, 'mode' => 'in_person']])
         ->assertSet('form.fluidInstructions', '3x ao dia')
         ->assertSet('appointment.id', $this->appointment->id);

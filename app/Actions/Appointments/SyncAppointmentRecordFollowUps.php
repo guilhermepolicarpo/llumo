@@ -20,7 +20,10 @@ class SyncAppointmentRecordFollowUps
      * Create, update, or remove the infiltration removal and return appointments requested by the record,
      * linking them to the record without saving it. New follow-ups are scheduled in the name of the given user.
      *
-     * @param  array{removal_appointment_type_id: ?int, schedules_return: bool, return_appointment_type_id: ?int}  $attributes
+     * Without a linked return, only a changed return date schedules one: saving a record again must not bring back
+     * a return removed from the schedule, nor schedule a date kept only as an indication.
+     *
+     * @param  array{removal_appointment_type_id: ?int, return_appointment_type_id: ?int}  $attributes
      */
     public function handle(Appointment $appointment, AppointmentRecord $record, User $user, array $attributes): void
     {
@@ -37,7 +40,7 @@ class SyncAppointmentRecordFollowUps
             appointment: $appointment,
             user: $user,
             followUp: $record->returnAppointment,
-            scheduledOn: $attributes['schedules_return'] ? $record->return_on : null,
+            scheduledOn: ($record->returnAppointment !== null || $record->isDirty('return_on')) ? $record->return_on : null,
             appointmentTypeId: $attributes['return_appointment_type_id'],
             mode: $appointment->mode,
         );
