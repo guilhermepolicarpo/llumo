@@ -149,6 +149,7 @@
   "The :attribute must be at least :length characters and contain at least one uppercase character, one number, and one special character.": "O campo :attribute deve ter pelo menos :length caracteres e conter pelo menos um caractere maiúsculo, um número e um caractere especial.",
   "The :attribute must be at least :length characters and contain at least one uppercase character.": "O campo :attribute deve ter pelo menos :length e conter pelo menos um caractere maiúsculo.",
   "The :attribute must be at least :length characters.": "O campo :attribute deve ter pelo menos :length caracteres.",
+  "At least 8 characters, with letters and numbers.": "Pelo menos 8 caracteres, com letras e números.",
   "The given data was invalid.": "Os dados fornecidos são inválidos.",
   "This action is unauthorized.": "Esta ação não é autorizada.",
   "This is a secure area of the application. Please confirm your password before continuing.": "Essa é uma área segura da aplicação. Por favor confirme sua senha antes de continuar.",
