@@ -456,31 +456,36 @@ new class extends Component
                             <x-date-input wire:model.live="form.infiltrationRemoveOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Remove on')" data-test="appointment-record-infiltration-remove-on-input" />
                         </div>
 
-                        <flux:radio.group wire:model.live="form.infiltrationRemovalPlace" variant="segmented" :label="__('Where it is removed')" data-test="appointment-record-removal-place-radio">
-                            @foreach ($this->removalPlaces as $placeOption)
-                                <flux:radio :value="$placeOption['value']" :label="$placeOption['label']" />
-                            @endforeach
-                        </flux:radio.group>
+                        {{-- The side columns squeeze this section, so the columns follow its own width: the three removal places need about half of 42rem. --}}
+                        <div class="@container">
+                            <div class="grid items-start gap-4 @2xl:grid-cols-2">
+                                <flux:radio.group wire:model.live="form.infiltrationRemovalPlace" variant="segmented" :label="__('Where it is removed')" data-test="appointment-record-removal-place-radio">
+                                    @foreach ($this->removalPlaces as $placeOption)
+                                        <flux:radio :value="$placeOption['value']" :label="$placeOption['label']" />
+                                    @endforeach
+                                </flux:radio.group>
 
-                        @if (InfiltrationRemovalPlace::tryFrom($form->infiltrationRemovalPlace)?->schedulesRemoval())
-                            <flux:field>
-                                <flux:label>{{ __('Schedule the removal as') }}</flux:label>
-                                <x-catalog-picker
-                                    model="form.removalAppointmentTypeId"
-                                    :options="$this->appointmentTypes"
-                                    :selected="$form->removalAppointmentTypeId"
-                                    :placeholder="__('Select a type...')"
-                                    error-key="new_removalAppointmentTypeId"
-                                    create="(name) => $wire.createAppointmentType(name, 'removalAppointmentTypeId')"
-                                    cache-key="appointment_types"
-                                    test-id="appointment-record-removal-type"
-                                />
-                                <flux:error name="form.removalAppointmentTypeId" />
-                            </flux:field>
+                                @if (InfiltrationRemovalPlace::tryFrom($form->infiltrationRemovalPlace)?->schedulesRemoval())
+                                    <flux:field>
+                                        <flux:label>{{ __('Schedule the removal as') }}</flux:label>
+                                        <x-catalog-picker
+                                            model="form.removalAppointmentTypeId"
+                                            :options="$this->appointmentTypes"
+                                            :selected="$form->removalAppointmentTypeId"
+                                            :placeholder="__('Select a type...')"
+                                            error-key="new_removalAppointmentTypeId"
+                                            create="(name) => $wire.createAppointmentType(name, 'removalAppointmentTypeId')"
+                                            cache-key="appointment_types"
+                                            test-id="appointment-record-removal-type"
+                                        />
+                                        <flux:error name="form.removalAppointmentTypeId" />
+                                    </flux:field>
+                                @endif
+                            </div>
+                        </div>
 
-                            @if ($warning = $this->removalDayWarning)
-                                <flux:callout variant="warning" icon="exclamation-triangle" icon:variant="outline" :heading="$warning" data-test="appointment-record-removal-day-not-offered" />
-                            @endif
+                        @if ($warning = $this->removalDayWarning)
+                            <flux:callout variant="warning" icon="exclamation-triangle" icon:variant="outline" :heading="$warning" data-test="appointment-record-removal-day-not-offered" />
                         @endif
                     </div>
 
@@ -501,13 +506,9 @@ new class extends Component
                                         </flux:button>
                                     @endforeach
                                 </div>
-
-                                <div class="pt-2">
-                                    <flux:checkbox wire:model.live="form.schedulesReturn" :label="__('Schedule the return')" data-test="appointment-record-schedules-return-checkbox" />
-                                </div>
                             </div>
 
-                            @if ($form->schedulesReturn)
+                            @if ($form->returnOn !== '')
                                 <div class="space-y-3">
                                     <flux:field>
                                         <flux:label>{{ __('Schedule the return as') }}</flux:label>

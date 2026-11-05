@@ -20,6 +20,7 @@ class AppointmentRecordRules
         $team = $appointment->team;
         $afterAppointment = 'after:'.$appointment->scheduled_on->toDateString();
         $schedulesRemoval = 'required_if:infiltrationRemovalPlace,'.InfiltrationRemovalPlace::AtTheCenter->value;
+        $removedElsewhere = 'exclude_unless:infiltrationRemovalPlace,'.InfiltrationRemovalPlace::AtTheCenter->value;
 
         return [
             'mentorId' => ['required', ...CatalogRules::entryId($team, Catalog::Mentor)],
@@ -37,10 +38,9 @@ class AppointmentRecordRules
             'infiltrationSite' => ['nullable', 'string', 'max:150'],
             'infiltrationRemoveOn' => ['nullable', 'required_with:infiltrationSite', $schedulesRemoval, 'date', $afterAppointment],
             'infiltrationRemovalPlace' => ['nullable', 'required_with:infiltrationSite', 'string', Rule::enum(InfiltrationRemovalPlace::class)],
-            'removalAppointmentTypeId' => ['nullable', $schedulesRemoval, ...static::appointmentTypeId($appointment)],
-            'returnOn' => ['nullable', 'required_if_accepted:schedulesReturn', 'date', $afterAppointment],
-            'schedulesReturn' => ['boolean'],
-            'returnAppointmentTypeId' => ['nullable', 'required_if_accepted:schedulesReturn', ...static::appointmentTypeId($appointment)],
+            'removalAppointmentTypeId' => [$removedElsewhere, 'required', ...static::appointmentTypeId($appointment)],
+            'returnOn' => ['nullable', 'date', $afterAppointment],
+            'returnAppointmentTypeId' => ['exclude_without:returnOn', 'required', ...static::appointmentTypeId($appointment)],
             'observations' => ['nullable', 'string', 'max:5000'],
         ];
     }

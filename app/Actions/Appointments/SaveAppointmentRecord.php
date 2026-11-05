@@ -34,7 +34,6 @@ class SaveAppointmentRecord
      *     infiltration_removal_place: ?string,
      *     removal_appointment_type_id: ?int,
      *     return_on: ?string,
-     *     schedules_return: bool,
      *     return_appointment_type_id: ?int,
      *     observations: ?string,
      * }  $attributes

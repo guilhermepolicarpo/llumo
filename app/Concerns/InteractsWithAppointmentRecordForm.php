@@ -349,7 +349,7 @@ trait InteractsWithAppointmentRecordForm
     protected function fillRecordForm(?AppointmentRecord $record): void
     {
         $this->form->reset();
-        $this->form->returnAppointmentTypeId = (string) $this->appointment->appointment_type_id;
+        $this->form->returnAppointmentTypeId = $this->appointment->appointmentType->trashed() ? '' : (string) $this->appointment->appointment_type_id;
         $this->form->removalAppointmentTypeId = (string) ($this->lastRemovalAppointmentTypeId() ?? '');
 
         if ($record !== null) {
