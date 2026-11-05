@@ -23,7 +23,6 @@ use Flux\Flux;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
@@ -35,6 +34,8 @@ use Livewire\Attributes\Renderless;
  */
 trait InteractsWithAppointmentRecordForm
 {
+    use ParsesFormDates;
+
     public AppointmentRecordForm $form;
 
     /**
@@ -88,13 +89,14 @@ trait InteractsWithAppointmentRecordForm
     #[Computed]
     public function appointmentTypes(): Collection
     {
-        return $this->appointment->team->appointmentTypes()->orderBy('name')->get(['id', 'name', 'daily_limit', 'weekdays']);
+        return $this->appointment->team->appointmentTypes()->orderBy('name')->get(['id', 'team_id', 'name', 'daily_limit', 'weekdays']);
     }
 
     /**
      * Get how many appointments of the return type the chosen return date already has, and how many places are left.
      *
-     * Also carries the warning shown when the return type does not take place on that weekday.
+     * The return this record already scheduled does not take a place. Also carries the warning shown when the return
+     * type does not take place on that weekday.
      *
      * @return array{count: int, limit: ?int, remaining: ?int, type: string, date: string, warning: ?string}|null
      */
@@ -108,15 +110,8 @@ trait InteractsWithAppointmentRecordForm
             return null;
         }
 
-        $count = $this->returnAppointmentCountOn($returnType, $returnOn);
-        $limit = $returnType->daily_limit;
-
         return [
-            'count' => $count,
-            'limit' => $limit,
-            'remaining' => $limit === null ? null : max(0, $limit - $count),
-            'type' => $returnType->name,
-            'date' => $returnOn->format('d/m/Y'),
+            ...$returnType->occupancyOn($returnOn, $this->appointment->record()->value('return_appointment_id')),
             'warning' => $returnType->isOfferedOn($returnOn) ? null : $returnType->notOfferedWarning(),
         ];
     }
@@ -378,28 +373,6 @@ trait InteractsWithAppointmentRecordForm
     private function nextOfferedDayFrom(string $appointmentTypeId, CarbonInterface $date): CarbonInterface
     {
         return $this->appointmentTypes->firstWhere('id', (int) $appointmentTypeId)?->nextOfferedDayFrom($date) ?? $date;
-    }
-
-    private function dateFrom(string $value): ?CarbonInterface
-    {
-        return $value === '' ? null : rescue(fn () => Date::createFromFormat('!Y-m-d', $value), report: false);
-    }
-
-    /**
-     * Count the appointments of the given type already scheduled on the given day.
-     *
-     * The return this record already scheduled does not take a place.
-     */
-    private function returnAppointmentCountOn(AppointmentType $appointmentType, CarbonInterface $day): int
-    {
-        $linkedReturnId = $this->appointment->record()->value('return_appointment_id');
-
-        return $this->appointment->team->appointments()
-            ->where('appointment_type_id', $appointmentType->id)
-            ->scheduledOn($day)
-            ->takingPlace()
-            ->when($linkedReturnId, fn ($query, int $id) => $query->whereKeyNot($id))
-            ->count();
     }
 
     /**

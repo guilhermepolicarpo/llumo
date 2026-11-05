@@ -13,6 +13,7 @@ use Livewire\Attributes\On;
 trait InteractsWithAppointmentForm
 {
     use InteractsWithAssistedPersonPicker;
+    use ParsesFormDates;
 
     public string $appointmentTypeId = '';
 
@@ -30,7 +31,27 @@ trait InteractsWithAppointmentForm
     #[Computed]
     public function appointmentTypes(): Collection
     {
-        return Auth::user()->currentTeam->appointmentTypes()->orderBy('name')->get(['id', 'name', 'weekdays']);
+        return Auth::user()->currentTeam->appointmentTypes()->orderBy('name')->get(['id', 'team_id', 'name', 'daily_limit', 'weekdays']);
+    }
+
+    /**
+     * Get how many appointments of the chosen type the chosen date already has, and how many places are left.
+     *
+     * Empty when the type does not take place on that weekday, as the form warns about it instead.
+     *
+     * @return array{count: int, limit: ?int, remaining: ?int, type: string, date: string}|null
+     */
+    #[Computed]
+    public function scheduledDayOccupancy(): ?array
+    {
+        $appointmentType = $this->appointmentTypes->firstWhere('id', (int) $this->appointmentTypeId);
+        $scheduledOn = $this->dateFrom($this->scheduledOn);
+
+        if ($appointmentType === null || $scheduledOn === null || ! $appointmentType->isOfferedOn($scheduledOn)) {
+            return null;
+        }
+
+        return $appointmentType->occupancyOn($scheduledOn, $this->occupancyExceptAppointmentId());
     }
 
     /**
@@ -70,6 +91,14 @@ trait InteractsWithAppointmentForm
 
         $this->appointmentTypeId = (string) $appointmentTypeId;
         $this->resetValidation('appointmentTypeId');
+    }
+
+    /**
+     * Get the appointment that does not take a place on the chosen date, such as the one being edited.
+     */
+    protected function occupancyExceptAppointmentId(): ?int
+    {
+        return null;
     }
 
     /**
