@@ -20,7 +20,6 @@ class AppointmentRecordFactory extends Factory
     {
         return [
             'appointment_id' => Appointment::factory(),
-            'fluid_instructions' => fake()->optional()->sentence(),
             'observations' => fake()->optional()->sentence(),
         ];
     }

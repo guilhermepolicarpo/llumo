@@ -11,7 +11,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Livewire\Blaze\Blaze;
+use Livewire\Component;
+use Throwable;
+
+use function Livewire\on;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,8 +35,21 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureRouteBindings();
+        $this->configureLivewire();
 
         Blaze::optimize()->in(resource_path('views/components'));
+    }
+
+    /**
+     * Dispatch "validation-failed" to the component whose call fails validation, for resources/js/scroll-to-first-error.js.
+     */
+    protected function configureLivewire(): void
+    {
+        on('exception', function (mixed $target, Throwable $exception): void {
+            if ($target instanceof Component && $exception instanceof ValidationException) {
+                $target->dispatch('validation-failed')->self();
+            }
+        });
     }
 
     /**

@@ -353,8 +353,8 @@ test('the return shortcuts count the days from the appointment', function () {
     $component
         ->call('setReturnInDays', 30)
         ->assertSet('form.returnOn', '2026-10-20')
-        ->call('setReturnInDays', 7)
-        ->assertSet('form.returnOn', '2026-09-27');
+        ->call('setReturnInDays', 15)
+        ->assertSet('form.returnOn', '2026-10-05');
 });
 
 test('a return date that reached the daily limit warns but still schedules the return', function () {
@@ -434,8 +434,8 @@ test('the return shortcuts and the removal date move to the next day their type 
     $removalType = AppointmentType::factory()->for($team)->onWeekdays(Weekday::Thursday)->create();
 
     $component
-        ->call('setReturnInDays', 7)
-        ->assertSet('form.returnOn', '2026-09-28')
+        ->call('setReturnInDays', 20)
+        ->assertSet('form.returnOn', '2026-10-12')
         ->call('setReturnInDays', 30)
         ->assertSet('form.returnOn', '2026-10-21')
         ->set('form.removalAppointmentTypeId', (string) $removalType->id)
