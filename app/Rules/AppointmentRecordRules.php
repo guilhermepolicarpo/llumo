@@ -24,7 +24,7 @@ class AppointmentRecordRules
 
         return [
             'mentorId' => ['required', ...CatalogRules::entryId($team, Catalog::Mentor)],
-            'fluidicRemedyIds' => ['array'],
+            'fluidicRemedyIds' => ['array', 'required_with:fluidInstructions'],
             'fluidicRemedyIds.*' => CatalogRules::entryId($team, Catalog::FluidicRemedy),
             'fluidInstructions' => ['nullable', 'string', 'max:500'],
             'guidanceIds' => ['array'],
@@ -35,7 +35,7 @@ class AppointmentRecordRules
             'passPrescriptions.*.pass_type_id' => ['required', ...CatalogRules::entryId($team, Catalog::PassType)],
             'passPrescriptions.*.quantity' => ['required', 'integer', 'between:1,99'],
             'passPrescriptions.*.mode' => AppointmentRules::mode(),
-            'infiltrationSite' => ['nullable', 'string', 'max:150'],
+            'infiltrationSite' => ['nullable', 'required_with:infiltrationRemoveOn,infiltrationRemovalPlace', 'string', 'max:150'],
             'infiltrationRemoveOn' => ['nullable', 'required_with:infiltrationSite', $schedulesRemoval, 'date', $afterAppointment],
             'infiltrationRemovalPlace' => ['nullable', 'required_with:infiltrationSite', 'string', Rule::enum(InfiltrationRemovalPlace::class)],
             'removalAppointmentTypeId' => [$removedElsewhere, 'required', ...static::appointmentTypeId($appointment)],

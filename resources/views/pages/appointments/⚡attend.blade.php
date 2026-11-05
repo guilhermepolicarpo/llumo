@@ -380,7 +380,6 @@ new class extends Component
                             <flux:label>{{ __('Medications') }}</flux:label>
                             <x-catalog-picker :catalog="Catalog::FluidicRemedy" model="form.fluidicRemedyIds" :options="$this->fluidicRemedies" :selected="$form->fluidicRemedyIds" multiple test-id="appointment-record-fluidic-remedies" />
                             <flux:error name="form.fluidicRemedyIds" />
-                            <flux:error name="form.fluidicRemedyIds.*" />
                         </flux:field>
 
                         <flux:input wire:model="form.fluidInstructions" :label="__('How to take')" :placeholder="__('E.g. 3 times a day, every 3 hours')" data-test="appointment-record-fluid-instructions-input" />
@@ -452,14 +451,21 @@ new class extends Component
                         <flux:heading size="lg">{{ __('Infiltration') }}</flux:heading>
 
                         <div class="grid gap-4 sm:grid-cols-2">
-                            <flux:input wire:model.blur="form.infiltrationSite" :label="__('Site')" :placeholder="__('E.g. Right arm')" data-test="appointment-record-infiltration-site-input" />
+                            <flux:input wire:model.blur="form.infiltrationSite" :label="__('Site or reason')" :placeholder="__('E.g. Right arm or emotional state')" data-test="appointment-record-infiltration-site-input" />
                             <x-date-input wire:model.live="form.infiltrationRemoveOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Remove on')" data-test="appointment-record-infiltration-remove-on-input" />
                         </div>
 
                         {{-- The side columns squeeze this section, so the columns follow its own width: the three removal places need about half of 42rem. --}}
                         <div class="@container">
                             <div class="grid items-start gap-4 @2xl:grid-cols-2">
-                                <flux:radio.group wire:model.live="form.infiltrationRemovalPlace" variant="segmented" :label="__('Where it is removed')" data-test="appointment-record-removal-place-radio">
+                                {{-- The removal place is optional, so clicking the chosen place again clears it. Captured before Flux handles the click, the place is still the chosen one. --}}
+                                <flux:radio.group
+                                    wire:model.live="form.infiltrationRemovalPlace"
+                                    variant="segmented"
+                                    :label="__('Where it is removed')"
+                                    x-on:click.capture="if ($event.target.closest('ui-radio')?.checked) { $event.stopPropagation(); $wire.set('form.infiltrationRemovalPlace', '') }"
+                                    data-test="appointment-record-removal-place-radio"
+                                >
                                     @foreach ($this->removalPlaces as $placeOption)
                                         <flux:radio :value="$placeOption['value']" :label="$placeOption['label']" />
                                     @endforeach
@@ -500,7 +506,7 @@ new class extends Component
                                 <x-date-input wire:model.live="form.returnOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Return date')" data-test="appointment-record-return-on-input" />
 
                                 <div class="flex flex-wrap gap-1">
-                                    @foreach ([7, 15, 30, 60] as $days)
+                                    @foreach ([15, 20, 30, 60] as $days)
                                         <flux:button size="xs" wire:click="setReturnInDays({{ $days }})" x-on:click="$dispatch('return-date-picked')" data-test="appointment-record-return-in-{{ $days }}-days-button">
                                             {{ __('+:days days', ['days' => $days]) }}
                                         </flux:button>

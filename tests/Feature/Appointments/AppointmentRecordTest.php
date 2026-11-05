@@ -186,6 +186,53 @@ test('the record fields are validated', function () {
     expect($appointment->record()->exists())->toBeFalse();
 });
 
+test('only an action that fails validation tells the browser to bring the error into view', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->inProgress()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->call('save')
+        ->assertHasErrors(['form.mentorId' => 'required'])
+        ->assertDispatched('validation-failed')
+        ->call('setReturnInDays', 15)
+        ->assertHasErrors('form.mentorId')
+        ->assertNotDispatched('validation-failed');
+});
+
+test('a record field filled without the field it depends on is rejected', function (array $fields, string $missingField) {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->inProgress()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+        'scheduled_on' => '2026-09-20',
+    ]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    $component = Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->set('form.mentorId', (string) Mentor::factory()->for($team)->create()->id);
+
+    foreach ($fields as $field => $value) {
+        $component->set("form.{$field}", $value);
+    }
+
+    $component->call('save')
+        ->assertHasErrors(["form.{$missingField}" => 'required_with']);
+
+    expect($appointment->record()->exists())->toBeFalse();
+})->with([
+    'fluid instructions without a remedy' => [['fluidInstructions' => '3x ao dia'], 'fluidicRemedyIds'],
+    'a removal date without the infiltration site' => [['infiltrationRemoveOn' => '2026-09-23', 'infiltrationRemovalPlace' => InfiltrationRemovalPlace::AtHome->value], 'infiltrationSite'],
+    'a removal place without the infiltration site' => [['infiltrationRemovalPlace' => InfiltrationRemovalPlace::AtHome->value], 'infiltrationSite'],
+]);
+
 test('members cannot open the record of another team appointment', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
