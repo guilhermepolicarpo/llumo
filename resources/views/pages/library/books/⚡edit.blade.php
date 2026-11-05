@@ -75,7 +75,7 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <x-page-header :heading="__('Edit book')" :subheading="$book->title" :back-href="route('library.books.show', ['book' => $book])" :back-label="__('Back to book')" />
+    <x-page-header :heading="__('Edit book')" :back-href="route('library.books.show', ['book' => $book])" :back-label="$book->title" />
 
     <form wire:submit="updateBook" class="max-w-6xl space-y-6">
         <x-pages::library.books.form

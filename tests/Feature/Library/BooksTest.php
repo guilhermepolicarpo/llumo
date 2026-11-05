@@ -630,7 +630,8 @@ test('the back button of the book page leads to the list and ignores an origin i
         ->test('pages::library.books.show', ['book' => $book])
         ->assertDontSeeHtml('href="'.$from.'"')
         ->assertSeeHtml('href="'.route('library.books.index').'"')
-        ->assertSeeHtml('aria-label="'.__('Back to books').'"')
+        ->assertSeeHtml('data-test="page-header-back-button"')
+        ->assertSeeText(__('Books'))
         ->assertSeeHtml('href="'.route('library.books.edit', ['book' => $book]).'"');
 });
 
@@ -643,7 +644,8 @@ test('editing a book returns to the book page and ignores an origin in the url',
         ->test('pages::library.books.edit', ['book' => $book])
         ->assertDontSeeHtml('href="'.$from.'"')
         ->assertSeeHtml('href="'.route('library.books.show', ['book' => $book]).'"')
-        ->assertSeeHtml('aria-label="'.__('Back to book').'"')
+        ->assertSeeHtml('data-test="page-header-back-button"')
+        ->assertSeeText($book->title)
         ->call('updateBook')
         ->assertHasNoErrors()
         ->assertRedirectToRoute('library.books.show', ['book' => $book]);

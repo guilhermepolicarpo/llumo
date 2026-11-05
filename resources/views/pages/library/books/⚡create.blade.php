@@ -54,7 +54,7 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <x-page-header :heading="__('New book')" :subheading="__('Register a book and its copies in the library')" :back-href="route('library.books.index')" :back-label="__('Back to books')" />
+    <x-page-header :heading="__('New book')" :subheading="__('Register a book and its copies in the library')" :back-href="route('library.books.index')" :back-label="__('Books')" />
 
     <form wire:submit="createBook" class="max-w-6xl space-y-6">
         <x-pages::library.books.form

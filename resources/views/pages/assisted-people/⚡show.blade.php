@@ -253,7 +253,7 @@ new class extends Component
 @endphp
 
 <section class="w-full max-w-5xl">
-    <x-page-header :heading="$assistedPerson->name" :back-href="route('assisted-people.index')" :back-label="__('Back to assisted people')" :separator="false" stack-until="lg">
+    <x-page-header :heading="$assistedPerson->name" :back-href="route('assisted-people.index')" :back-label="__('Assisted people')" :separator="false" stack-until="lg">
         <x-slot:subheading>
             <span class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm" data-test="assisted-person-history-details">
                 @foreach (array_filter([

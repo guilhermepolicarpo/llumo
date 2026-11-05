@@ -16,12 +16,14 @@
 @endphp
 
 <div {{ $attributes->class('relative mb-6 w-full') }}>
+    @if ($backHref)
+        <flux:button variant="subtle" size="sm" icon="arrow-left" icon:variant="outline" inset="left" class="mb-2 max-w-full" :href="$backHref" wire:navigate data-test="page-header-back-button">
+            <span class="truncate">{{ $backLabel ?? __('Back') }}</span>
+        </flux:button>
+    @endif
+
     <div @class(['flex flex-col gap-4', $rowClasses])>
         <div class="flex items-start gap-2">
-            @if ($backHref)
-                <flux:button variant="ghost" size="sm" icon="arrow-left" class="shrink-0" :href="$backHref" wire:navigate :aria-label="$backLabel ?? __('Back')" data-test="page-header-back-button" />
-            @endif
-
             @isset($leading)
                 <div {{ $leading->attributes->class('shrink-0') }}>{{ $leading }}</div>
             @endisset
