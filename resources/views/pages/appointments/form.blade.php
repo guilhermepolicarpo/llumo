@@ -1,4 +1,4 @@
-@props(['appointmentTypes', 'weekdayRestrictedTypes', 'modes', 'selectedAssistedPerson', 'assistedPersonSearch', 'assistedPersonSuggestions'])
+@props(['appointmentTypes', 'weekdayRestrictedTypes', 'dayOccupancy', 'modes', 'selectedAssistedPerson', 'assistedPersonSearch', 'assistedPersonSuggestions'])
 
 <flux:fieldset>
     <div class="grid gap-6 sm:grid-cols-2">
@@ -26,7 +26,7 @@
                     </button>
 
                     <flux:menu class="min-w-(--button-width) sm:min-w-64">
-                        <flux:menu.radio.group wire:model="appointmentTypeId">
+                        <flux:menu.radio.group wire:model.live="appointmentTypeId">
                             @foreach ($appointmentTypes as $appointmentType)
                                 <flux:menu.radio :value="(string) $appointmentType->id" wire:key="appointment-type-{{ $appointmentType->id }}">{{ $appointmentType->name }}</flux:menu.radio>
                             @endforeach
@@ -50,7 +50,7 @@
             <flux:error name="appointmentTypeId" />
         </flux:field>
 
-        {{-- Checked in the browser so picking the type or the date costs no request; it only warns, the date can still be saved. --}}
+        {{-- The weekday is checked in the browser so its warning shows right away; it only warns, the date can still be saved. Only the day's occupancy, which the browser does not have, comes from the server. --}}
         <div
             class="space-y-2"
             x-data="{
@@ -69,7 +69,7 @@
                 },
             }"
         >
-            <x-date-input wire:model="scheduledOn" :label="__('Date')" :min="today()->toDateString()" required data-test="appointment-scheduled-on-input" />
+            <x-date-input wire:model.live="scheduledOn" :label="__('Date')" :min="today()->toDateString()" required data-test="appointment-scheduled-on-input" />
 
             <template x-if="restrictedType && isOffered">
                 <flux:text class="text-sm" x-text="restrictedType.hint" data-test="appointment-scheduled-on-weekdays-hint" />
@@ -80,6 +80,12 @@
                     <flux:callout.heading x-text="restrictedType.warning" />
                 </flux:callout>
             </template>
+
+            @if ($dayOccupancy)
+                <div x-show="isOffered">
+                    <x-pages::appointments.day-occupancy :occupancy="$dayOccupancy" test-prefix="appointment-scheduled-day" />
+                </div>
+            @endif
         </div>
     </div>
 

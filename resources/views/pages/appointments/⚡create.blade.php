@@ -71,6 +71,7 @@ new class extends Component
         <x-pages::appointments.form
             :appointment-types="$this->appointmentTypes"
             :weekday-restricted-types="$this->weekdayRestrictedAppointmentTypes"
+            :day-occupancy="$this->scheduledDayOccupancy"
             :modes="$this->modes"
             :selected-assisted-person="$this->selectedAssistedPerson"
             :assisted-person-search="$assistedPersonSearch"

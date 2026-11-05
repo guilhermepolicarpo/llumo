@@ -150,6 +150,89 @@ test('an appointment on a weekday its type does not take place warns but can sti
     expect($team->appointments()->sole()->scheduled_on->toDateString())->toBe('2026-09-30');
 });
 
+test('the form shows how many appointments of the type the chosen date has and the places left', function () {
+    $this->travelTo('2026-09-28');
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointmentType = AppointmentType::factory()->for($team)->withDailyLimit(3)->create(['name' => 'Tratamento de Cura']);
+    $sameType = ['appointment_type_id' => $appointmentType->id];
+
+    Appointment::factory()->for($team)->count(2)->create($sameType + ['scheduled_on' => '2026-10-07']);
+    Appointment::factory()->for($team)->canceled()->create($sameType + ['scheduled_on' => '2026-10-07']);
+    Appointment::factory()->for($team)->create(['scheduled_on' => '2026-10-07', 'appointment_type_id' => AppointmentType::factory()->for($team)]);
+    Appointment::factory()->create(['scheduled_on' => '2026-10-07']);
+    Appointment::factory()->for($team)->create($sameType + ['scheduled_on' => '2026-10-08']);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.create')
+        ->set('scheduledOn', '2026-10-07')
+        ->assertDontSeeHtml('data-test="appointment-scheduled-day-occupancy"')
+        ->set('appointmentTypeId', (string) $appointmentType->id)
+        ->assertSeeHtml('data-test="appointment-scheduled-day-occupancy"')
+        ->assertSee('2 agendamentos de Tratamento de Cura em 07/10/2026')
+        ->assertSee('1 vaga')
+        ->assertDontSeeHtml('data-test="appointment-scheduled-day-full"');
+});
+
+test('a date at the daily limit warns but can still be scheduled', function () {
+    $this->travelTo('2026-09-28');
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointmentType = AppointmentType::factory()->for($team)->withDailyLimit(1)->create();
+    $assistedPerson = AssistedPerson::factory()->for($team)->create();
+
+    Appointment::factory()->for($team)->create(['appointment_type_id' => $appointmentType->id, 'scheduled_on' => '2026-10-07']);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.create')
+        ->set('appointmentTypeId', (string) $appointmentType->id)
+        ->set('scheduledOn', '2026-10-07')
+        ->assertSeeHtml('data-test="appointment-scheduled-day-full"')
+        ->assertDontSeeHtml('data-test="appointment-scheduled-day-occupancy"')
+        ->call('selectAssistedPerson', $assistedPerson->id)
+        ->call('createAppointment')
+        ->assertHasNoErrors();
+
+    expect($appointmentType->appointments()->count())->toBe(2);
+});
+
+test('the occupancy is not shown on a weekday the type does not take place', function () {
+    $this->travelTo('2026-09-28');
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointmentType = AppointmentType::factory()->for($team)->onWeekdays(Weekday::Thursday)->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.create')
+        ->set('appointmentTypeId', (string) $appointmentType->id)
+        ->set('scheduledOn', '2026-09-30')
+        ->assertDontSeeHtml('data-test="appointment-scheduled-day-occupancy"')
+        ->set('scheduledOn', '2026-10-01')
+        ->assertSeeHtml('data-test="appointment-scheduled-day-occupancy"');
+});
+
+test('the appointment being edited does not take a place on its own date', function () {
+    $this->travelTo('2026-09-28');
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointmentType = AppointmentType::factory()->for($team)->withDailyLimit(1)->create();
+    $appointment = Appointment::factory()->for($team)->create(['appointment_type_id' => $appointmentType->id, 'scheduled_on' => '2026-10-07']);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.edit', ['appointment' => $appointment])
+        ->assertDontSeeHtml('data-test="appointment-scheduled-day-full"')
+        ->assertSeeHtml('data-test="appointment-scheduled-day-occupancy"')
+        ->assertSee('1 vaga');
+});
+
 test('an appointment type or assisted person from another team is rejected', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);

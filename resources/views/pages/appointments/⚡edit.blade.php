@@ -63,6 +63,14 @@ new class extends Component
         $this->redirectRoute('appointments.index', navigate: true);
     }
 
+    /**
+     * The appointment being edited does not take a place on its own date.
+     */
+    protected function occupancyExceptAppointmentId(): ?int
+    {
+        return $this->appointment->id;
+    }
+
     public function render()
     {
         return $this->view()->title(__('Edit appointment'));
@@ -78,6 +86,7 @@ new class extends Component
         <x-pages::appointments.form
             :appointment-types="$this->appointmentTypes"
             :weekday-restricted-types="$this->weekdayRestrictedAppointmentTypes"
+            :day-occupancy="$this->scheduledDayOccupancy"
             :modes="$this->modes"
             :selected-assisted-person="$this->selectedAssistedPerson"
             :assisted-person-search="$assistedPersonSearch"
