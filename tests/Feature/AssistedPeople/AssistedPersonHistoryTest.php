@@ -300,7 +300,8 @@ test('the back button of the history leads to the list', function () {
 
     Livewire::test('pages::assisted-people.show', ['assistedPerson' => $person])
         ->assertSeeHtml('href="'.route('assisted-people.index').'"')
-        ->assertSeeHtml('aria-label="'.__('Back to assisted people').'"')
+        ->assertSeeHtml('data-test="page-header-back-button"')
+        ->assertSeeText(__('Assisted people'))
         ->assertSeeHtml('href="'.route('assisted-people.edit', ['assistedPerson' => $person]).'"');
 });
 
@@ -330,7 +331,8 @@ test('editing the registration returns to the history and ignores an origin in t
         ->test('pages::assisted-people.edit', ['assistedPerson' => $person])
         ->assertDontSeeHtml('href="'.$from.'"')
         ->assertSeeHtml('href="'.route('assisted-people.show', ['assistedPerson' => $person]).'"')
-        ->assertSeeHtml('aria-label="'.__('Back to history').'"')
+        ->assertSeeHtml('data-test="page-header-back-button"')
+        ->assertSeeText($person->name)
         ->call('updateAssistedPerson')
         ->assertHasNoErrors()
         ->assertRedirectToRoute('assisted-people.show', ['assistedPerson' => $person]);

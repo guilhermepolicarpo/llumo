@@ -70,7 +70,7 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <x-page-header :heading="__('Edit appointment')" :subheading="__('Update the details of this appointment')" :back-href="route('appointments.index')" :back-label="__('Back to appointments')">
+    <x-page-header :heading="__('Edit appointment')" :subheading="__('Update the details of this appointment')" :back-href="route('appointments.index')" :back-label="__('Appointments')">
         <x-pages::appointments.action-buttons :appointment="$appointment" :edit-as="null" menu-first />
     </x-page-header>
 

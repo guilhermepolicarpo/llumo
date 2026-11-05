@@ -57,7 +57,7 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <x-page-header :heading="__('Edit assisted person')" :subheading="__('Update this assisted person\'s details for this Spiritist Center')" :back-href="route('assisted-people.show', ['assistedPerson' => $assistedPerson])" :back-label="__('Back to history')" />
+    <x-page-header :heading="__('Edit assisted person')" :subheading="__('Update this assisted person\'s details for this Spiritist Center')" :back-href="route('assisted-people.show', ['assistedPerson' => $assistedPerson])" :back-label="$assistedPerson->name" />
 
     <form wire:submit="updateAssistedPerson" class="max-w-xl space-y-6">
         <x-assisted-people.fields />

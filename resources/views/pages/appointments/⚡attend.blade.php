@@ -180,7 +180,7 @@ new class extends Component
         :heading="__('Appointment record')"
         :subheading="$this->canUpdate ? __('Record what was done in this appointment') : __('See what was recorded in this appointment')"
         :back-href="route('appointments.index')"
-        :back-label="__('Back to appointments')"
+        :back-label="__('Appointments')"
     >
         @if ($appointment->hasPrintableAttendanceSheet())
             <flux:button

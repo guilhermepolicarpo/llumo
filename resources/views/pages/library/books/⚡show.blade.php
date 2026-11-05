@@ -221,7 +221,7 @@ new class extends Component
 
 
 <section class="w-full">
-    <x-page-header :heading="$book->title" :subheading="$book->subtitle" :back-href="route('library.books.index')" :back-label="__('Back to books')" stack-until="lg">
+    <x-page-header :heading="$book->title" :subheading="$book->subtitle" :back-href="route('library.books.index')" :back-label="__('Books')" stack-until="lg">
         @if ($this->canManage)
             <div class="flex items-center gap-2">
                 <flux:dropdown position="bottom" align="end">
