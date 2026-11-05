@@ -6,6 +6,7 @@ use App\Actions\Appointments\SaveAppointmentRecord;
 use App\Enums\AppointmentMode;
 use App\Enums\InfiltrationRemovalPlace;
 use App\Enums\TeamRole;
+use App\Enums\Weekday;
 use App\Models\Appointment;
 use App\Models\AppointmentType;
 use App\Models\AssistedPerson;
@@ -179,10 +180,10 @@ class DatabaseSeeder extends Seeder
             ->withBirthDate()
             ->create();
 
-        $healingTreatment = AppointmentType::factory()->for($team)->withRecord()->withDailyLimit(20)->create(['name' => 'Tratamento de Cura']);
-        $spiritualIntervention = AppointmentType::factory()->for($team)->withRecord()->create(['name' => 'Intervenção Espiritual']);
-        $hydrotherapy = AppointmentType::factory()->for($team)->create(['name' => 'Hidroterapia']);
-        $infiltrationRemoval = AppointmentType::factory()->for($team)->create(['name' => 'Retirada de Infiltração']);
+        $healingTreatment = AppointmentType::factory()->for($team)->withRecord()->withDailyLimit(20)->onWeekdays(Weekday::Monday, Weekday::Wednesday)->create(['name' => 'Tratamento de Cura']);
+        $spiritualIntervention = AppointmentType::factory()->for($team)->withRecord()->withDailyLimit(10)->onWeekdays(Weekday::Wednesday)->create(['name' => 'Intervenção Espiritual']);
+        $hydrotherapy = AppointmentType::factory()->for($team)->onWeekdays(Weekday::Thursday)->create(['name' => 'Hidroterapia']);
+        $infiltrationRemoval = AppointmentType::factory()->for($team)->onWeekdays(Weekday::Wednesday, Weekday::Friday)->create(['name' => 'Retirada de Infiltração']);
         AppointmentType::factory()->for($team)->trashed()->create(['name' => 'Palestra pública']);
 
         PassType::factory()->for($team)->createMany([
