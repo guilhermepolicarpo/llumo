@@ -362,18 +362,6 @@ new class extends Component
                     data-test="appointment-record-form"
                 >
                     <div class="space-y-4">
-                        <flux:heading size="lg">{{ __('Mentor') }}</flux:heading>
-
-                        <flux:field>
-                            <flux:label>{{ __('Appointment mentor') }}</flux:label>
-                            <x-catalog-picker :catalog="Catalog::Mentor" model="form.mentorId" :options="$this->mentors" :selected="$form->mentorId" test-id="appointment-record-mentor" />
-                            <flux:error name="form.mentorId" />
-                        </flux:field>
-                    </div>
-
-                    <flux:separator variant="subtle" />
-
-                    <div class="space-y-4">
                         <flux:heading size="lg">{{ __('Fluidic remedy') }}</flux:heading>
 
                         <flux:field>
@@ -548,6 +536,18 @@ new class extends Component
                     <div class="space-y-4">
                         <flux:heading size="lg">{{ __('Observations') }}</flux:heading>
                         <flux:textarea wire:model="form.observations" rows="auto" :label="__('Appointment notes')" data-test="appointment-record-observations-input" />
+                    </div>
+
+                    <flux:separator variant="subtle" />
+
+                    <div class="space-y-4">
+                        <flux:heading size="lg">{{ __('Mentor') }}</flux:heading>
+
+                        <flux:field>
+                            <flux:label>{{ __('Appointment mentor') }}</flux:label>
+                            <x-catalog-picker :catalog="Catalog::Mentor" model="form.mentorId" :options="$this->mentors" :selected="$form->mentorId" test-id="appointment-record-mentor" />
+                            <flux:error name="form.mentorId" />
+                        </flux:field>
                     </div>
 
                     <div class="sticky bottom-0 z-10 flex flex-col-reverse gap-2 border-t border-zinc-200 bg-white py-3 sm:flex-row sm:items-center sm:justify-end dark:border-white/10 dark:bg-zinc-800">
