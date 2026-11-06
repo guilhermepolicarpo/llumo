@@ -43,7 +43,6 @@
         .tick { position: absolute; left: 0.3mm; top: -0.9mm; font-size: 10pt; font-weight: bold; line-height: 1; }
         .radio.checked { background: #141414; }
         .detail { color: #333; }
-        .filled { font-weight: bold; }
         .written-notes { margin-top: 1mm; white-space: pre-line; }
 
         .passes { margin-top: 2mm; border-bottom: 0.8pt solid #141414; }
@@ -80,12 +79,13 @@
     @foreach ($appointments as $appointment)
         @php
             $assistedPerson = $appointment->assistedPerson;
-            // A completed appointment's sheet is printed filled in with its record, keeping the items no longer in the catalogs.
+            // A completed appointment's sheet is printed filled in with its record, listing only what was given; a blank sheet
+            // lists the whole catalogs to be marked by hand.
             $record = $appointment->filledRecord();
             $givenGuidances = $record?->guidances->keyBy('id') ?? collect();
             $prescriptionsByPass = $record?->passPrescriptions->groupBy('pass_type_id') ?? collect();
-            $sheetGuidances = $guidances->union($givenGuidances->pluck('name', 'id'));
-            $sheetPassTypes = $passTypes->union($prescriptionsByPass->map(fn ($prescriptions) => $prescriptions->first()->passType->name));
+            $sheetGuidances = $record ? $givenGuidances->pluck('name', 'id') : $guidances;
+            $sheetPassTypes = $record ? $prescriptionsByPass->map(fn ($prescriptions) => $prescriptions->first()->passType->name) : $passTypes;
 
             // With more than two guidances they are split in two columns, filled top to bottom. A column fits about
             // 36 characters per line, so each guidance is estimated at its wrapped lines (≈6.3mm the first, ≈4.4mm each more).
@@ -221,10 +221,10 @@
                 @endif
                 <table>
                     <tr>
-                        <td class="shrink">{{ __('Remove on day') }}:</td>
                         <td>
+                            {{ __('Remove on day') }}:
                             @if ($record?->infiltration_remove_on)
-                                <span class="filled">{{ $record->infiltration_remove_on->format('d/m/Y') }}</span>
+                                <span class="filled">{{ $record->infiltration_remove_on->translatedFormat('d/m/Y (l)') }}</span>
                             @else
                                 <span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 8mm;"></span>
                             @endif
@@ -238,8 +238,7 @@
                 @if ($record?->return_on)
                     <table>
                         <tr>
-                            <td class="shrink">{{ __('Date') }}:</td>
-                            <td class="filled">{{ $record->return_on->format('d/m/Y') }}</td>
+                            <td>{{ __('Return on day') }}: <span class="filled">{{ $record->return_on->translatedFormat('d/m/Y (l)') }}</span></td>
                         </tr>
                     </table>
                 @else
@@ -254,7 +253,7 @@
                     </table>
                     <table>
                         <tr>
-                            <td class="shrink"><span class="box"></span>{{ __('Other') }}:</td>
+                            <td class="shrink"><span class="box"></span>{{ __('Other date') }}:</td>
                             <td class="line-fill"></td>
                         </tr>
                     </table>
