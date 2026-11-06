@@ -364,7 +364,7 @@ new class extends Component
                                     </flux:text>
 
                                     <div class="w-32 text-end">
-                                        @if ($appointment->usesRecord() && $appointment->isAttendable())
+                                        @if ($appointment->usesRecord() && $appointment->isAttendableBy(auth()->user()))
                                             <flux:button
                                                 size="sm"
                                                 :variant="$isWaiting ? 'primary' : 'outline'"

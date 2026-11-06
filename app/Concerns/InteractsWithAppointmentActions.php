@@ -18,7 +18,7 @@ trait InteractsWithAppointmentActions
     {
         abort_if($action === null, 404);
 
-        Gate::authorize('perform', $appointment);
+        Gate::authorize('perform', [$appointment, $action]);
 
         $toStatus = $action->toStatus($appointment);
 

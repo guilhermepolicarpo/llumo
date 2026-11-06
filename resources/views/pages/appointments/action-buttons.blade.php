@@ -6,7 +6,7 @@
 @use('App\Enums\AppointmentAction')
 
 @php
-    $availableActions = collect(AppointmentAction::availableFor($appointment));
+    $availableActions = collect(AppointmentAction::availableFor($appointment, auth()->user()));
     [$primaryActions, $secondaryActions] = $availableActions->partition(fn (AppointmentAction $action) => $action->isPrimary());
     $startsAttendance = $availableActions->contains(AppointmentAction::Start);
     $isEditable = $appointment->status->isEditable();
@@ -18,7 +18,7 @@
         $primaryActions = $primaryActions->reject(fn (AppointmentAction $action) => in_array($action, [AppointmentAction::Start, AppointmentAction::Complete], true));
     }
 
-    $isAttendable = $usesRecord && $appointment->isAttendable();
+    $isAttendable = $usesRecord && $appointment->isAttendableBy(auth()->user());
     $mainVariant = $emphasizeMain ? 'primary' : 'outline';
 @endphp
 

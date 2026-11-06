@@ -148,6 +148,15 @@ enum AppointmentAction: string
     }
 
     /**
+     * Determine whether the user may perform the action on the appointment. Starting or reopening it leads to
+     * entering its record, so those actions follow the window in which the user may still change the record.
+     */
+    public function isPermittedFor(Appointment $appointment, User $user): bool
+    {
+        return ! in_array($this, [self::Start, self::Reopen], true) || $appointment->acceptsRecordChangesFrom($user);
+    }
+
+    /**
      * Determine whether the action can be performed on the given appointment.
      *
      * Remote appointments are never received nor missed, since the assisted person is not expected at the
@@ -169,15 +178,16 @@ enum AppointmentAction: string
     }
 
     /**
-     * Get the actions that can be performed on the given appointment.
+     * Get the actions that can be performed on the given appointment, by the given user when there is one.
      *
      * @return array<int, self>
      */
-    public static function availableFor(Appointment $appointment): array
+    public static function availableFor(Appointment $appointment, ?User $user = null): array
     {
         return array_values(array_filter(
             self::cases(),
-            fn (self $action): bool => $action->isAvailableFor($appointment),
+            fn (self $action): bool => $action->isAvailableFor($appointment)
+                && ($user === null || $action->isPermittedFor($appointment, $user)),
         ));
     }
 }

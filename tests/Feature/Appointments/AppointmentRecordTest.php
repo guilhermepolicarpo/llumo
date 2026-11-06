@@ -3,6 +3,7 @@
 use App\Enums\AppointmentMode;
 use App\Enums\AppointmentStatus;
 use App\Enums\InfiltrationRemovalPlace;
+use App\Enums\TeamRole;
 use App\Models\Appointment;
 use App\Models\AppointmentRecord;
 use App\Models\AppointmentType;
@@ -434,4 +435,46 @@ test('the mentor is required to save the record', function () {
 
     expect($appointment->record()->exists())->toBeFalse()
         ->and($appointment->fresh()->status)->toBe(AppointmentStatus::InProgress);
+});
+
+test('members change a record only up to seven days after the appointment, while owners and admins change any', function (TeamRole $role, string $scheduledOn, bool $isChangeable) {
+    $this->travelTo('2026-09-20 19:00:00');
+    [, $team] = actingAsTeamMember($role);
+    $appointment = Appointment::factory()->for($team)->completed()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+        'scheduled_on' => $scheduledOn,
+    ]);
+    AppointmentRecord::factory()->for($appointment)->create(['observations' => 'Anotação', 'mentor_id' => Mentor::factory()->for($team)]);
+
+    $component = Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->assertSeeHtml($isChangeable ? 'data-test="appointment-record-form"' : 'data-test="appointment-record-locked-notice"')
+        ->set('form.observations', 'Corrigida')
+        ->call('save');
+
+    if ($isChangeable) {
+        $component->assertHasNoErrors();
+    } else {
+        $component->assertForbidden();
+    }
+
+    expect($appointment->record->fresh()->observations)->toBe($isChangeable ? 'Corrigida' : 'Anotação');
+})->with([
+    'member, seven days ago' => [TeamRole::Member, '2026-09-13', true],
+    'member, eight days ago' => [TeamRole::Member, '2026-09-12', false],
+    'admin, a year ago' => [TeamRole::Admin, '2025-09-20', true],
+    'owner, a year ago' => [TeamRole::Owner, '2025-09-20', true],
+]);
+
+test('members cannot start attending an appointment older than seven days', function () {
+    $this->travelTo('2026-09-20 19:00:00');
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+    $appointment = Appointment::factory()->for($team)->remote()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+        'scheduled_on' => '2026-09-12',
+    ]);
+
+    Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->assertForbidden();
+
+    expect($appointment->fresh()->status)->toBe(AppointmentStatus::Scheduled);
 });

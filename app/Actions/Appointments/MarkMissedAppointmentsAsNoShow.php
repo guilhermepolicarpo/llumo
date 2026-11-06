@@ -13,7 +13,8 @@ class MarkMissedAppointmentsAsNoShow
      * Mark every appointment from previous days whose assisted person was expected but never received as a no-show.
      *
      * Remote appointments are left scheduled: the assisted person is never expected at the centre, so their
-     * record is still pending rather than missed.
+     * record is still pending rather than missed, until CancelExpiredRemoteAppointments cancels them once it
+     * can no longer be entered.
      */
     public function handle(): int
     {

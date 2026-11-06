@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Enums\AppointmentAction;
 use App\Enums\AppointmentMode;
 use App\Enums\AppointmentStatus;
+use App\Enums\TeamPermission;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Database\Factories\AppointmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -65,6 +67,11 @@ class Appointment extends Model
 {
     /** @use HasFactory<AppointmentFactory> */
     use HasFactory, SoftDeletes;
+
+    /**
+     * How many days after its date an appointment's record can still be entered or corrected by any member.
+     */
+    public const int RECORD_EDITING_WINDOW_DAYS = 7;
 
     /**
      * The model's default values for attributes.
@@ -182,11 +189,38 @@ class Appointment extends Model
     }
 
     /**
-     * Determine whether this appointment can be attended, either starting it or continuing it.
+     * Determine whether the given user can attend this appointment, either starting it or continuing it.
      */
-    public function isAttendable(): bool
+    public function isAttendableBy(User $user): bool
     {
-        return $this->status === AppointmentStatus::InProgress || AppointmentAction::Start->isAvailableFor($this);
+        return $this->status === AppointmentStatus::InProgress
+            || (AppointmentAction::Start->isAvailableFor($this) && AppointmentAction::Start->isPermittedFor($this, $user));
+    }
+
+    /**
+     * Get the earliest date whose appointments any member can still enter or correct the record of.
+     */
+    public static function recordEditingCutoff(): CarbonImmutable
+    {
+        return today()->subDays(self::RECORD_EDITING_WINDOW_DAYS);
+    }
+
+    /**
+     * Determine whether the appointment is recent enough for any member to enter or correct its record.
+     */
+    public function isWithinRecordEditingWindow(): bool
+    {
+        return $this->scheduled_on->greaterThanOrEqualTo(self::recordEditingCutoff());
+    }
+
+    /**
+     * Determine whether the given user may enter or correct this appointment's record: anyone while it is recent,
+     * and afterwards only those allowed to change past records.
+     */
+    public function acceptsRecordChangesFrom(User $user): bool
+    {
+        return $this->isWithinRecordEditingWindow()
+            || $user->hasTeamPermission($this->team, TeamPermission::EditPastRecords);
     }
 
     /**

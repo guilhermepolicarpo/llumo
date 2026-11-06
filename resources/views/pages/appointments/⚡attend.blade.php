@@ -45,7 +45,7 @@ new class extends Component
 
         $this->openedAt = now();
 
-        if (Gate::allows('perform', $appointment) && $performAppointmentAction->handle($appointment, AppointmentAction::Start, Auth::user())) {
+        if (AppointmentAction::Start->isAvailableFor($appointment) && Gate::allows('perform', [$appointment, AppointmentAction::Start]) && $performAppointmentAction->handle($appointment, AppointmentAction::Start, Auth::user())) {
             $appointment->refresh();
         }
 
@@ -53,7 +53,7 @@ new class extends Component
 
         $this->fillRecordForm($this->record);
 
-        if (Gate::allows('update', [AppointmentRecord::class, $appointment])) {
+        if ($this->canUpdate) {
             $this->restoreDraft($this->record);
         }
     }
@@ -75,7 +75,7 @@ new class extends Component
      */
     public function complete(SaveAppointmentRecord $saveAppointmentRecord, PerformAppointmentAction $performAppointmentAction): void
     {
-        Gate::authorize('perform', $this->appointment);
+        Gate::authorize('perform', [$this->appointment, AppointmentAction::Complete]);
 
         $this->persistRecord($saveAppointmentRecord);
 
@@ -95,7 +95,7 @@ new class extends Component
      */
     public function returnToQueue(PerformAppointmentAction $performAppointmentAction, SaveAppointmentRecordDraft $saveAppointmentRecordDraft): void
     {
-        Gate::authorize('perform', $this->appointment);
+        Gate::authorize('perform', [$this->appointment, AppointmentAction::ReturnToQueue]);
 
         $this->saveDraft($saveAppointmentRecordDraft);
 
@@ -110,6 +110,15 @@ new class extends Component
     public function canUpdate(): bool
     {
         return Gate::allows('update', [AppointmentRecord::class, $this->appointment]);
+    }
+
+    /**
+     * Determine whether the record could be changed if the appointment were not too old for the current user.
+     */
+    #[Computed]
+    public function isLockedByAge(): bool
+    {
+        return $this->appointment->status->allowsRecordEditing() && ! $this->canUpdate;
     }
 
     #[Computed]
@@ -574,6 +583,14 @@ new class extends Component
                 @php($record = $this->record)
 
                 <div class="space-y-6" data-test="appointment-record-readonly">
+                    @if ($this->isLockedByAge)
+                        <flux:callout icon="lock-closed" icon:variant="outline" data-test="appointment-record-locked-notice">
+                            <flux:callout.text>
+                                {{ __('Records of appointments older than :days days can only be changed by administrators.', ['days' => Appointment::RECORD_EDITING_WINDOW_DAYS]) }}
+                            </flux:callout.text>
+                        </flux:callout>
+                    @endif
+
                     @if ($record === null)
                         <flux:text>{{ __('No record has been filled for this appointment yet.') }}</flux:text>
                     @else
