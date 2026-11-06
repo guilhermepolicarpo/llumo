@@ -584,7 +584,7 @@ new class extends Component
 
                 <div class="space-y-6" data-test="appointment-record-readonly">
                     @if ($this->isLockedByAge)
-                        <flux:callout icon="lock-closed" icon:variant="outline" data-test="appointment-record-locked-notice">
+                        <flux:callout icon="lock-closed" variant="secondary" icon:variant="outline" data-test="appointment-record-locked-notice">
                             <flux:callout.text>
                                 {{ __('Records of appointments older than :days days can only be changed by administrators.', ['days' => Appointment::RECORD_EDITING_WINDOW_DAYS]) }}
                             </flux:callout.text>
