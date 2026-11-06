@@ -440,6 +440,7 @@
   "Cancel appointment": "Cancelar agendamento",
   "Reopen": "Reabrir",
   "This action is no longer available for the appointment.": "Esta ação não está mais disponível para este agendamento.",
+  "This assisted person already has a :type appointment on this day.": "Este assistido já tem um agendamento de :type neste dia.",
   "Appointment moved to :status.": "Agendamento alterado para :status.",
   "Arrived at :time": "Chegou às :time",
   "More details": "Mais detalhes",
