@@ -9,12 +9,14 @@ class AppointmentRecordPolicy
 {
     /**
      * Determine whether the user can open the record of the given appointment.
+     *
+     * A record already started or completed can always be read, even once it can no longer be changed.
      */
     public function view(User $user, Appointment $appointment): bool
     {
         return $user->belongsToTeam($appointment->team)
             && $appointment->usesRecord()
-            && ($appointment->isAttendable() || $appointment->status->allowsRecordEditing());
+            && ($appointment->status->allowsRecordEditing() || $appointment->isAttendableBy($user));
     }
 
     /**
@@ -23,6 +25,7 @@ class AppointmentRecordPolicy
     public function update(User $user, Appointment $appointment): bool
     {
         return $this->view($user, $appointment)
-            && $appointment->status->allowsRecordEditing();
+            && $appointment->status->allowsRecordEditing()
+            && $appointment->acceptsRecordChangesFrom($user);
     }
 }

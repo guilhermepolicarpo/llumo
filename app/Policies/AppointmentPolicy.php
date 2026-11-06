@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\AppointmentAction;
 use App\Models\Appointment;
 use App\Models\Team;
 use App\Models\User;
@@ -41,11 +42,11 @@ class AppointmentPolicy
     }
 
     /**
-     * Determine whether the user can move the model through its attendance flow.
+     * Determine whether the user can take the model through the given step of its attendance flow.
      */
-    public function perform(User $user, Appointment $appointment): bool
+    public function perform(User $user, Appointment $appointment, AppointmentAction $action): bool
     {
-        return $this->belongsToAppointmentsTeam($user, $appointment);
+        return $this->belongsToAppointmentsTeam($user, $appointment) && $action->isPermittedFor($appointment, $user);
     }
 
     /**

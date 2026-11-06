@@ -1048,5 +1048,6 @@
   "Report a vulnerability": "Reportar uma vulnerabilidade",
   "lumo: light, in Esperanto.": "lumo: luz, em esperanto.",
   "llumo: management system for Spiritist centers": "llumo: sistema de gestão para centros espíritas",
-  "Management system for Spiritist centers: assisted persons, appointments, sessions and library in one place. Free software, in the cloud or on your own server.": "Sistema de gestão para centros espíritas: assistidos, agendamentos, atendimentos e biblioteca em um só lugar. Software livre, na nuvem ou no seu servidor."
+  "Management system for Spiritist centers: assisted persons, appointments, sessions and library in one place. Free software, in the cloud or on your own server.": "Sistema de gestão para centros espíritas: assistidos, agendamentos, atendimentos e biblioteca em um só lugar. Software livre, na nuvem ou no seu servidor.",
+  "Records of appointments older than :days days can only be changed by administrators.": "Fichas de atendimentos com mais de :days dias só podem ser alteradas por administradores."
 }

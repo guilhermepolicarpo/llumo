@@ -2,6 +2,7 @@
 
 use App\Enums\AppointmentAction;
 use App\Enums\AppointmentStatus;
+use App\Enums\TeamRole;
 use App\Models\Appointment;
 use App\Models\AppointmentRecord;
 use App\Models\AssistedPerson;
@@ -431,3 +432,30 @@ test('the index opens the pending list or the day named in the link', function (
         ->assertSet('date', today()->toDateString())
         ->assertSee('Carla Hoje');
 });
+
+test('only owners and admins start or reopen appointments older than seven days, while anyone can still close them', function (TeamRole $role, string $action, bool $isAllowed) {
+    $this->travelTo('2026-09-20 19:00:00');
+    [, $team] = actingAsTeamMember($role);
+    $appointment = Appointment::factory()->for($team)->inPerson()->create([
+        'scheduled_on' => '2026-09-12',
+        'status' => $action === 'reopen' ? AppointmentStatus::NoShow : AppointmentStatus::Scheduled,
+    ]);
+    $previousStatus = $appointment->status;
+
+    $component = Livewire::test('pages::appointments.index')
+        ->call('perform', $appointment->id, $action);
+
+    if ($isAllowed) {
+        expect($appointment->fresh()->status)->not->toBe($previousStatus);
+    } else {
+        $component->assertForbidden();
+        expect($appointment->fresh()->status)->toBe($previousStatus);
+    }
+})->with([
+    'member starting' => [TeamRole::Member, 'start', false],
+    'member reopening' => [TeamRole::Member, 'reopen', false],
+    'member canceling' => [TeamRole::Member, 'cancel', true],
+    'member marking as no-show' => [TeamRole::Member, 'mark_as_no_show', true],
+    'admin starting' => [TeamRole::Admin, 'start', true],
+    'admin reopening' => [TeamRole::Admin, 'reopen', true],
+]);
