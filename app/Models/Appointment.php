@@ -295,6 +295,22 @@ class Appointment extends Model
     }
 
     /**
+     * Scope the query to the appointments of the given type the assisted person has on the day, apart from canceled ones
+     * and the given one, as a person may have only one of them.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function sameDayAs(Builder $query, int $assistedPersonId, int $appointmentTypeId, CarbonInterface $day, ?int $exceptAppointmentId = null): void
+    {
+        $query->where('assisted_person_id', $assistedPersonId)
+            ->where('appointment_type_id', $appointmentTypeId)
+            ->scheduledOn($day)
+            ->takingPlace()
+            ->when($exceptAppointmentId, fn (Builder $query, int $id) => $query->whereKeyNot($id));
+    }
+
+    /**
      * Order the query by the status, following the workflow order of the AppointmentStatus cases.
      *
      * @param  Builder<self>  $query

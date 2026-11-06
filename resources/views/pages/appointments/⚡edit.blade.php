@@ -36,7 +36,7 @@ new class extends Component
     {
         Gate::authorize('update', $this->appointment);
 
-        $validated = $this->validate(AppointmentRules::all($this->appointment->team));
+        $validated = $this->validate(AppointmentRules::all($this->appointment->team, $this->appointment));
 
         $updateAppointment->handle($this->appointment, $this->appointmentAttributes($validated));
 

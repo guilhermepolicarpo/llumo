@@ -3,6 +3,7 @@
 namespace App\Rules;
 
 use App\Enums\AppointmentMode;
+use App\Models\Appointment;
 use App\Models\Team;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
@@ -10,17 +11,17 @@ use Illuminate\Validation\Rule;
 class AppointmentRules
 {
     /**
-     * Get the validation rules used to validate an appointment for the given team.
+     * Get the validation rules used to validate an appointment for the given team, such as the one being edited.
      *
      * @return array<string, array<int, ValidationRule|array<mixed>|string|object>>
      */
-    public static function all(Team $team): array
+    public static function all(Team $team, ?Appointment $appointment = null): array
     {
         return [
             'appointmentTypeId' => static::appointmentTypeId($team),
             'mode' => static::mode(),
             'assistedPersonId' => static::assistedPersonId($team),
-            'scheduledOn' => static::scheduledOn(),
+            'scheduledOn' => [...static::scheduledOn(), new UniqueAppointmentOfDay($team, $appointment?->id)],
             'notes' => static::notes(),
         ];
     }

@@ -50,7 +50,8 @@ class SyncAppointmentRecordFollowUps
      * Bring a single follow-up appointment in line with the record, returning the id of the linked appointment.
      *
      * A null date means the follow-up is no longer requested. Follow-ups the assisted person already moved
-     * through the queue are left untouched.
+     * through the queue are left untouched. When the person already has an appointment of the type on the
+     * date, that one becomes the follow-up instead of a second one being scheduled.
      */
     private function syncFollowUp(
         Appointment $appointment,
@@ -70,6 +71,17 @@ class SyncAppointmentRecordFollowUps
             $followUp?->delete();
 
             return null;
+        }
+
+        $sameDayAppointment = Appointment::query()
+            ->where('team_id', $appointment->team_id)
+            ->sameDayAs($appointment->assisted_person_id, $appointmentTypeId, $scheduledOn, $followUp?->id)
+            ->first(['id']);
+
+        if ($sameDayAppointment !== null) {
+            $followUp?->delete();
+
+            return $sameDayAppointment->id;
         }
 
         $attributes = [

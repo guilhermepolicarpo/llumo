@@ -133,6 +133,33 @@ test('saving again updates the follow-ups instead of duplicating them', function
     expect(followUpsOf($appointment)->sole()->scheduled_on->toDateString())->toBe('2026-10-18');
 });
 
+test('a return on a day the assisted person already has that type becomes the appointment already scheduled', function () {
+    [$component, $appointment, $team] = attendRecordAppointment();
+    $sameDayOf = fn (string $date): array => [
+        'appointment_type_id' => $appointment->appointment_type_id,
+        'assisted_person_id' => $appointment->assisted_person_id,
+        'scheduled_on' => $date,
+    ];
+    $alreadyScheduled = Appointment::factory()->for($team)->create($sameDayOf('2026-10-11'));
+    $scheduledLater = Appointment::factory()->for($team)->create($sameDayOf('2026-10-18'));
+
+    $component
+        ->set('form.returnOn', '2026-10-11')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(followUpsOf($appointment)->count())->toBe(2)
+        ->and($appointment->record->return_appointment_id)->toBe($alreadyScheduled->id);
+
+    $component
+        ->set('form.returnOn', '2026-10-18')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(followUpsOf($appointment)->pluck('id')->all())->toBe([$scheduledLater->id])
+        ->and($appointment->record->fresh()->return_appointment_id)->toBe($scheduledLater->id);
+});
+
 test('clearing the return date removes the return still scheduled', function () {
     [$component, $appointment] = attendRecordAppointment();
 
