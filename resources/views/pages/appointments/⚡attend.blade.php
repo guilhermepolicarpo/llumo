@@ -503,7 +503,7 @@ new class extends Component
                                 <x-date-input wire:model.live="form.returnOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Return date')" data-test="appointment-record-return-on-input" />
 
                                 <div class="flex flex-wrap gap-1">
-                                    @foreach ([15, 20, 30, 60] as $days)
+                                    @foreach (AppointmentRecord::RETURN_INTERVALS_DAYS as $days)
                                         <flux:button size="xs" wire:click="setReturnInDays({{ $days }})" x-on:click="$dispatch('return-date-picked')" data-test="appointment-record-return-in-{{ $days }}-days-button">
                                             {{ __('+:days days', ['days' => $days]) }}
                                         </flux:button>

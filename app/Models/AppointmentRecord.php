@@ -59,6 +59,14 @@ class AppointmentRecord extends Model
     use HasFactory, SoftDeletes;
 
     /**
+     * The usual intervals, in days after the appointment, offered for the return: as shortcuts on the record form and
+     * as boxes on the printed attendance sheet.
+     *
+     * @var list<int>
+     */
+    public const array RETURN_INTERVALS_DAYS = [15, 20, 30, 60];
+
+    /**
      * Get the appointment this record was filled for.
      *
      * @return BelongsTo<Appointment, $this>

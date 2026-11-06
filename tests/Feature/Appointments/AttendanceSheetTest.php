@@ -125,7 +125,7 @@ test('the fluidic remedies of a filled sheet split into two columns when they wo
     'overflowing one column' => [21, true],
 ]);
 
-test('the guidances of a sheet split half and half into two columns when there are more than three', function (int $guidanceCount, array $columnSizes) {
+test('the guidances of a sheet split half and half into two columns when there are more than two', function (int $guidanceCount, array $columnSizes) {
     [, $team] = actingAsTeamMember(TeamRole::Owner);
     foreach (range(1, $guidanceCount) as $position) {
         Guidance::factory()->for($team)->create(['name' => sprintf('Orientação %02d', $position)]);
@@ -144,7 +144,8 @@ test('the guidances of a sheet split half and half into two columns when there a
         return true;
     });
 })->with([
-    'three in one column' => [3, [3]],
+    'two in one column' => [2, [2]],
+    'three leave the bigger half on the left' => [3, [2, 1]],
     'four split in two' => [4, [2, 2]],
     'five leave the bigger half on the left' => [5, [3, 2]],
     'six split in two' => [6, [3, 3]],

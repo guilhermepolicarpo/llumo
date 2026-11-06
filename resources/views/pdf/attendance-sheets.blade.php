@@ -1,4 +1,5 @@
 @use('App\Enums\AppointmentMode')
+@use('App\Models\AppointmentRecord')
 
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -8,7 +9,7 @@
     <style>
         @page { margin: 10mm 11mm; }
         * { box-sizing: border-box; }
-        body { margin: 0; font-family: 'DejaVu Sans', sans-serif; font-size: 8.5pt; line-height: 1.3; color: #141414; }
+        body { margin: 0; font-family: 'DejaVu Sans', sans-serif; font-size: 8pt; line-height: 1.2; color: #141414; }
         table { width: 100%; border-collapse: collapse; }
         td { padding: 0; vertical-align: bottom; }
         .page { position: relative; height: 188mm; }
@@ -23,7 +24,7 @@
         .header .badge-cell { width: 26mm; text-align: center; }
         .badge { border: 1.1pt solid #141414; border-radius: 0.7mm; padding: 1.3mm 1.4mm; font-size: 7.5pt; font-weight: bold; line-height: 1.2; letter-spacing: 0.4pt; text-transform: uppercase; }
         .badge-date { font-size: 7.5pt; color: #333; margin-top: 1mm; }
-        .rule { border: 0; border-top: 1.6pt solid #141414; margin: 3.5mm 0 4.2mm; }
+        .rule { border: 0; border-top: 1.6pt solid #141414; margin: 3mm 0 3.5mm; }
 
         .label { font-size: 7.5pt; font-weight: bold; letter-spacing: 0.3pt; text-transform: uppercase; color: #333; }
         .identification { margin-bottom: 2.1mm; }
@@ -32,7 +33,7 @@
         .identification td.gap { border-bottom: 0; width: 4.2mm; }
         .identification .value { font-size: 9.5pt; }
 
-        .section-label { margin: 5mm 0 1.8mm; }
+        .section-label { margin: 4mm 0 1.5mm; }
         .guidance-columns td { vertical-align: top; }
         .guidance-columns.two-columns td { width: 50%; }
         .guidance-columns.two-columns td + td { padding-left: 3mm; }
@@ -45,7 +46,7 @@
         .filled { font-weight: bold; }
         .written-notes { margin-top: 1mm; white-space: pre-line; }
 
-        .passes { margin-top: 5mm; border-bottom: 0.8pt solid #141414; }
+        .passes { margin-top: 2mm; border-bottom: 0.8pt solid #141414; }
         .passes th { padding: 0 0 1.4mm; border-bottom: 0.8pt solid #141414; text-align: center; font-size: 7.5pt; font-weight: bold; color: #333; }
         .passes th.label { text-align: left; }
         .passes td { height: 8.8mm; vertical-align: middle; text-align: center; border-top: 0.5pt solid #bdbdbd; }
@@ -53,22 +54,22 @@
         .passes td.name { text-align: left; }
         .passes .quantity { display: inline-block; width: 8.5mm; height: 3.5mm; border-bottom: 0.8pt solid #141414; }
 
-        .write-in { margin-top: 5mm; }
-        .write-in table { margin-bottom: 3.2mm; }
+        .write-in table { margin-bottom: 2.4mm; }
         .write-in td { padding-right: 1.8mm; }
-        .line-fill { border-bottom: 0.8pt solid #141414; }
-        .blank { display: inline-block; height: 3.5mm; border-bottom: 0.8pt solid #141414; vertical-align: -0.7mm; }
-        .notes-line { border-bottom: 0.5pt dotted #9a9a9a; height: 6.4mm; }
+        .write-in td.return-option { padding-right: 5mm; }
+        .line-fill, .blank, .notes-line, .back-line { border-bottom: 0.5pt solid #bdbdbd; }
+        .blank { display: inline-block; height: 3.5mm; vertical-align: -0.7mm; }
+        .notes-line { height: 6mm; }
+        .section-label + .notes-line { height: 4.1mm; }
 
         .closing { position: absolute; left: 0; right: 0; bottom: 0; }
-        .closing td { font-size: 8.5pt; }
         .closing .signature-line { width: 56mm; height: 9mm; border-bottom: 0.8pt solid #141414; }
         .closing .caption { padding-top: 1mm; vertical-align: top; color: #333; }
 
         .back-title { font-size: 12pt; font-weight: bold; letter-spacing: 0.6pt; text-transform: uppercase; }
-        .back-detail { font-size: 8.5pt; color: #333; margin-top: 0.7mm; }
+        .back-detail { color: #333; margin-top: 0.7mm; }
         .back-rule { border: 0; border-top: 1.6pt solid #141414; margin: 3.2mm 0 0; }
-        .back-line { border-bottom: 0.5pt solid #bdbdbd; height: 8mm; }
+        .back-line { height: 8mm; }
         .back-line.filled { height: auto; padding-top: 3.6mm; line-height: 3.4mm; white-space: nowrap; }
         .back-columns td { width: 50%; border-bottom: 0.5pt solid #bdbdbd; }
         .back-columns .back-line { border-bottom: 0; }
@@ -86,19 +87,20 @@
             $sheetGuidances = $guidances->union($givenGuidances->pluck('name', 'id'));
             $sheetPassTypes = $passTypes->union($prescriptionsByPass->map(fn ($prescriptions) => $prescriptions->first()->passType->name));
 
-            // With more than three guidances they are split in two columns, filled top to bottom. A column fits about
-            // 34 characters per line, so each guidance is estimated at its wrapped lines (≈7mm the first, ≈3.9mm each more).
-            $guidanceColumns = $sheetGuidances->count() > 3 ? $sheetGuidances->splitIn(2) : collect([$sheetGuidances]);
-            $guidanceLines = fn (string $name, int $id) => max(1, (int) ceil(mb_strlen(trim($name.' '.$givenGuidances->get($id)?->pivot->detail)) / 34));
+            // With more than two guidances they are split in two columns, filled top to bottom. A column fits about
+            // 36 characters per line, so each guidance is estimated at its wrapped lines (≈6.3mm the first, ≈4.4mm each more).
+            $guidanceRowHeight = 6.3;
+            $guidanceColumns = $sheetGuidances->count() > 2 ? $sheetGuidances->splitIn(2) : collect([$sheetGuidances]);
+            $guidanceLines = fn (string $name, int $id) => max(1, (int) ceil(mb_strlen(trim($name.' '.$givenGuidances->get($id)?->pivot->detail)) / 36));
             $guidanceColumnLines = $guidanceColumns->map(fn ($column) => $column->map($guidanceLines)->values());
-            $twoColumnGuidancesHeight = $guidanceColumnLines->first()->keys()
-                ->sum(fn (int $row) => 7 + 3.9 * ($guidanceColumnLines->map(fn ($lines) => $lines->get($row, 1))->max() - 1));
-            $extraGuidancesHeight = $guidanceColumns->count() > 1 ? max(0, $twoColumnGuidancesHeight - 3 * 7) : 0;
+            $guidancesHeight = $guidanceColumnLines->first()->keys()
+                ->sum(fn (int $row) => $guidanceRowHeight + 4.4 * ($guidanceColumnLines->map(fn ($lines) => $lines->get($row, 1))->max() - 1));
 
-            // The closing is pinned to the page bottom, so each pass (≈9mm) beyond the three the sheet was laid out for,
-            // like the guidances beyond them, takes the room of the 6.4mm dotted notes lines.
-            $extraCatalogHeight = $extraGuidancesHeight + max(0, $sheetPassTypes->count() - 3) * 9;
-            $notesLineCount = max(0, 4 - (int) ceil(max(0, $extraCatalogHeight - 12) / 6.4));
+            // The closing is pinned to the page bottom, leaving ≈23mm below the notes title for its lines (≈6.2mm each, border
+            // included) on a sheet laid out for three rows of guidances and three passes. Each guidance row or pass (≈9mm)
+            // short of the three gives its room to the notes, and each one beyond them takes from it.
+            $extraCatalogHeight = ($guidancesHeight - 3 * $guidanceRowHeight) + ($sheetPassTypes->count() - 3) * 9;
+            $notesLineCount = max(0, (int) floor((23 - $extraCatalogHeight) / 6.2));
             $sheetDay = $appointment->received_at ?? today();
             $sheetDate = $sheetDay->translatedFormat('d \d\e F \d\e Y');
         @endphp
@@ -201,13 +203,26 @@
                 </table>
             @endif
 
+            <div class="label section-label">{{ __('Infiltration') }}</div>
             <div class="write-in">
+                @if ($record?->infiltration_site)
+                    <table>
+                        <tr>
+                            <td>{{ __('Site or reason') }}: <span class="filled">{{ $record->infiltration_site }}</span></td>
+                        </tr>
+                    </table>
+                @else
+                    <table>
+                        <tr>
+                            <td class="shrink">{{ __('Site or reason') }}:</td>
+                            <td class="line-fill"></td>
+                        </tr>
+                    </table>
+                @endif
                 <table>
                     <tr>
-                        <td class="shrink"><span class="box">@if ($record?->infiltration_site)<span class="tick">✓</span>@endif</span>{{ __('Infiltration — site') }}</td>
-                        <td class="line-fill filled">{{ $record?->infiltration_site }}</td>
-                        <td class="shrink" style="padding-left: 1.8mm;">{{ __('Removal') }}</td>
-                        <td class="shrink" style="padding-right: 0;">
+                        <td class="shrink">{{ __('Remove on day') }}:</td>
+                        <td>
                             @if ($record?->infiltration_remove_on)
                                 <span class="filled">{{ $record->infiltration_remove_on->format('d/m/Y') }}</span>
                             @else
@@ -216,37 +231,58 @@
                         </td>
                     </tr>
                 </table>
-                <table>
-                    <tr>
-                        <td class="shrink"><span class="box">@if ($record?->return_on)<span class="tick">✓</span>@endif</span>{{ __('Return on') }}</td>
-                        <td>
-                            @if ($record?->return_on)
-                                <span class="filled">{{ $record->return_on->format('d/m/Y') }}</span>
-                            @else
-                                <span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 8mm;"></span>
-                            @endif
-                        </td>
-                    </tr>
-                </table>
+            </div>
 
-                <div>{{ __('Observations') }}:</div>
-                @if ($record?->observations)
-                    <div class="written-notes filled">{{ $record->observations }}</div>
+            <div class="label section-label">{{ __('Return') }}</div>
+            <div class="write-in">
+                @if ($record?->return_on)
+                    <table>
+                        <tr>
+                            <td class="shrink">{{ __('Date') }}:</td>
+                            <td class="filled">{{ $record->return_on->format('d/m/Y') }}</td>
+                        </tr>
+                    </table>
                 @else
-                    @for ($line = 0; $line < $notesLineCount; $line++)
-                        <div class="notes-line"></div>
-                    @endfor
+                    {{-- The same intervals the record form offers as shortcuts, plus a line below for any other return. --}}
+                    <table>
+                        <tr>
+                            @foreach (AppointmentRecord::RETURN_INTERVALS_DAYS as $days)
+                                <td class="shrink return-option"><span class="box"></span>{{ __('+:days days', ['days' => $days]) }}</td>
+                            @endforeach
+                            <td></td>
+                        </tr>
+                    </table>
+                    <table>
+                        <tr>
+                            <td class="shrink"><span class="box"></span>{{ __('Other') }}:</td>
+                            <td class="line-fill"></td>
+                        </tr>
+                    </table>
                 @endif
             </div>
+
+            <div class="label section-label">{{ __('Observations') }}</div>
+            @if ($record?->observations)
+                <div class="written-notes filled">{{ $record->observations }}</div>
+            @else
+                @for ($line = 0; $line < $notesLineCount; $line++)
+                    <div class="notes-line"></div>
+                @endfor
+            @endif
 
             <div class="closing">
                 <table>
                     <tr>
-                        <td style="padding-bottom: 0.9mm;">{{ $sheetDate }}</td>
+                        {{-- Spans both rows, so the city lines up with the signature caption and the date sits right above it. --}}
+                        <td rowspan="2">
+                            <div>{{ $sheetDate }}</div>
+                            @if ($team->address_city_line)
+                                <div class="detail">{{ $team->address_city_line }}</div>
+                            @endif
+                        </td>
                         <td class="signature-line" style="text-align: center; vertical-align: bottom;">{{ $record?->mentor?->name }}</td>
                     </tr>
                     <tr>
-                        <td class="caption">{{ $team->address_city_line }}</td>
                         <td class="caption" style="text-align: center;">{{ __('Medium signature') }}</td>
                     </tr>
                 </table>
