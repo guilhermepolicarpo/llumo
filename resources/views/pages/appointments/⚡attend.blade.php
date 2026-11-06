@@ -229,7 +229,7 @@ new class extends Component
                         @foreach ($contactDetails as $icon => $detail)
                             <div class="flex items-start gap-2">
                                 <flux:icon :name="$icon" class="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-                                <flux:text class="min-w-0 break-words">{{ $detail }}</flux:text>
+                                <flux:text class="min-w-0 wrap-break-word">{{ $detail }}</flux:text>
                             </div>
                         @endforeach
                     </div>
