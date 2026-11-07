@@ -189,6 +189,26 @@ test('follow-ups already on the schedule are not flagged', function () {
     expect(Livewire::test('pages::assisted-people.show', ['assistedPerson' => $person])->get('pendingFollowUps'))->toBe([]);
 });
 
+test('an infiltration removal already attended on its day is not flagged, but a canceled one is', function () {
+    $this->travelTo('2026-11-06 20:00:00');
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $person = AssistedPerson::factory()->for($team)->create();
+    $removal = Appointment::factory()->for($team)->completed()->create(['assisted_person_id' => $person, 'scheduled_on' => '2026-11-06']);
+
+    completedRecordFor($person, '2026-11-04', [
+        'infiltration_remove_on' => '2026-11-06',
+        'infiltration_removal_place' => InfiltrationRemovalPlace::AtTheCenter,
+        'infiltration_removal_appointment_id' => $removal,
+    ]);
+
+    expect(Livewire::test('pages::assisted-people.show', ['assistedPerson' => $person])->get('pendingFollowUps'))->toBe([]);
+
+    $removal->update(['status' => AppointmentStatus::Canceled]);
+
+    expect(Livewire::test('pages::assisted-people.show', ['assistedPerson' => $person])->get('pendingFollowUps'))
+        ->sequence(fn ($followUp) => $followUp->key->toBe('infiltration'));
+});
+
 test('a return date gone by is flagged until the assisted person comes back', function () {
     $this->travelTo('2026-09-27 10:00:00');
     $user = User::factory()->create();
