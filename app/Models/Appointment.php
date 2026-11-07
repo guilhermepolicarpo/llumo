@@ -278,7 +278,7 @@ class Appointment extends Model
             ->map(fn (PassPrescription $prescription): array => [
                 'passType' => $prescription->passType,
                 'quantity' => $prescription->quantity,
-                'dates' => $prescription->sessions->map(fn (PassSession $session): CarbonImmutable => $session->scheduled_on->toImmutable())->values()->all(),
+                'dates' => array_values($prescription->sessions->map(fn (PassSession $session): CarbonImmutable => $session->scheduled_on->toImmutable())->all()),
             ]);
     }
 
@@ -301,7 +301,9 @@ class Appointment extends Model
      */
     private function remotePassesOfDraft(AppointmentRecordDraft $draft): SupportCollection
     {
-        $rows = collect($draft->data['passPrescriptions'] ?? [])
+        $draftRows = $draft->data['passPrescriptions'] ?? [];
+
+        $rows = collect(is_array($draftRows) ? $draftRows : [])
             ->filter(fn (mixed $row): bool => is_array($row)
                 && ($row['mode'] ?? null) === AppointmentMode::Remote->value
                 && is_numeric($row['pass_type_id'] ?? null)
@@ -310,11 +312,16 @@ class Appointment extends Model
         $passTypes = $this->team->passTypes()->whereKey($rows->pluck('pass_type_id')->map(fn ($id): int => (int) $id)->all())->get()->keyBy('id');
 
         return $rows
-            ->filter(fn (array $row): bool => $passTypes->has((int) $row['pass_type_id']))
-            ->map(function (array $row) use ($passTypes): array {
+            ->map(function (array $row) use ($passTypes): ?array {
+                $passType = $passTypes->get((int) $row['pass_type_id']);
+
+                if ($passType === null) {
+                    return null;
+                }
+
                 $quantity = min(max((int) $row['quantity'], 1), 99);
 
-                $dates = collect(is_array($row['dates'] ?? null) ? $row['dates'] : [])
+                $dates = array_values(collect(is_array($row['dates'] ?? null) ? $row['dates'] : [])
                     ->filter(fn (mixed $date): bool => is_string($date)
                         && preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $date, $parts) === 1
                         && checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1]))
@@ -323,11 +330,11 @@ class Appointment extends Model
                     ->unique(fn (CarbonImmutable $date): string => $date->toDateString())
                     ->sortBy(fn (CarbonImmutable $date): string => $date->toDateString())
                     ->take($quantity)
-                    ->values()
-                    ->all();
+                    ->all());
 
-                return ['passType' => $passTypes->get((int) $row['pass_type_id']), 'quantity' => $quantity, 'dates' => $dates];
+                return ['passType' => $passType, 'quantity' => $quantity, 'dates' => $dates];
             })
+            ->filter()
             ->values();
     }
 

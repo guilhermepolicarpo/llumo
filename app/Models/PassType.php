@@ -54,11 +54,10 @@ class PassType extends Model
      */
     public function remoteWeekdayNumbers(): array
     {
-        return ($this->remote_weekdays ?? collect())
+        return array_values(($this->remote_weekdays ?? collect())
             ->map(fn (Weekday $weekday): int => $weekday->value)
             ->sort()
-            ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -93,7 +92,11 @@ class PassType extends Model
     {
         $hours = $this->remoteHours();
 
-        return $this->joinRemoteSchedule(' · ', $hours === null ? null : __(':start to :end', $hours));
+        if ($hours === null) {
+            return $this->joinRemoteSchedule(' · ', null);
+        }
+
+        return $this->joinRemoteSchedule(' · ', __(':start to :end', $hours));
     }
 
     /**
