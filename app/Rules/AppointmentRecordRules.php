@@ -2,6 +2,7 @@
 
 namespace App\Rules;
 
+use App\Enums\AppointmentMode;
 use App\Enums\Catalog;
 use App\Enums\InfiltrationRemovalPlace;
 use App\Models\Appointment;
@@ -31,10 +32,7 @@ class AppointmentRecordRules
             'guidanceIds.*' => CatalogRules::entryId($team, Catalog::Guidance),
             'guidanceDetails' => ['array'],
             'guidanceDetails.*' => ['nullable', 'string', 'max:100'],
-            'passPrescriptions' => ['array'],
-            'passPrescriptions.*.pass_type_id' => ['required', ...CatalogRules::entryId($team, Catalog::PassType)],
-            'passPrescriptions.*.quantity' => ['required', 'integer', 'between:1,99'],
-            'passPrescriptions.*.mode' => AppointmentRules::mode(),
+            ...static::passPrescriptions($appointment),
             'infiltrationSite' => ['nullable', 'required_with:infiltrationRemoveOn,infiltrationRemovalPlace', 'string', 'max:150'],
             'infiltrationRemoveOn' => ['nullable', 'required_with:infiltrationSite', $schedulesRemoval, 'date', $afterAppointment],
             'infiltrationRemovalPlace' => ['nullable', 'required_with:infiltrationSite', 'string', Rule::enum(InfiltrationRemovalPlace::class)],
@@ -42,6 +40,25 @@ class AppointmentRecordRules
             'returnOn' => ['nullable', 'date', $afterAppointment],
             'returnAppointmentTypeId' => ['exclude_without:returnOn', 'required', ...static::appointmentTypeId($appointment)],
             'observations' => ['nullable', 'string', 'max:5000'],
+        ];
+    }
+
+    /**
+     * Get the validation rules used to validate the passes prescribed on the record, with the days of the remote ones.
+     *
+     * @return array<string, array<int, ValidationRule|array<mixed>|string|object>>
+     */
+    public static function passPrescriptions(Appointment $appointment): array
+    {
+        $givenRemotely = 'exclude_unless:passPrescriptions.*.mode,'.AppointmentMode::Remote->value;
+
+        return [
+            'passPrescriptions' => ['array'],
+            'passPrescriptions.*.pass_type_id' => ['required', ...CatalogRules::entryId($appointment->team, Catalog::PassType), new DistinctPassPrescription],
+            'passPrescriptions.*.quantity' => ['required', 'integer', 'between:1,99'],
+            'passPrescriptions.*.mode' => AppointmentRules::mode(),
+            'passPrescriptions.*.dates' => [$givenRemotely, 'array', new RemotePassDates],
+            'passPrescriptions.*.dates.*' => [$givenRemotely, 'nullable', 'date_format:Y-m-d', 'after:'.$appointment->scheduled_on->toDateString()],
         ];
     }
 

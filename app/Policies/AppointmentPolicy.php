@@ -58,6 +58,15 @@ class AppointmentPolicy
     }
 
     /**
+     * Determine whether the user can print the remote pass sheet of the given appointment: its saved record prescribes
+     * at least one pass given remotely.
+     */
+    public function printRemotePassSheet(User $user, Appointment $appointment): bool
+    {
+        return $this->belongsToAppointmentsTeam($user, $appointment) && $appointment->hasRemotePasses();
+    }
+
+    /**
      * Determine whether the user belongs to the appointment's team.
      */
     private function belongsToAppointmentsTeam(User $user, Appointment $appointment): bool

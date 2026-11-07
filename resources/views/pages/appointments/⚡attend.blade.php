@@ -69,6 +69,23 @@ new class extends Component
     }
 
     /**
+     * Keep the remote pass dates chosen in the modal by saving the form as a draft, from which the remote pass sheet
+     * can be printed right away, and tell the browser when the draft was saved.
+     *
+     * The mentor is the last thing filled in, so the record is not saved nor fully validated here: only the passes are.
+     * The sheet reads the draft until the record is saved. Passes that do not validate throw before returning, and
+     * their errors show on the form.
+     */
+    public function saveRemotePassDates(SaveAppointmentRecordDraft $saveAppointmentRecordDraft): string
+    {
+        Gate::authorize('update', [AppointmentRecord::class, $this->appointment]);
+
+        $this->form->validatePassPrescriptions($this->appointment);
+
+        return $this->keepDraft($saveAppointmentRecordDraft);
+    }
+
+    /**
      * Save the record and finish the appointment.
      *
      * The record is saved first so that whoever fills it in takes the appointment over from when they opened it.
@@ -144,7 +161,7 @@ new class extends Component
     public function record(): ?AppointmentRecord
     {
         return $this->appointment->record()
-            ->with(['mentor', 'fluidicRemedies', 'guidances', 'passPrescriptions.passType', 'infiltrationRemovalAppointment.appointmentType', 'returnAppointment.appointmentType'])
+            ->with(['mentor', 'fluidicRemedies', 'guidances', 'passPrescriptions.passType', 'passPrescriptions.sessions', 'infiltrationRemovalAppointment.appointmentType', 'returnAppointment.appointmentType'])
             ->first();
     }
 
@@ -191,17 +208,34 @@ new class extends Component
         :back-href="route('appointments.index')"
         :back-label="__('Appointments')"
     >
-        @if ($appointment->hasPrintableAttendanceSheet())
-            <flux:button
-                icon="printer"
-                icon:variant="outline"
-                :href="route('appointments.attendance-sheet', ['appointment' => $appointment])"
-                target="_blank"
-                data-test="appointment-record-print-button"
-                >
-                {{ __('Print attendance sheet') }}
-            </flux:button>
-        @endif
+        <div class="flex flex-wrap items-center gap-3">
+            {{-- While attending, the record is filled right here: its sheet is only worth printing once completed. --}}
+            @if ($appointment->filledRecord() !== null)
+                @can('printAttendanceSheet', $appointment)
+                    <flux:button
+                        icon="printer"
+                        icon:variant="outline"
+                        :href="route('appointments.attendance-sheet', ['appointment' => $appointment])"
+                        target="_blank"
+                        data-test="appointment-record-print-button"
+                        >
+                        {{ __('Print attendance sheet') }}
+                    </flux:button>
+                @endcan
+            @endif
+
+            @can('printRemotePassSheet', $appointment)
+                <flux:button
+                    icon="printer"
+                    icon:variant="outline"
+                    :href="route('appointments.remote-pass-sheet', ['appointment' => $appointment])"
+                    target="_blank"
+                    data-test="appointment-record-print-remote-passes-button"
+                    >
+                    {{ __('Print remote passes') }}
+                </flux:button>
+            @endcan
+        </div>
     </x-page-header>
 
     <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
@@ -365,6 +399,8 @@ new class extends Component
                     x-on:change="schedule()"
                     x-on:catalog-picker-change="schedule()"
                     x-on:return-date-picked="schedule()"
+                    x-on:remote-pass-dates-saving="cancel()"
+                    x-on:remote-pass-dates-saved="status = $event.detail ?? status"
                     x-on:submit="cancel(); status = ''"
                     x-on:visibilitychange.document="document.hidden && flush()"
                     x-on:livewire:navigating.document="flush()"
@@ -433,12 +469,104 @@ new class extends Component
                                 <flux:error name="form.passPrescriptions.{{ $index }}.pass_type_id" />
                                 <flux:error name="form.passPrescriptions.{{ $index }}.quantity" />
                                 <flux:error name="form.passPrescriptions.{{ $index }}.mode" />
+                                <flux:error name="form.passPrescriptions.{{ $index }}.dates" />
+                                @foreach (array_keys($prescription['dates'] ?? []) as $dateIndex)
+                                    <flux:error name="form.passPrescriptions.{{ $index }}.dates.{{ $dateIndex }}" />
+                                @endforeach
                             </div>
                         @endforeach
 
-                        <flux:button size="sm" icon="plus" icon:variant="outline" wire:click="addPassPrescription" data-test="appointment-record-add-pass-button">
-                            {{ __('Add pass') }}
-                        </flux:button>
+                        {{-- The remote pass dates follow the rows as they are picked, in the browser, so the modal opens without a request. --}}
+                        <div x-data="remotePassDates({{ \Illuminate\Support\Js::from($this->remotePassDatesConfig) }})" class="flex flex-wrap items-center gap-2">
+                            <flux:button size="sm" icon="plus" icon:variant="outline" wire:click="addPassPrescription" data-test="appointment-record-add-pass-button">
+                                {{ __('Add pass') }}
+                            </flux:button>
+
+                            <flux:modal.trigger name="remote-pass-dates" x-show="hasRemoteRows" x-cloak>
+                                <flux:button size="sm" icon="calendar-days" icon:variant="outline" x-on:click="fill()" data-test="appointment-record-remote-pass-dates-button">
+                                    {{ __('Pass dates and printing') }}
+                                </flux:button>
+                            </flux:modal.trigger>
+
+                            <flux:text x-show="hasRemoteRows" x-text="datesSummary" x-cloak data-test="appointment-record-remote-pass-dates-summary"></flux:text>
+
+                            <flux:modal name="remote-pass-dates" class="w-full md:w-2xl" data-test="appointment-record-remote-pass-dates-modal">
+                                {{-- Only the dates scroll: the heading and the actions stay in view however many passes there are. --}}
+                                <div class="flex max-h-[calc(100dvh-8rem)] flex-col gap-6">
+                                    <div class="pe-8">
+                                        <flux:heading size="lg">{{ __('Remote pass dates') }}</flux:heading>
+                                        <flux:text class="mt-2">{{ __('Dates on which :name will rest to receive each pass. They follow the days of each pass type; adjust them if needed.', ['name' => $person->name]) }}</flux:text>
+                                    </div>
+
+                                    {{-- The dates reach the form only when saved, so typing them must not wake the draft autosave. --}}
+                                    <div class="-mx-6 min-h-0 flex-1 space-y-6 overflow-y-auto border-y border-zinc-800/10 px-6 py-5 dark:border-white/10" x-on:input.stop x-on:change.stop data-test="appointment-record-remote-pass-dates-body">
+                                        {{-- Drawn only by Alpine from the form state, so Livewire's morphing must leave it alone. --}}
+                                        <div wire:ignore class="divide-y divide-zinc-800/5 dark:divide-white/10">
+                                        <template x-for="row in remoteRows" :key="row.index">
+                                            <section class="space-y-3 py-5 first-of-type:pt-0 last-of-type:pb-0">
+                                                <div class="flex items-start justify-between gap-3">
+                                                    <div class="min-w-0">
+                                                        <flux:heading x-text="nameOf(row)"></flux:heading>
+                                                        <div class="mt-0.5 flex items-center gap-1.5">
+                                                            <flux:icon.clock class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                                                            <flux:text x-text="scheduleOf(row).schedule ?? labels.noDays"></flux:text>
+                                                        </div>
+                                                    </div>
+                                                    <flux:badge size="sm" class="tabular-nums" x-text="countLabel(row)"></flux:badge>
+                                                </div>
+
+                                                <div class="grid gap-3 sm:grid-cols-3">
+                                                    <template x-for="(date, position) in chosenDates[row.index] ?? []" :key="position">
+                                                        <div class="space-y-1.5">
+                                                            <flux:text class="text-xs" x-text="positionLabel(position + 1)"></flux:text>
+                                                            <x-date-input
+                                                                x-model="chosenDates[row.index][position]"
+                                                                :min="$appointment->scheduled_on->addDay()->toDateString()"
+                                                                x-bind:aria-label="positionLabel(position + 1)"
+                                                                data-test="appointment-record-remote-pass-date-input"
+                                                            />
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </section>
+                                        </template>
+                                        </div>
+
+                                        <flux:callout icon="information-circle" icon:variant="outline" color="blue">
+                                            <flux:callout.text>
+                                                {{ __('The days and times come from the') }}
+                                                @can('manage', [\App\Models\PassType::class, $appointment->team])
+                                                    <flux:link :href="Catalog::PassType->url()" wire:navigate data-test="appointment-record-pass-type-settings-link">{{ __('configuration') }}</flux:link>
+                                                @else
+                                                    {{ __('configuration') }}
+                                                @endcan
+                                                {{ __('of each pass type.') }}
+                                            </flux:callout.text>
+                                        </flux:callout>
+                                    </div>
+
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <flux:button variant="ghost" icon="arrow-path" icon:variant="outline" x-on:click="suggestAll()" data-test="appointment-record-suggest-pass-dates-button">
+                                            {{ __('Suggest dates') }}
+                                        </flux:button>
+
+                                        <flux:spacer />
+
+                                        <flux:modal.close>
+                                            <flux:button variant="ghost">{{ __('Cancel') }}</flux:button>
+                                        </flux:modal.close>
+
+                                        <flux:button x-on:click="save()" data-test="appointment-record-save-remote-pass-dates-button">
+                                            {{ __('Save') }}
+                                        </flux:button>
+
+                                        <flux:button variant="primary" icon="printer" icon:variant="outline" x-on:click="saveAndPrint()" data-test="appointment-record-save-and-print-remote-passes-button">
+                                            {{ __('Save and print') }}
+                                        </flux:button>
+                                    </div>
+                                </div>
+                            </flux:modal>
+                        </div>
                     </div>
 
                     <flux:separator variant="subtle" />

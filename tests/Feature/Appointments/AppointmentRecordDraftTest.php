@@ -135,7 +135,7 @@ test('a draft with unknown keys or mismatched types does not break the record', 
     Livewire::test('pages::appointments.attend', ['appointment' => $this->appointment])
         ->assertOk()
         ->assertSet('form.observations', '')
-        ->assertSet('form.passPrescriptions', [['pass_type_id' => '1', 'quantity' => 2, 'mode' => 'in_person']])
+        ->assertSet('form.passPrescriptions', [['pass_type_id' => '1', 'quantity' => 2, 'mode' => 'in_person', 'dates' => []]])
         ->assertSet('form.fluidInstructions', '3x ao dia')
         ->assertSet('appointment.id', $this->appointment->id);
 });

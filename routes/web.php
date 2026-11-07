@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Appointments\BuildAttendanceSheets;
+use App\Actions\Appointments\BuildRemotePassSheet;
 use App\Http\Middleware\EnsureTeamMembership;
 use App\Models\Appointment;
 use App\Models\Team;
@@ -56,6 +57,12 @@ Route::prefix('{current_team}')
 
             return $buildAttendanceSheets->handle($current_team, $appointment->newCollection([$appointment]));
         })->name('appointments.attendance-sheet');
+
+        Route::get('appointments/{appointment}/remote-pass-sheet', function (Team $current_team, Appointment $appointment, BuildRemotePassSheet $buildRemotePassSheet) {
+            Gate::authorize('printRemotePassSheet', $appointment);
+
+            return $buildRemotePassSheet->handle($current_team, $appointment);
+        })->name('appointments.remote-pass-sheet');
 
         Route::livewire('library/books', 'pages::library.books.index')->name('library.books.index');
         Route::livewire('library/books/create', 'pages::library.books.create')->name('library.books.create');

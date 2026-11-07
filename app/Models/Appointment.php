@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection as SupportCollection;
 
 /**
  * @property int $id
@@ -235,6 +236,99 @@ class Appointment extends Model
 
         return in_array($this->status, [AppointmentStatus::Waiting, AppointmentStatus::InProgress], true)
             || $this->filledRecord() !== null;
+    }
+
+    /**
+     * Determine whether the record of this appointment, as it stands, prescribes any pass given remotely.
+     */
+    public function hasRemotePasses(): bool
+    {
+        $standing = $this->standingRecord();
+
+        return $standing instanceof AppointmentRecordDraft
+            ? $this->remotePassesOfDraft($standing)->isNotEmpty()
+            : $standing?->passPrescriptions()->where('mode', AppointmentMode::Remote)->exists() ?? false;
+    }
+
+    /**
+     * Get the remote passes of the record as it stands, each with its pass type, quantity and the dates chosen, in date
+     * order.
+     *
+     * The remote pass sheet is printed while the record is still being filled, before the mentor is picked, so an
+     * unsaved draft newer than the saved record is what stands; its rows are read leniently, skipping what does not fit.
+     *
+     * @return SupportCollection<int, array{passType: PassType, quantity: int, dates: list<CarbonImmutable>}>
+     */
+    public function remotePasses(): SupportCollection
+    {
+        $standing = $this->standingRecord();
+
+        if ($standing === null) {
+            return collect();
+        }
+
+        if ($standing instanceof AppointmentRecordDraft) {
+            return $this->remotePassesOfDraft($standing);
+        }
+
+        return $standing->passPrescriptions()
+            ->where('mode', AppointmentMode::Remote)
+            ->with(['passType', 'sessions'])
+            ->get()
+            ->map(fn (PassPrescription $prescription): array => [
+                'passType' => $prescription->passType,
+                'quantity' => $prescription->quantity,
+                'dates' => $prescription->sessions->map(fn (PassSession $session): CarbonImmutable => $session->scheduled_on->toImmutable())->values()->all(),
+            ]);
+    }
+
+    /**
+     * Get the record as it stands: the unsaved draft when it is newer than the saved record, or else the saved record.
+     */
+    private function standingRecord(): AppointmentRecord|AppointmentRecordDraft|null
+    {
+        $record = $this->record()->first();
+        $draft = $this->recordDraft()->first();
+
+        return $draft !== null && ($record === null || $draft->updated_at->greaterThan($record->updated_at)) ? $draft : $record;
+    }
+
+    /**
+     * Read the remote passes from the rows of a draft, keeping only the team's pass types, the quantities the form
+     * accepts and real dates after the appointment, one per pass at most.
+     *
+     * @return SupportCollection<int, array{passType: PassType, quantity: int, dates: list<CarbonImmutable>}>
+     */
+    private function remotePassesOfDraft(AppointmentRecordDraft $draft): SupportCollection
+    {
+        $rows = collect($draft->data['passPrescriptions'] ?? [])
+            ->filter(fn (mixed $row): bool => is_array($row)
+                && ($row['mode'] ?? null) === AppointmentMode::Remote->value
+                && is_numeric($row['pass_type_id'] ?? null)
+                && is_numeric($row['quantity'] ?? null));
+
+        $passTypes = $this->team->passTypes()->whereKey($rows->pluck('pass_type_id')->map(fn ($id): int => (int) $id)->all())->get()->keyBy('id');
+
+        return $rows
+            ->filter(fn (array $row): bool => $passTypes->has((int) $row['pass_type_id']))
+            ->map(function (array $row) use ($passTypes): array {
+                $quantity = min(max((int) $row['quantity'], 1), 99);
+
+                $dates = collect(is_array($row['dates'] ?? null) ? $row['dates'] : [])
+                    ->filter(fn (mixed $date): bool => is_string($date)
+                        && preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $date, $parts) === 1
+                        && checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1]))
+                    ->map(fn (string $date): CarbonImmutable => CarbonImmutable::parse($date))
+                    ->filter(fn (CarbonImmutable $date): bool => $date->greaterThan($this->scheduled_on))
+                    ->unique(fn (CarbonImmutable $date): string => $date->toDateString())
+                    ->sortBy(fn (CarbonImmutable $date): string => $date->toDateString())
+                    ->take($quantity)
+                    ->values()
+                    ->all();
+
+                return ['passType' => $passTypes->get((int) $row['pass_type_id']), 'quantity' => $quantity, 'dates' => $dates];
+            })
+            ->values();
     }
 
     /**
