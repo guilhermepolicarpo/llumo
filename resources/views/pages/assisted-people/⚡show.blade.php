@@ -253,7 +253,7 @@ new class extends Component
     $chipClasses = 'inline-flex items-center rounded-md bg-zinc-100 px-2.5 py-0.5 text-zinc-800 dark:bg-white/10 dark:text-zinc-200';
 @endphp
 
-<section class="w-full max-w-5xl">
+<section class="w-full">
     <x-page-header :heading="$assistedPerson->name" :back-href="route('assisted-people.index')" :back-label="__('Assisted people')" :separator="false" stack-until="lg">
         <x-slot:subheading>
             <span class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm" data-test="assisted-person-history-details">
