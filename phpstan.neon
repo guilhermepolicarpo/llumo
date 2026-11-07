@@ -39,6 +39,3 @@ parameters:
         -
             identifier: trait.unused
             path: app/Concerns/InteractsWithTableSorting.php
-        -
-            identifier: trait.unused
-            path: app/Concerns/ParsesFormDates.php
