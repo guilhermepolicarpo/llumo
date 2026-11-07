@@ -3,6 +3,7 @@
 use App\Enums\AppointmentMode;
 use App\Enums\AppointmentStatus;
 use App\Enums\InfiltrationRemovalPlace;
+use App\Enums\TeamRole;
 use App\Models\Appointment;
 use App\Models\AppointmentRecord;
 use App\Models\AppointmentType;
@@ -84,7 +85,7 @@ test('members fill in the record of the appointment they attend', function () {
         ->started_at->toDateTimeString()->toBe($appointment->started_at->toDateTimeString());
 });
 
-test('completing the appointment saves the record and finishes it', function () {
+test('completing the appointment saves the record, finishes it and only then offers to print its sheet', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
     $appointment = Appointment::factory()->for($team)->inProgress()->create([
@@ -96,6 +97,7 @@ test('completing the appointment saves the record and finishes it', function () 
     $user->switchTeam($team);
 
     Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->assertDontSeeHtml('data-test="appointment-record-print-button"')
         ->set('form.mentorId', (string) Mentor::factory()->for($team)->create()->id)
         ->set('form.observations', 'Tudo certo')
         ->call('complete')
@@ -104,6 +106,9 @@ test('completing the appointment saves the record and finishes it', function () 
 
     expect($appointment->fresh()->status)->toBe(AppointmentStatus::Completed)
         ->and($appointment->record->observations)->toBe('Tudo certo');
+
+    Livewire::test('pages::appointments.attend', ['appointment' => $appointment->fresh()])
+        ->assertSeeHtml('data-test="appointment-record-print-button"');
 });
 
 test('whoever records an appointment someone else attends takes it over from when they opened the record', function (string $method, AppointmentStatus $status) {
@@ -174,8 +179,6 @@ test('the record fields are validated', function () {
         ->set('form.passPrescriptions.0.quantity', 100)
         ->set('form.infiltrationSite', 'Braço')
         ->set('form.infiltrationRemoveOn', $appointment->scheduled_on->subDay()->toDateString())
-        ->set('form.returnOn', '')
-        ->set('form.schedulesReturn', true)
         ->call('save')
         ->assertHasErrors([
             'form.mentorId' => 'exists',
@@ -183,11 +186,57 @@ test('the record fields are validated', function () {
             'form.passPrescriptions.0.quantity' => 'between',
             'form.infiltrationRemoveOn' => 'after',
             'form.infiltrationRemovalPlace' => 'required_with',
-            'form.returnOn' => 'required_if_accepted',
         ]);
 
     expect($appointment->record()->exists())->toBeFalse();
 });
+
+test('only an action that fails validation tells the browser to bring the error into view', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->inProgress()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->call('save')
+        ->assertHasErrors(['form.mentorId' => 'required'])
+        ->assertDispatched('validation-failed')
+        ->call('setReturnInDays', 15)
+        ->assertHasErrors('form.mentorId')
+        ->assertNotDispatched('validation-failed');
+});
+
+test('a record field filled without the field it depends on is rejected', function (array $fields, string $missingField) {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->inProgress()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+        'scheduled_on' => '2026-09-20',
+    ]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    $component = Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->set('form.mentorId', (string) Mentor::factory()->for($team)->create()->id);
+
+    foreach ($fields as $field => $value) {
+        $component->set("form.{$field}", $value);
+    }
+
+    $component->call('save')
+        ->assertHasErrors(["form.{$missingField}" => 'required_with']);
+
+    expect($appointment->record()->exists())->toBeFalse();
+})->with([
+    'fluid instructions without a remedy' => [['fluidInstructions' => '3x ao dia'], 'fluidicRemedyIds'],
+    'a removal date without the infiltration site' => [['infiltrationRemoveOn' => '2026-09-23', 'infiltrationRemovalPlace' => InfiltrationRemovalPlace::AtHome->value], 'infiltrationSite'],
+    'a removal place without the infiltration site' => [['infiltrationRemovalPlace' => InfiltrationRemovalPlace::AtHome->value], 'infiltrationSite'],
+]);
 
 test('members cannot open the record of another team appointment', function () {
     $user = User::factory()->create();
@@ -391,3 +440,74 @@ test('the mentor is required to save the record', function () {
     expect($appointment->record()->exists())->toBeFalse()
         ->and($appointment->fresh()->status)->toBe(AppointmentStatus::InProgress);
 });
+
+test('members change a record only up to seven days after the appointment, while owners and admins change any', function (TeamRole $role, string $scheduledOn, bool $isChangeable) {
+    $this->travelTo('2026-09-20 19:00:00');
+    [, $team] = actingAsTeamMember($role);
+    $appointment = Appointment::factory()->for($team)->completed()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+        'scheduled_on' => $scheduledOn,
+    ]);
+    AppointmentRecord::factory()->for($appointment)->create(['observations' => 'Anotação', 'mentor_id' => Mentor::factory()->for($team)]);
+
+    $component = Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->assertSeeHtml($isChangeable ? 'data-test="appointment-record-form"' : 'data-test="appointment-record-locked-notice"')
+        ->set('form.observations', 'Corrigida')
+        ->call('save');
+
+    if ($isChangeable) {
+        $component->assertHasNoErrors();
+    } else {
+        $component->assertForbidden();
+    }
+
+    expect($appointment->record->fresh()->observations)->toBe($isChangeable ? 'Corrigida' : 'Anotação');
+})->with([
+    'member, seven days ago' => [TeamRole::Member, '2026-09-13', true],
+    'member, eight days ago' => [TeamRole::Member, '2026-09-12', false],
+    'admin, a year ago' => [TeamRole::Admin, '2025-09-20', true],
+    'owner, a year ago' => [TeamRole::Owner, '2025-09-20', true],
+]);
+
+test('members cannot start attending an appointment older than seven days', function () {
+    $this->travelTo('2026-09-20 19:00:00');
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+    $appointment = Appointment::factory()->for($team)->remote()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+        'scheduled_on' => '2026-09-12',
+    ]);
+
+    Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->assertForbidden();
+
+    expect($appointment->fresh()->status)->toBe(AppointmentStatus::Scheduled);
+});
+
+test('a pass type is prescribed once in each mode', function (AppointmentMode $secondMode, bool $accepted) {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->inProgress()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+    $passTypeId = (string) PassType::factory()->for($team)->create()->id;
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    $component = Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->set('form.mentorId', (string) Mentor::factory()->for($team)->create()->id)
+        ->call('addPassPrescription')
+        ->call('addPassPrescription')
+        ->set('form.passPrescriptions.0.pass_type_id', $passTypeId)
+        ->set('form.passPrescriptions.0.mode', AppointmentMode::Remote->value)
+        ->set('form.passPrescriptions.1.pass_type_id', $passTypeId)
+        ->set('form.passPrescriptions.1.mode', $secondMode->value)
+        ->call('save');
+
+    $accepted
+        ? $component->assertHasNoErrors()
+        : $component->assertHasErrors(['form.passPrescriptions.1.pass_type_id'])->assertHasNoErrors(['form.passPrescriptions.0.pass_type_id']);
+})->with([
+    'twice remotely' => [AppointmentMode::Remote, false],
+    'remotely and in person' => [AppointmentMode::InPerson, true],
+]);

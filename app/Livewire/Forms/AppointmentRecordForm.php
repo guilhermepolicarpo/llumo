@@ -7,6 +7,7 @@ use App\Models\Appointment;
 use App\Models\AppointmentRecord;
 use App\Models\Guidance;
 use App\Models\PassPrescription;
+use App\Models\PassSession;
 use App\Rules\AppointmentRecordRules;
 use Livewire\Form;
 
@@ -36,7 +37,9 @@ class AppointmentRecordForm extends Form
     public array $guidanceDetails = [];
 
     /**
-     * @var list<array{pass_type_id: string, quantity: int|string, mode: string}>
+     * Each row's dates are the days the assisted person receives the passes remotely, as 'Y-m-d' strings or blank.
+     *
+     * @var list<array{pass_type_id: string, quantity: int|string, mode: string, dates: list<string>}>
      */
     public array $passPrescriptions = [];
 
@@ -49,8 +52,6 @@ class AppointmentRecordForm extends Form
     public string $removalAppointmentTypeId = '';
 
     public string $returnOn = '';
-
-    public bool $schedulesReturn = false;
 
     public string $returnAppointmentTypeId = '';
 
@@ -72,12 +73,12 @@ class AppointmentRecordForm extends Form
             'pass_type_id' => (string) $prescription->pass_type_id,
             'quantity' => $prescription->quantity,
             'mode' => $prescription->mode->value,
+            'dates' => array_values($prescription->sessions->map(fn (PassSession $session): string => $session->scheduled_on->toDateString())->all()),
         ])->all());
         $this->infiltrationSite = $record->infiltration_site ?? '';
         $this->infiltrationRemoveOn = $record->infiltration_remove_on?->toDateString() ?? '';
         $this->infiltrationRemovalPlace = $record->infiltration_removal_place->value ?? '';
         $this->returnOn = $record->return_on?->toDateString() ?? '';
-        $this->schedulesReturn = $record->return_appointment_id !== null;
         $this->observations = $record->observations ?? '';
 
         if ($record->infiltrationRemovalAppointment) {
@@ -107,7 +108,6 @@ class AppointmentRecordForm extends Form
                 $property === 'passPrescriptions' && is_array($value) => $this->draftPassPrescriptions($value),
                 is_array($current) && is_array($value) => array_map(fn ($item) => is_scalar($item) ? (string) $item : '', $value),
                 is_string($current) && is_scalar($value) => (string) $value,
-                is_bool($current) && is_bool($value) => $value,
                 default => $current,
             };
         }
@@ -119,7 +119,7 @@ class AppointmentRecordForm extends Form
     /**
      * Validate the form for the given appointment and map it to the attribute shape expected by the save action.
      *
-     * @return array{mentor_id: ?int, fluidic_remedy_ids: array<int, int>, fluid_instructions: ?string, guidances: array<int, array{guidance_id: int, detail: ?string}>, pass_prescriptions: array<int, array{pass_type_id: int, quantity: int, mode: string}>, infiltration_site: ?string, infiltration_remove_on: ?string, infiltration_removal_place: ?string, removal_appointment_type_id: ?int, return_on: ?string, schedules_return: bool, return_appointment_type_id: ?int, observations: ?string}
+     * @return array{mentor_id: ?int, fluidic_remedy_ids: array<int, int>, fluid_instructions: ?string, guidances: array<int, array{guidance_id: int, detail: ?string}>, pass_prescriptions: array<int, array{pass_type_id: int, quantity: int, mode: string, dates: list<string>}>, infiltration_site: ?string, infiltration_remove_on: ?string, infiltration_removal_place: ?string, removal_appointment_type_id: ?int, return_on: ?string, return_appointment_type_id: ?int, observations: ?string}
      */
     public function validatedAttributes(Appointment $appointment): array
     {
@@ -139,23 +139,34 @@ class AppointmentRecordForm extends Form
                 'pass_type_id' => (int) $prescription['pass_type_id'],
                 'quantity' => (int) $prescription['quantity'],
                 'mode' => $prescription['mode'],
+                'dates' => $this->filledDates($prescription['dates'] ?? []),
             ], $validated['passPrescriptions']),
             'infiltration_site' => $validated['infiltrationSite'],
             'infiltration_remove_on' => $validated['infiltrationRemoveOn'],
             'infiltration_removal_place' => $validated['infiltrationRemovalPlace'],
-            'removal_appointment_type_id' => $this->blankToNullInteger($validated['removalAppointmentTypeId']),
+            'removal_appointment_type_id' => $this->blankToNullInteger($validated['removalAppointmentTypeId'] ?? null),
             'return_on' => $validated['returnOn'],
-            'schedules_return' => $validated['schedulesReturn'],
-            'return_appointment_type_id' => $this->blankToNullInteger($validated['returnAppointmentTypeId']),
+            'return_appointment_type_id' => $this->blankToNullInteger($validated['returnAppointmentTypeId'] ?? null),
             'observations' => $validated['observations'],
         ];
     }
 
     /**
+     * Validate only the pass prescriptions, so the remote pass sheet can be printed before the rest of the record is
+     * filled in.
+     */
+    public function validatePassPrescriptions(Appointment $appointment): void
+    {
+        $this->validate(AppointmentRecordRules::passPrescriptions($appointment));
+    }
+
+    /**
      * Rebuild the pass prescription rows of a draft, dropping rows that do not have the expected shape.
      *
+     * Drafts kept before remote pass dates existed have no dates, so their rows start without any.
+     *
      * @param  array<mixed>  $rows
-     * @return list<array{pass_type_id: string, quantity: int|string, mode: string}>
+     * @return list<array{pass_type_id: string, quantity: int|string, mode: string, dates: list<string>}>
      */
     private function draftPassPrescriptions(array $rows): array
     {
@@ -163,9 +174,24 @@ class AppointmentRecordForm extends Form
             'pass_type_id' => (string) $row['pass_type_id'],
             'quantity' => is_int($row['quantity']) ? $row['quantity'] : (string) $row['quantity'],
             'mode' => (string) $row['mode'],
+            'dates' => is_array($row['dates'] ?? null) ? array_values(array_map(fn (mixed $date): string => is_scalar($date) ? (string) $date : '', $row['dates'])) : [],
         ], array_filter($rows, fn ($row): bool => is_array($row)
             && is_scalar($row['pass_type_id'] ?? null)
             && is_scalar($row['quantity'] ?? null)
             && is_scalar($row['mode'] ?? null))));
+    }
+
+    /**
+     * Keep only the dates actually chosen for a remote prescription, in date order.
+     *
+     * @param  array<int, ?string>  $dates
+     * @return list<string>
+     */
+    private function filledDates(array $dates): array
+    {
+        $filled = array_filter($dates);
+        sort($filled);
+
+        return $filled;
     }
 }

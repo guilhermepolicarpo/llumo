@@ -7,6 +7,7 @@ use App\Models\Appointment;
 use App\Models\AppointmentRecord;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
 class SaveAppointmentRecord
@@ -19,22 +20,21 @@ class SaveAppointmentRecord
     ) {}
 
     /**
-     * Save the record filled while the assisted person was attended, scheduling the follow-ups it requests
-     * and discarding the draft kept while it was being filled. Whoever saves the record of an appointment
-     * someone else is attending takes it over, from the moment they opened the record.
+     * Save the record filled while the assisted person was attended, scheduling the follow-ups it requests and keeping
+     * the days of its remote passes, and discard the draft kept while it was being filled. Whoever saves the record of
+     * an appointment someone else is attending takes it over, from the moment they opened the record.
      *
      * @param  array{
      *     mentor_id: ?int,
      *     fluidic_remedy_ids: array<int, int>,
      *     fluid_instructions: ?string,
      *     guidances: array<int, array{guidance_id: int, detail: ?string}>,
-     *     pass_prescriptions: array<int, array{pass_type_id: int, quantity: int, mode: string}>,
+     *     pass_prescriptions: array<int, array{pass_type_id: int, quantity: int, mode: string, dates?: list<string>}>,
      *     infiltration_site: ?string,
      *     infiltration_remove_on: ?string,
      *     infiltration_removal_place: ?string,
      *     removal_appointment_type_id: ?int,
      *     return_on: ?string,
-     *     schedules_return: bool,
      *     return_appointment_type_id: ?int,
      *     observations: ?string,
      * }  $attributes
@@ -66,8 +66,15 @@ class SaveAppointmentRecord
                 $guidance['guidance_id'] => ['detail' => $this->blankToNull($guidance['detail'])],
             ]));
 
+            // Replacing the prescriptions also drops their remote pass days, which go with them on delete.
             $record->passPrescriptions()->delete();
-            $record->passPrescriptions()->createMany($attributes['pass_prescriptions']);
+
+            foreach ($attributes['pass_prescriptions'] as $prescription) {
+                $record->passPrescriptions()
+                    ->create(Arr::except($prescription, 'dates'))
+                    ->sessions()
+                    ->createMany(array_map(fn (string $date): array => ['scheduled_on' => $date], $prescription['dates'] ?? []));
+            }
 
             $appointment->recordDraft()->delete();
 

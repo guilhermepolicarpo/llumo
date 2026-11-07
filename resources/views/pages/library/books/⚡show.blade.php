@@ -3,7 +3,6 @@
 use App\Actions\Library\AddBookCopies;
 use App\Actions\Library\DeleteBookCopy;
 use App\Actions\Library\UpdateBookCopy;
-use App\Concerns\InteractsWithReturnUrl;
 use App\Enums\AuthorRole;
 use App\Enums\BookCopyStatus;
 use App\Enums\BookLoanStatus;
@@ -24,8 +23,6 @@ use Livewire\Component;
 
 new class extends Component
 {
-    use InteractsWithReturnUrl;
-
     /**
      * How many past loans the history shows at first, and how many more each "load more" adds.
      */
@@ -214,16 +211,6 @@ new class extends Component
         return $this->book->copies()->findOrFail($copyId)->setRelation('team', $this->book->team);
     }
 
-    protected function defaultBackUrl(): string
-    {
-        return route('library.books.index');
-    }
-
-    protected function defaultBackLabel(): string
-    {
-        return __('Back to books');
-    }
-
     public function render()
     {
         $this->book->loadMissing(['authors', 'publisher', 'category', 'collection']);
@@ -234,7 +221,7 @@ new class extends Component
 
 
 <section class="w-full">
-    <x-page-header :heading="$book->title" :subheading="$book->subtitle" :back-href="$this->backUrl()" :back-label="$this->backLabel()" stack-until="lg">
+    <x-page-header :heading="$book->title" :subheading="$book->subtitle" :back-href="route('library.books.index')" :back-label="__('Books')" stack-until="lg">
         @if ($this->canManage)
             <div class="flex items-center gap-2">
                 <flux:dropdown position="bottom" align="end">
@@ -244,7 +231,7 @@ new class extends Component
                     </flux:menu>
                 </flux:dropdown>
 
-                <flux:button icon="pencil" icon:variant="outline" :href="route('library.books.edit', ['book' => $book, 'from' => route('library.books.show', ['book' => $book, ...$this->returnUrlParameters()], absolute: false)])" wire:navigate data-test="book-edit-button">
+                <flux:button icon="pencil" icon:variant="outline" :href="route('library.books.edit', ['book' => $book])" wire:navigate data-test="book-edit-button">
                     {{ __('Edit') }}
                 </flux:button>
             </div>

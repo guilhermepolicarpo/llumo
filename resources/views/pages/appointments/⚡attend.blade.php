@@ -45,7 +45,7 @@ new class extends Component
 
         $this->openedAt = now();
 
-        if (Gate::allows('perform', $appointment) && $performAppointmentAction->handle($appointment, AppointmentAction::Start, Auth::user())) {
+        if (AppointmentAction::Start->isAvailableFor($appointment) && Gate::allows('perform', [$appointment, AppointmentAction::Start]) && $performAppointmentAction->handle($appointment, AppointmentAction::Start, Auth::user())) {
             $appointment->refresh();
         }
 
@@ -53,7 +53,7 @@ new class extends Component
 
         $this->fillRecordForm($this->record);
 
-        if (Gate::allows('update', [AppointmentRecord::class, $appointment])) {
+        if ($this->canUpdate) {
             $this->restoreDraft($this->record);
         }
     }
@@ -69,13 +69,30 @@ new class extends Component
     }
 
     /**
+     * Keep the remote pass dates chosen in the modal by saving the form as a draft, from which the remote pass sheet
+     * can be printed right away, and tell the browser when the draft was saved.
+     *
+     * The mentor is the last thing filled in, so the record is not saved nor fully validated here: only the passes are.
+     * The sheet reads the draft until the record is saved. Passes that do not validate throw before returning, and
+     * their errors show on the form.
+     */
+    public function saveRemotePassDates(SaveAppointmentRecordDraft $saveAppointmentRecordDraft): string
+    {
+        Gate::authorize('update', [AppointmentRecord::class, $this->appointment]);
+
+        $this->form->validatePassPrescriptions($this->appointment);
+
+        return $this->keepDraft($saveAppointmentRecordDraft);
+    }
+
+    /**
      * Save the record and finish the appointment.
      *
      * The record is saved first so that whoever fills it in takes the appointment over from when they opened it.
      */
     public function complete(SaveAppointmentRecord $saveAppointmentRecord, PerformAppointmentAction $performAppointmentAction): void
     {
-        Gate::authorize('perform', $this->appointment);
+        Gate::authorize('perform', [$this->appointment, AppointmentAction::Complete]);
 
         $this->persistRecord($saveAppointmentRecord);
 
@@ -95,7 +112,7 @@ new class extends Component
      */
     public function returnToQueue(PerformAppointmentAction $performAppointmentAction, SaveAppointmentRecordDraft $saveAppointmentRecordDraft): void
     {
-        Gate::authorize('perform', $this->appointment);
+        Gate::authorize('perform', [$this->appointment, AppointmentAction::ReturnToQueue]);
 
         $this->saveDraft($saveAppointmentRecordDraft);
 
@@ -110,6 +127,15 @@ new class extends Component
     public function canUpdate(): bool
     {
         return Gate::allows('update', [AppointmentRecord::class, $this->appointment]);
+    }
+
+    /**
+     * Determine whether the record could be changed if the appointment were not too old for the current user.
+     */
+    #[Computed]
+    public function isLockedByAge(): bool
+    {
+        return $this->appointment->status->allowsRecordEditing() && ! $this->canUpdate;
     }
 
     #[Computed]
@@ -135,7 +161,7 @@ new class extends Component
     public function record(): ?AppointmentRecord
     {
         return $this->appointment->record()
-            ->with(['mentor', 'fluidicRemedies', 'guidances', 'passPrescriptions.passType', 'infiltrationRemovalAppointment.appointmentType', 'returnAppointment.appointmentType'])
+            ->with(['mentor', 'fluidicRemedies', 'guidances', 'passPrescriptions.passType', 'passPrescriptions.sessions', 'infiltrationRemovalAppointment.appointmentType', 'returnAppointment.appointmentType'])
             ->first();
     }
 
@@ -180,19 +206,36 @@ new class extends Component
         :heading="__('Appointment record')"
         :subheading="$this->canUpdate ? __('Record what was done in this appointment') : __('See what was recorded in this appointment')"
         :back-href="route('appointments.index')"
-        :back-label="__('Back to appointments')"
+        :back-label="__('Appointments')"
     >
-        @if ($appointment->hasPrintableAttendanceSheet())
-            <flux:button
-                icon="printer"
-                icon:variant="outline"
-                :href="route('appointments.attendance-sheet', ['appointment' => $appointment])"
-                target="_blank"
-                data-test="appointment-record-print-button"
-                >
-                {{ __('Print attendance sheet') }}
-            </flux:button>
-        @endif
+        <div class="flex flex-wrap items-center gap-3">
+            {{-- While attending, the record is filled right here: its sheet is only worth printing once completed. --}}
+            @if ($appointment->filledRecord() !== null)
+                @can('printAttendanceSheet', $appointment)
+                    <flux:button
+                        icon="printer"
+                        icon:variant="outline"
+                        :href="route('appointments.attendance-sheet', ['appointment' => $appointment])"
+                        target="_blank"
+                        data-test="appointment-record-print-button"
+                        >
+                        {{ __('Print attendance sheet') }}
+                    </flux:button>
+                @endcan
+            @endif
+
+            @can('printRemotePassSheet', $appointment)
+                <flux:button
+                    icon="printer"
+                    icon:variant="outline"
+                    :href="route('appointments.remote-pass-sheet', ['appointment' => $appointment])"
+                    target="_blank"
+                    data-test="appointment-record-print-remote-passes-button"
+                    >
+                    {{ __('Print remote passes') }}
+                </flux:button>
+            @endcan
+        </div>
     </x-page-header>
 
     <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
@@ -220,7 +263,7 @@ new class extends Component
                         @foreach ($contactDetails as $icon => $detail)
                             <div class="flex items-start gap-2">
                                 <flux:icon :name="$icon" class="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-                                <flux:text class="min-w-0 break-words">{{ $detail }}</flux:text>
+                                <flux:text class="min-w-0 wrap-break-word">{{ $detail }}</flux:text>
                             </div>
                         @endforeach
                     </div>
@@ -285,7 +328,7 @@ new class extends Component
                                     icon="arrow-top-right-on-square"
                                     icon:variant="outline"
                                     class="-ms-2"
-                                    :href="route('assisted-people.show', ['assistedPerson' => $person, 'from' => route('appointments.attend', ['appointment' => $appointment], absolute: false)])"
+                                    :href="route('assisted-people.show', ['assistedPerson' => $person])"
                                     wire:navigate
                                     data-test="appointment-record-full-history-link"
                                     >
@@ -356,23 +399,13 @@ new class extends Component
                     x-on:change="schedule()"
                     x-on:catalog-picker-change="schedule()"
                     x-on:return-date-picked="schedule()"
+                    x-on:remote-pass-dates-saving="cancel()"
+                    x-on:remote-pass-dates-saved="status = $event.detail ?? status"
                     x-on:submit="cancel(); status = ''"
                     x-on:visibilitychange.document="document.hidden && flush()"
                     x-on:livewire:navigating.document="flush()"
                     data-test="appointment-record-form"
                 >
-                    <div class="space-y-4">
-                        <flux:heading size="lg">{{ __('Mentor') }}</flux:heading>
-
-                        <flux:field>
-                            <flux:label>{{ __('Appointment mentor') }}</flux:label>
-                            <x-catalog-picker :catalog="Catalog::Mentor" model="form.mentorId" :options="$this->mentors" :selected="$form->mentorId" test-id="appointment-record-mentor" />
-                            <flux:error name="form.mentorId" />
-                        </flux:field>
-                    </div>
-
-                    <flux:separator variant="subtle" />
-
                     <div class="space-y-4">
                         <flux:heading size="lg">{{ __('Fluidic remedy') }}</flux:heading>
 
@@ -380,7 +413,6 @@ new class extends Component
                             <flux:label>{{ __('Medications') }}</flux:label>
                             <x-catalog-picker :catalog="Catalog::FluidicRemedy" model="form.fluidicRemedyIds" :options="$this->fluidicRemedies" :selected="$form->fluidicRemedyIds" multiple test-id="appointment-record-fluidic-remedies" />
                             <flux:error name="form.fluidicRemedyIds" />
-                            <flux:error name="form.fluidicRemedyIds.*" />
                         </flux:field>
 
                         <flux:input wire:model="form.fluidInstructions" :label="__('How to take')" :placeholder="__('E.g. 3 times a day, every 3 hours')" data-test="appointment-record-fluid-instructions-input" />
@@ -437,12 +469,104 @@ new class extends Component
                                 <flux:error name="form.passPrescriptions.{{ $index }}.pass_type_id" />
                                 <flux:error name="form.passPrescriptions.{{ $index }}.quantity" />
                                 <flux:error name="form.passPrescriptions.{{ $index }}.mode" />
+                                <flux:error name="form.passPrescriptions.{{ $index }}.dates" />
+                                @foreach (array_keys($prescription['dates'] ?? []) as $dateIndex)
+                                    <flux:error name="form.passPrescriptions.{{ $index }}.dates.{{ $dateIndex }}" />
+                                @endforeach
                             </div>
                         @endforeach
 
-                        <flux:button size="sm" icon="plus" icon:variant="outline" wire:click="addPassPrescription" data-test="appointment-record-add-pass-button">
-                            {{ __('Add pass') }}
-                        </flux:button>
+                        {{-- The remote pass dates follow the rows as they are picked, in the browser, so the modal opens without a request. --}}
+                        <div x-data="remotePassDates({{ \Illuminate\Support\Js::from($this->remotePassDatesConfig) }})" class="flex flex-wrap items-center gap-2">
+                            <flux:button size="sm" icon="plus" icon:variant="outline" wire:click="addPassPrescription" data-test="appointment-record-add-pass-button">
+                                {{ __('Add pass') }}
+                            </flux:button>
+
+                            <flux:modal.trigger name="remote-pass-dates" x-show="hasRemoteRows" x-cloak>
+                                <flux:button size="sm" icon="calendar-days" icon:variant="outline" x-on:click="fill()" data-test="appointment-record-remote-pass-dates-button">
+                                    {{ __('Pass dates and printing') }}
+                                </flux:button>
+                            </flux:modal.trigger>
+
+                            <flux:text x-show="hasRemoteRows" x-text="datesSummary" x-cloak data-test="appointment-record-remote-pass-dates-summary"></flux:text>
+
+                            <flux:modal name="remote-pass-dates" class="w-full md:w-2xl" data-test="appointment-record-remote-pass-dates-modal">
+                                {{-- Only the dates scroll: the heading and the actions stay in view however many passes there are. --}}
+                                <div class="flex max-h-[calc(100dvh-8rem)] flex-col gap-6">
+                                    <div class="pe-8">
+                                        <flux:heading size="lg">{{ __('Remote pass dates') }}</flux:heading>
+                                        <flux:text class="mt-2">{{ __('Dates on which :name will rest to receive each pass. They follow the days of each pass type; adjust them if needed.', ['name' => $person->name]) }}</flux:text>
+                                    </div>
+
+                                    {{-- The dates reach the form only when saved, so typing them must not wake the draft autosave. --}}
+                                    <div class="-mx-6 min-h-0 flex-1 space-y-6 overflow-y-auto border-y border-zinc-800/10 px-6 py-5 dark:border-white/10" x-on:input.stop x-on:change.stop data-test="appointment-record-remote-pass-dates-body">
+                                        {{-- Drawn only by Alpine from the form state, so Livewire's morphing must leave it alone. --}}
+                                        <div wire:ignore class="divide-y divide-zinc-800/5 dark:divide-white/10">
+                                        <template x-for="row in remoteRows" :key="row.index">
+                                            <section class="space-y-3 py-5 first-of-type:pt-0 last-of-type:pb-0">
+                                                <div class="flex items-start justify-between gap-3">
+                                                    <div class="min-w-0">
+                                                        <flux:heading x-text="nameOf(row)"></flux:heading>
+                                                        <div class="mt-0.5 flex items-center gap-1.5">
+                                                            <flux:icon.clock class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                                                            <flux:text x-text="scheduleOf(row).schedule ?? labels.noDays"></flux:text>
+                                                        </div>
+                                                    </div>
+                                                    <flux:badge size="sm" class="tabular-nums" x-text="countLabel(row)"></flux:badge>
+                                                </div>
+
+                                                <div class="grid gap-3 sm:grid-cols-3">
+                                                    <template x-for="(date, position) in chosenDates[row.index] ?? []" :key="position">
+                                                        <div class="space-y-1.5">
+                                                            <flux:text class="text-xs" x-text="positionLabel(position + 1)"></flux:text>
+                                                            <x-date-input
+                                                                x-model="chosenDates[row.index][position]"
+                                                                :min="$appointment->scheduled_on->addDay()->toDateString()"
+                                                                x-bind:aria-label="positionLabel(position + 1)"
+                                                                data-test="appointment-record-remote-pass-date-input"
+                                                            />
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </section>
+                                        </template>
+                                        </div>
+
+                                        <flux:callout icon="information-circle" icon:variant="outline" color="blue">
+                                            <flux:callout.text>
+                                                {{ __('The days and times come from the') }}
+                                                @can('manage', [\App\Models\PassType::class, $appointment->team])
+                                                    <flux:link :href="Catalog::PassType->url()" wire:navigate data-test="appointment-record-pass-type-settings-link">{{ __('configuration') }}</flux:link>
+                                                @else
+                                                    {{ __('configuration') }}
+                                                @endcan
+                                                {{ __('of each pass type.') }}
+                                            </flux:callout.text>
+                                        </flux:callout>
+                                    </div>
+
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <flux:button variant="ghost" icon="arrow-path" icon:variant="outline" x-on:click="suggestAll()" data-test="appointment-record-suggest-pass-dates-button">
+                                            {{ __('Suggest dates') }}
+                                        </flux:button>
+
+                                        <flux:spacer />
+
+                                        <flux:modal.close>
+                                            <flux:button variant="ghost">{{ __('Cancel') }}</flux:button>
+                                        </flux:modal.close>
+
+                                        <flux:button x-on:click="save()" data-test="appointment-record-save-remote-pass-dates-button">
+                                            {{ __('Save') }}
+                                        </flux:button>
+
+                                        <flux:button variant="primary" icon="printer" icon:variant="outline" x-on:click="saveAndPrint()" data-test="appointment-record-save-and-print-remote-passes-button">
+                                            {{ __('Save and print') }}
+                                        </flux:button>
+                                    </div>
+                                </div>
+                            </flux:modal>
+                        </div>
                     </div>
 
                     <flux:separator variant="subtle" />
@@ -452,35 +576,47 @@ new class extends Component
                         <flux:heading size="lg">{{ __('Infiltration') }}</flux:heading>
 
                         <div class="grid gap-4 sm:grid-cols-2">
-                            <flux:input wire:model.blur="form.infiltrationSite" :label="__('Site')" :placeholder="__('E.g. Right arm')" data-test="appointment-record-infiltration-site-input" />
+                            <flux:input wire:model.blur="form.infiltrationSite" :label="__('Site or reason')" :placeholder="__('E.g. Right arm or emotional state')" data-test="appointment-record-infiltration-site-input" />
                             <x-date-input wire:model.live="form.infiltrationRemoveOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Remove on')" data-test="appointment-record-infiltration-remove-on-input" />
                         </div>
 
-                        <flux:radio.group wire:model.live="form.infiltrationRemovalPlace" variant="segmented" :label="__('Where it is removed')" data-test="appointment-record-removal-place-radio">
-                            @foreach ($this->removalPlaces as $placeOption)
-                                <flux:radio :value="$placeOption['value']" :label="$placeOption['label']" />
-                            @endforeach
-                        </flux:radio.group>
+                        {{-- The side columns squeeze this section, so the columns follow its own width: the three removal places need about half of 42rem. --}}
+                        <div class="@container">
+                            <div class="grid items-start gap-4 @2xl:grid-cols-2">
+                                {{-- The removal place is optional, so clicking the chosen place again clears it. Captured before Flux handles the click, the place is still the chosen one. --}}
+                                <flux:radio.group
+                                    wire:model.live="form.infiltrationRemovalPlace"
+                                    variant="segmented"
+                                    :label="__('Where it is removed')"
+                                    x-on:click.capture="if ($event.target.closest('ui-radio')?.checked) { $event.stopPropagation(); $wire.set('form.infiltrationRemovalPlace', '') }"
+                                    data-test="appointment-record-removal-place-radio"
+                                >
+                                    @foreach ($this->removalPlaces as $placeOption)
+                                        <flux:radio :value="$placeOption['value']" :label="$placeOption['label']" />
+                                    @endforeach
+                                </flux:radio.group>
 
-                        @if (InfiltrationRemovalPlace::tryFrom($form->infiltrationRemovalPlace)?->schedulesRemoval())
-                            <flux:field>
-                                <flux:label>{{ __('Schedule the removal as') }}</flux:label>
-                                <x-catalog-picker
-                                    model="form.removalAppointmentTypeId"
-                                    :options="$this->appointmentTypes"
-                                    :selected="$form->removalAppointmentTypeId"
-                                    :placeholder="__('Select a type...')"
-                                    error-key="new_removalAppointmentTypeId"
-                                    create="(name) => $wire.createAppointmentType(name, 'removalAppointmentTypeId')"
-                                    cache-key="appointment_types"
-                                    test-id="appointment-record-removal-type"
-                                />
-                                <flux:error name="form.removalAppointmentTypeId" />
-                            </flux:field>
+                                @if (InfiltrationRemovalPlace::tryFrom($form->infiltrationRemovalPlace)?->schedulesRemoval())
+                                    <flux:field>
+                                        <flux:label>{{ __('Schedule the removal as') }}</flux:label>
+                                        <x-catalog-picker
+                                            model="form.removalAppointmentTypeId"
+                                            :options="$this->appointmentTypes"
+                                            :selected="$form->removalAppointmentTypeId"
+                                            :placeholder="__('Select a type...')"
+                                            error-key="new_removalAppointmentTypeId"
+                                            create="(name) => $wire.createAppointmentType(name, 'removalAppointmentTypeId')"
+                                            cache-key="appointment_types"
+                                            test-id="appointment-record-removal-type"
+                                        />
+                                        <flux:error name="form.removalAppointmentTypeId" />
+                                    </flux:field>
+                                @endif
+                            </div>
+                        </div>
 
-                            @if ($warning = $this->removalDayWarning)
-                                <flux:callout variant="warning" icon="exclamation-triangle" icon:variant="outline" :heading="$warning" data-test="appointment-record-removal-day-not-offered" />
-                            @endif
+                        @if ($warning = $this->removalDayWarning)
+                            <flux:callout variant="warning" icon="exclamation-triangle" icon:variant="outline" :heading="$warning" data-test="appointment-record-removal-day-not-offered" />
                         @endif
                     </div>
 
@@ -495,19 +631,15 @@ new class extends Component
                                 <x-date-input wire:model.live="form.returnOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Return date')" data-test="appointment-record-return-on-input" />
 
                                 <div class="flex flex-wrap gap-1">
-                                    @foreach ([7, 15, 30, 60] as $days)
+                                    @foreach (AppointmentRecord::RETURN_INTERVALS_DAYS as $days)
                                         <flux:button size="xs" wire:click="setReturnInDays({{ $days }})" x-on:click="$dispatch('return-date-picked')" data-test="appointment-record-return-in-{{ $days }}-days-button">
                                             {{ __('+:days days', ['days' => $days]) }}
                                         </flux:button>
                                     @endforeach
                                 </div>
-
-                                <div class="pt-2">
-                                    <flux:checkbox wire:model.live="form.schedulesReturn" :label="__('Schedule the return')" data-test="appointment-record-schedules-return-checkbox" />
-                                </div>
                             </div>
 
-                            @if ($form->schedulesReturn)
+                            @if ($form->returnOn !== '')
                                 <div class="space-y-3">
                                     <flux:field>
                                         <flux:label>{{ __('Schedule the return as') }}</flux:label>
@@ -527,21 +659,8 @@ new class extends Component
                                     @if ($occupancy = $this->returnDayOccupancy)
                                         @if ($occupancy['warning'])
                                             <flux:callout variant="warning" icon="exclamation-triangle" icon:variant="outline" :heading="$occupancy['warning']" data-test="appointment-record-return-day-not-offered" />
-                                        @elseif ($occupancy['remaining'] === 0)
-                                            <flux:callout
-                                                variant="warning"
-                                                icon="exclamation-triangle"
-                                                icon:variant="outline"
-                                                :heading="__('Limit reached: :count of :limit :type appointments on :date.', $occupancy)"
-                                                data-test="appointment-record-return-day-full"
-                                            />
                                         @else
-                                            <flux:text class="text-sm" data-test="appointment-record-return-day-occupancy">
-                                                {{ trans_choice('{0} No :type appointments on :date|{1} 1 :type appointment on :date|[2,*] :count :type appointments on :date', $occupancy['count'], $occupancy) }}
-                                                @if ($occupancy['remaining'] !== null)
-                                                    · <span class="font-medium whitespace-nowrap text-green-700 dark:text-green-400">{{ trans_choice('{1} 1 spot left|[2,*] :count spots left', $occupancy['remaining']) }}</span>
-                                                @endif
-                                            </flux:text>
+                                            <x-pages::appointments.day-occupancy :occupancy="$occupancy" test-prefix="appointment-record-return-day" />
                                         @endif
                                     @endif
                                 </div>
@@ -554,6 +673,18 @@ new class extends Component
                     <div class="space-y-4">
                         <flux:heading size="lg">{{ __('Observations') }}</flux:heading>
                         <flux:textarea wire:model="form.observations" rows="auto" :label="__('Appointment notes')" data-test="appointment-record-observations-input" />
+                    </div>
+
+                    <flux:separator variant="subtle" />
+
+                    <div class="space-y-4">
+                        <flux:heading size="lg">{{ __('Mentor') }}</flux:heading>
+
+                        <flux:field>
+                            <flux:label>{{ __('Appointment mentor') }}</flux:label>
+                            <x-catalog-picker :catalog="Catalog::Mentor" model="form.mentorId" :options="$this->mentors" :selected="$form->mentorId" test-id="appointment-record-mentor" />
+                            <flux:error name="form.mentorId" />
+                        </flux:field>
                     </div>
 
                     <div class="sticky bottom-0 z-10 flex flex-col-reverse gap-2 border-t border-zinc-200 bg-white py-3 sm:flex-row sm:items-center sm:justify-end dark:border-white/10 dark:bg-zinc-800">
@@ -580,6 +711,14 @@ new class extends Component
                 @php($record = $this->record)
 
                 <div class="space-y-6" data-test="appointment-record-readonly">
+                    @if ($this->isLockedByAge)
+                        <flux:callout icon="lock-closed" variant="secondary" icon:variant="outline" data-test="appointment-record-locked-notice">
+                            <flux:callout.text>
+                                {{ __('Records of appointments older than :days days can only be changed by administrators.', ['days' => Appointment::RECORD_EDITING_WINDOW_DAYS]) }}
+                            </flux:callout.text>
+                        </flux:callout>
+                    @endif
+
                     @if ($record === null)
                         <flux:text>{{ __('No record has been filled for this appointment yet.') }}</flux:text>
                     @else

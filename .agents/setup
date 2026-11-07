@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# Prepares a fresh Amp orb (Debian 12) to build, test and run llumo.
+# Must stay non-interactive and idempotent: Amp reruns it on stale snapshots.
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+PHP_VERSION=8.5
+PHP_PACKAGES=(cli sqlite3 mbstring xml curl zip bcmath intl gd)
+
+step() {
+  printf '\n==> %s\n' "$*"
+  SECONDS=0
+}
+
+done_step() {
+  printf '    done in %ss\n' "$SECONDS"
+}
+
+step "PHP $PHP_VERSION"
+missing=()
+for extension in "${PHP_PACKAGES[@]}"; do
+  dpkg -s "php$PHP_VERSION-$extension" >/dev/null 2>&1 || missing+=("php$PHP_VERSION-$extension")
+done
+command -v unzip >/dev/null || missing+=(unzip)
+if ((${#missing[@]} > 0)); then
+  if [[ ! -f /etc/apt/sources.list.d/php.list ]]; then
+    sudo apt-get update -qq
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq lsb-release ca-certificates curl >/dev/null
+    sudo curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
+    echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" \
+      | sudo tee /etc/apt/sources.list.d/php.list >/dev/null
+  fi
+  sudo apt-get update -qq
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "${missing[@]}" >/dev/null
+fi
+php -v | head -n 1
+done_step
+
+step "Composer"
+if ! command -v composer >/dev/null; then
+  curl -sS https://getcomposer.org/installer | sudo php -- --install-dir=/usr/local/bin --filename=composer >/dev/null
+fi
+composer --version --no-ansi 2>/dev/null | head -n 1
+done_step
+
+step "Composer dependencies"
+composer install --no-interaction --no-progress --prefer-dist
+done_step
+
+step "Environment"
+[[ -f .env ]] || cp -- .env.example .env
+grep -q '^APP_KEY=base64:' .env || php artisan key:generate --no-interaction
+# The Debugbar toolbar clutters browser snapshots that agents take of the app.
+grep -q '^DEBUGBAR_ENABLED=' .env || echo 'DEBUGBAR_ENABLED=false' >> .env
+done_step
+
+step "Database"
+fresh_database=false
+if [[ ! -f database/database.sqlite ]]; then
+  touch database/database.sqlite
+  fresh_database=true
+fi
+php artisan migrate --force --no-interaction
+if [[ $fresh_database == true ]]; then
+  php artisan db:seed --force --no-interaction
+fi
+done_step
+
+step "Node dependencies and assets"
+npm ci --no-audit --no-fund --loglevel=error
+npm run build
+done_step
+
+step "Orb guidance for agents"
+guidance="$HOME/.config/amp/AGENTS.md"
+marker="# llumo orb notes"
+mkdir -p "$(dirname "$guidance")"
+if ! grep -Fqx "$marker" "$guidance" 2>/dev/null; then
+  cat >> "$guidance" <<'EOF'
+
+# llumo orb notes
+- PHP 8.5, Composer, Node and the SQLite database (`database/database.sqlite`, seeded) are installed by `.agents/setup`.
+- Start the app with `amp orb services ensure` (service `web` in `.amp/services.yaml`).
+- Sign in with the seeded owner: `test@example.com` / `password`.
+- The Laravel Boost MCP server is not connected in orbs; run `php artisan` commands directly.
+EOF
+fi
+done_step

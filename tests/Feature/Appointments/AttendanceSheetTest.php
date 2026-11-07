@@ -72,6 +72,7 @@ test('the attendance sheet is printable only once the assisted person arrived fo
 test('the attendance sheet of a completed appointment is printed filled in with its record', function () {
     [, $team] = actingAsTeamMember(TeamRole::Owner);
     Guidance::factory()->for($team)->create(['name' => 'Culto no lar']);
+    PassType::factory()->for($team)->create(['name' => 'Passe com 3 médiuns']);
     $appointment = Appointment::factory()->for($team)->inPerson()->completed()->create([
         'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
     ]);
@@ -93,7 +94,6 @@ test('the attendance sheet of a completed appointment is printed filled in with 
 
     Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
         expect($pdf->getHtml())->toContain(
-            'Culto no lar',
             'Tratamento do copo',
             'Por 21 dias',
             'Hidroterapia',
@@ -102,7 +102,7 @@ test('the attendance sheet of a completed appointment is printed filled in with 
             'Serotonina',
             'Tomar em jejum',
             'Irmã Clara',
-        );
+        )->not->toContain('Culto no lar', 'Passe com 3 médiuns');
 
         return true;
     });
@@ -125,7 +125,7 @@ test('the fluidic remedies of a filled sheet split into two columns when they wo
     'overflowing one column' => [21, true],
 ]);
 
-test('the guidances of a sheet split half and half into two columns when there are more than three', function (int $guidanceCount, array $columnSizes) {
+test('the guidances of a sheet split half and half into two columns when there are more than two', function (int $guidanceCount, array $columnSizes) {
     [, $team] = actingAsTeamMember(TeamRole::Owner);
     foreach (range(1, $guidanceCount) as $position) {
         Guidance::factory()->for($team)->create(['name' => sprintf('Orientação %02d', $position)]);
@@ -144,19 +144,21 @@ test('the guidances of a sheet split half and half into two columns when there a
         return true;
     });
 })->with([
-    'three in one column' => [3, [3]],
+    'two in one column' => [2, [2]],
+    'three leave the bigger half on the left' => [3, [2, 1]],
     'four split in two' => [4, [2, 2]],
     'five leave the bigger half on the left' => [5, [3, 2]],
     'six split in two' => [6, [3, 3]],
 ]);
 
-test('the given guidances stay ticked, with their detail, when the sheet splits them in two columns', function () {
+test('a filled sheet lists only the given guidances, ticked with their detail, splitting them in two columns', function () {
     [, $team] = actingAsTeamMember(TeamRole::Owner);
     $guidances = collect(['Alfa', 'Beta', 'Gama', 'Delta'])->map(fn (string $name) => Guidance::factory()->for($team)->create(['name' => $name]));
     $appointment = Appointment::factory()->for($team)->inPerson()->completed()->create([
         'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
     ]);
     $record = AppointmentRecord::factory()->for($appointment)->create();
+    $record->guidances()->attach($guidances->firstWhere('name', 'Beta'));
     $record->guidances()->attach($guidances->firstWhere('name', 'Gama'), ['detail' => 'Por 21 dias']);
     $record->guidances()->attach($guidances->firstWhere('name', 'Delta'));
 
@@ -165,8 +167,8 @@ test('the given guidances stay ticked, with their detail, when the sheet splits 
     Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
         preg_match_all('/class="guidance-column">(.*?)<\/td>/s', $pdf->getHtml(), $columns);
 
-        expect(array_map(fn (string $column) => substr_count($column, 'class="tick"'), $columns[1]))->toBe([0, 2])
-            ->and($columns[1][1])->toContain('Por 21 dias');
+        expect(array_map(fn (string $column) => substr_count($column, 'class="tick"'), $columns[1]))->toBe([2, 1])
+            ->and($pdf->getHtml())->toContain('Por 21 dias')->not->toContain('Alfa');
 
         return true;
     });

@@ -23,7 +23,6 @@ use Flux\Flux;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
@@ -35,6 +34,8 @@ use Livewire\Attributes\Renderless;
  */
 trait InteractsWithAppointmentRecordForm
 {
+    use ParsesFormDates;
+
     public AppointmentRecordForm $form;
 
     /**
@@ -81,6 +82,38 @@ trait InteractsWithAppointmentRecordForm
     }
 
     /**
+     * Get what the remote pass dates modal needs to suggest the dates in the browser: the appointment day, when the
+     * center gives each pass type remotely (keyed by pass type id), where the sheet is printed and its labels. Like
+     * the pickers' options, the pass type names are left out of the page: the modal takes them from the pickers.
+     *
+     * @return array{scheduledOn: string, schedules: object, printUrl: string, labels: array<string, string>}
+     */
+    #[Computed]
+    public function remotePassDatesConfig(): array
+    {
+        $schedules = $this->appointment->team->passTypes()
+            ->get(['id', 'remote_weekdays', 'remote_starts_at', 'remote_ends_at'])
+            ->mapWithKeys(fn (PassType $passType): array => [$passType->id => [
+                'weekdays' => $passType->remoteWeekdayNumbers(),
+                'schedule' => $passType->remoteScheduleLabel(),
+            ]])
+            ->filter(fn (array $schedule): bool => $schedule['schedule'] !== null);
+
+        return [
+            'scheduledOn' => $this->appointment->scheduled_on->toDateString(),
+            'schedules' => (object) $schedules->all(),
+            'printUrl' => route('appointments.remote-pass-sheet', ['appointment' => $this->appointment]),
+            'labels' => [
+                'noDays' => __('No days set for this pass type: the dates are suggested weekly.'),
+                'onePass' => __('1 pass'),
+                'passes' => __(':count passes'),
+                'position' => __('Pass :position'),
+                'datesSet' => __(':filled of :total dates set'),
+            ],
+        ];
+    }
+
+    /**
      * Get the team's appointment types, offered for the follow-up appointments.
      *
      * @return Collection<int, AppointmentType>
@@ -88,13 +121,14 @@ trait InteractsWithAppointmentRecordForm
     #[Computed]
     public function appointmentTypes(): Collection
     {
-        return $this->appointment->team->appointmentTypes()->orderBy('name')->get(['id', 'name', 'daily_limit', 'weekdays']);
+        return $this->appointment->team->appointmentTypes()->orderBy('name')->get(['id', 'team_id', 'name', 'daily_limit', 'weekdays']);
     }
 
     /**
      * Get how many appointments of the return type the chosen return date already has, and how many places are left.
      *
-     * Also carries the warning shown when the return type does not take place on that weekday.
+     * The return this record already scheduled does not take a place. Also carries the warning shown when the return
+     * type does not take place on that weekday.
      *
      * @return array{count: int, limit: ?int, remaining: ?int, type: string, date: string, warning: ?string}|null
      */
@@ -108,15 +142,8 @@ trait InteractsWithAppointmentRecordForm
             return null;
         }
 
-        $count = $this->returnAppointmentCountOn($returnType, $returnOn);
-        $limit = $returnType->daily_limit;
-
         return [
-            'count' => $count,
-            'limit' => $limit,
-            'remaining' => $limit === null ? null : max(0, $limit - $count),
-            'type' => $returnType->name,
-            'date' => $returnOn->format('d/m/Y'),
+            ...$returnType->occupancyOn($returnOn, $this->appointment->record()->value('return_appointment_id')),
             'warning' => $returnType->isOfferedOn($returnOn) ? null : $returnType->notOfferedWarning(),
         ];
     }
@@ -186,6 +213,7 @@ trait InteractsWithAppointmentRecordForm
             'pass_type_id' => '',
             'quantity' => 1,
             'mode' => $this->appointment->mode->value,
+            'dates' => [],
         ];
     }
 
@@ -299,6 +327,14 @@ trait InteractsWithAppointmentRecordForm
     {
         Gate::authorize('update', [AppointmentRecord::class, $this->appointment]);
 
+        return $this->keepDraft($saveAppointmentRecordDraft);
+    }
+
+    /**
+     * Save the form as the appointment's draft, once the caller has authorized it, and tell when it was saved.
+     */
+    protected function keepDraft(SaveAppointmentRecordDraft $saveAppointmentRecordDraft): string
+    {
         $draft = $saveAppointmentRecordDraft->handle($this->appointment, Auth::user(), $this->form->all());
 
         return __('Draft saved at :time', ['time' => $draft->updated_at->format('H:i')]);
@@ -349,7 +385,7 @@ trait InteractsWithAppointmentRecordForm
     protected function fillRecordForm(?AppointmentRecord $record): void
     {
         $this->form->reset();
-        $this->form->returnAppointmentTypeId = (string) $this->appointment->appointment_type_id;
+        $this->form->returnAppointmentTypeId = $this->appointment->appointmentType->trashed() ? '' : (string) $this->appointment->appointment_type_id;
         $this->form->removalAppointmentTypeId = (string) ($this->lastRemovalAppointmentTypeId() ?? '');
 
         if ($record !== null) {
@@ -378,28 +414,6 @@ trait InteractsWithAppointmentRecordForm
     private function nextOfferedDayFrom(string $appointmentTypeId, CarbonInterface $date): CarbonInterface
     {
         return $this->appointmentTypes->firstWhere('id', (int) $appointmentTypeId)?->nextOfferedDayFrom($date) ?? $date;
-    }
-
-    private function dateFrom(string $value): ?CarbonInterface
-    {
-        return $value === '' ? null : rescue(fn () => Date::createFromFormat('!Y-m-d', $value), report: false);
-    }
-
-    /**
-     * Count the appointments of the given type already scheduled on the given day.
-     *
-     * The return this record already scheduled does not take a place.
-     */
-    private function returnAppointmentCountOn(AppointmentType $appointmentType, CarbonInterface $day): int
-    {
-        $linkedReturnId = $this->appointment->record()->value('return_appointment_id');
-
-        return $this->appointment->team->appointments()
-            ->where('appointment_type_id', $appointmentType->id)
-            ->scheduledOn($day)
-            ->takingPlace()
-            ->when($linkedReturnId, fn ($query, int $id) => $query->whereKeyNot($id))
-            ->count();
     }
 
     /**

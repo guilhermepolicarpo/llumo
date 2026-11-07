@@ -182,8 +182,8 @@ return [
     */
 
     'custom' => [
-        'attribute-name' => [
-            'rule-name' => 'custom-message',
+        'infiltrationSite' => [
+            'required_with' => 'O campo :attribute é obrigatório quando a data ou o local de retirada é informado.',
         ],
     ],
 
@@ -253,14 +253,21 @@ return [
         'postalCode' => 'CEP',
         'dailyLimit' => 'limite diário de agendamentos',
         'mentorId' => 'mentor',
+        'fluidicRemedyIds' => 'medicamentos',
         'fluidicRemedyIds.*' => 'fluídico',
-        'fluidInstructions' => 'modo de tomar',
+        'fluidInstructions' => 'como tomar',
         'guidanceIds.*' => 'orientação',
         'guidanceDetails.*' => 'detalhe da orientação',
         'passPrescriptions.*.pass_type_id' => 'tipo de passe',
         'passPrescriptions.*.quantity' => 'quantidade',
         'passPrescriptions.*.mode' => 'modo',
-        'infiltrationSite' => 'local',
+        'passPrescriptions.*.dates' => 'datas dos passes',
+        'passPrescriptions.*.dates.*' => 'data do passe',
+        'remoteWeekdays' => 'dias dos passes à distância',
+        'remoteWeekdays.*' => 'dia dos passes à distância',
+        'remoteStartsAt' => 'início do repouso',
+        'remoteEndsAt' => 'fim do repouso',
+        'infiltrationSite' => 'local/motivo',
         'infiltrationRemoveOn' => 'data de retirada',
         'infiltrationRemovalPlace' => 'local de retirada',
         'removalAppointmentTypeId' => 'tipo de atendimento da retirada',
@@ -272,6 +279,9 @@ return [
     'values' => [
         'scheduledOn' => [
             'today' => 'hoje',
+        ],
+        'infiltrationRemovalPlace' => [
+            'at_the_center' => 'na casa',
         ],
     ],
 

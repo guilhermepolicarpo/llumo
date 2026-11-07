@@ -5,6 +5,7 @@ use App\Enums\AppointmentStatus;
 use App\Enums\InfiltrationRemovalPlace;
 use App\Enums\Weekday;
 use App\Models\Appointment;
+use App\Models\AppointmentRecord;
 use App\Models\AppointmentType;
 use App\Models\Mentor;
 use App\Models\Team;
@@ -48,13 +49,12 @@ beforeEach(function () {
     $this->travelTo('2026-09-20 19:30:00');
 });
 
-test('the return checkbox schedules the return with the same type and mode by default', function () {
+test('informing the return date schedules the return with the same type and mode by default', function () {
     [$component, $appointment] = attendRecordAppointment(['mode' => AppointmentMode::Remote]);
 
     $component
         ->assertSet('form.returnAppointmentTypeId', (string) $appointment->appointment_type_id)
         ->set('form.returnOn', '2026-10-11')
-        ->set('form.schedulesReturn', true)
         ->call('save')
         ->assertHasNoErrors();
 
@@ -95,10 +95,28 @@ test('the removal type is required only when the infiltration is removed at the 
         ->set('form.infiltrationRemovalPlace', InfiltrationRemovalPlace::AtTheCenter->value)
         ->set('form.removalAppointmentTypeId', '')
         ->call('save')
-        ->assertHasErrors(['form.removalAppointmentTypeId' => 'required_if'])
+        ->assertHasErrors(['form.removalAppointmentTypeId' => 'required'])
         ->set('form.infiltrationRemovalPlace', InfiltrationRemovalPlace::AtHome->value)
         ->call('save')
         ->assertHasNoErrors();
+});
+
+test('a deleted removal type only blocks the record when the infiltration is removed at the center', function () {
+    [$component, $appointment, $team] = attendRecordAppointment();
+    $deletedType = AppointmentType::factory()->for($team)->trashed()->create();
+
+    $component
+        ->set('form.infiltrationSite', 'Braço direito')
+        ->set('form.removalAppointmentTypeId', (string) $deletedType->id)
+        ->set('form.infiltrationRemovalPlace', InfiltrationRemovalPlace::AtTheCenter->value)
+        ->call('save')
+        ->assertHasErrors(['form.removalAppointmentTypeId' => 'exists'])
+        ->set('form.infiltrationRemovalPlace', InfiltrationRemovalPlace::AtHome->value)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($appointment->record()->exists())->toBeTrue()
+        ->and(followUpsOf($appointment)->exists())->toBeFalse();
 });
 
 test('saving again updates the follow-ups instead of duplicating them', function () {
@@ -106,7 +124,6 @@ test('saving again updates the follow-ups instead of duplicating them', function
 
     $component
         ->set('form.returnOn', '2026-10-11')
-        ->set('form.schedulesReturn', true)
         ->call('save')
         ->call('save')
         ->set('form.returnOn', '2026-10-18')
@@ -116,19 +133,126 @@ test('saving again updates the follow-ups instead of duplicating them', function
     expect(followUpsOf($appointment)->sole()->scheduled_on->toDateString())->toBe('2026-10-18');
 });
 
-test('unchecking the return removes the return still scheduled', function () {
+test('a return on a day the assisted person already has that type becomes the appointment already scheduled', function () {
+    [$component, $appointment, $team] = attendRecordAppointment();
+    $sameDayOf = fn (string $date): array => [
+        'appointment_type_id' => $appointment->appointment_type_id,
+        'assisted_person_id' => $appointment->assisted_person_id,
+        'scheduled_on' => $date,
+    ];
+    $alreadyScheduled = Appointment::factory()->for($team)->create($sameDayOf('2026-10-11'));
+    $scheduledLater = Appointment::factory()->for($team)->create($sameDayOf('2026-10-18'));
+
+    $component
+        ->set('form.returnOn', '2026-10-11')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(followUpsOf($appointment)->count())->toBe(2)
+        ->and($appointment->record->return_appointment_id)->toBe($alreadyScheduled->id);
+
+    $component
+        ->set('form.returnOn', '2026-10-18')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(followUpsOf($appointment)->pluck('id')->all())->toBe([$scheduledLater->id])
+        ->and($appointment->record->fresh()->return_appointment_id)->toBe($scheduledLater->id);
+});
+
+test('clearing the return date removes the return still scheduled', function () {
     [$component, $appointment] = attendRecordAppointment();
 
     $component
         ->set('form.returnOn', '2026-10-11')
-        ->set('form.schedulesReturn', true)
         ->call('save')
-        ->set('form.schedulesReturn', false)
+        ->set('form.returnOn', '')
         ->call('save')
         ->assertHasNoErrors();
 
     expect(followUpsOf($appointment)->exists())->toBeFalse()
         ->and(followUpsOf($appointment)->onlyTrashed()->count())->toBe(1)
+        ->and($appointment->record->fresh())
+        ->return_appointment_id->toBeNull()
+        ->return_on->toBeNull();
+});
+
+test('a record without a return date schedules nothing', function () {
+    [$component, $appointment] = attendRecordAppointment();
+
+    $component
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(followUpsOf($appointment)->exists())->toBeFalse();
+});
+
+test('the return type is required when a return date is informed', function () {
+    [$component, $appointment] = attendRecordAppointment();
+
+    $component
+        ->set('form.returnOn', '2026-10-11')
+        ->set('form.returnAppointmentTypeId', '')
+        ->call('save')
+        ->assertHasErrors(['form.returnAppointmentTypeId' => 'required']);
+
+    expect(followUpsOf($appointment)->exists())->toBeFalse();
+});
+
+test('an appointment whose type was deleted saves without a return date and asks for the type with one', function () {
+    [, $appointment, $team] = attendRecordAppointment();
+    $appointment->appointmentType->delete();
+
+    Livewire::test('pages::appointments.attend', ['appointment' => $appointment->fresh()])
+        ->assertSet('form.returnAppointmentTypeId', '')
+        ->set('form.mentorId', (string) Mentor::factory()->for($team)->create()->id)
+        ->set('form.returnOn', '2026-10-11')
+        ->call('save')
+        ->assertHasErrors(['form.returnAppointmentTypeId' => 'required'])
+        ->set('form.returnOn', '')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($appointment->record()->exists())->toBeTrue()
+        ->and(followUpsOf($appointment)->exists())->toBeFalse();
+});
+
+test('a record kept with a return date and no return only schedules it once the date changes', function () {
+    [, $appointment, $team] = attendRecordAppointment();
+    AppointmentRecord::factory()->for($appointment)->create([
+        'mentor_id' => Mentor::factory()->for($team),
+        'return_on' => '2026-10-11',
+        'return_appointment_id' => null,
+    ]);
+
+    $component = Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(followUpsOf($appointment)->exists())->toBeFalse();
+
+    $component
+        ->set('form.returnOn', '2026-10-18')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(followUpsOf($appointment)->sole()->scheduled_on->toDateString())->toBe('2026-10-18');
+});
+
+test('a return removed from the schedule does not come back when the record is saved with the same date', function () {
+    [$component, $appointment] = attendRecordAppointment();
+
+    $component
+        ->set('form.returnOn', '2026-10-11')
+        ->call('save');
+
+    followUpsOf($appointment)->sole()->delete();
+
+    $component
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(followUpsOf($appointment)->exists())->toBeFalse()
         ->and($appointment->record->fresh())
         ->return_appointment_id->toBeNull()
         ->return_on->toDateString()->toBe('2026-10-11');
@@ -139,7 +263,6 @@ test('a follow-up already moved through the queue is left untouched', function (
 
     $component
         ->set('form.returnOn', '2026-10-11')
-        ->set('form.schedulesReturn', true)
         ->call('save');
 
     $return = followUpsOf($appointment)->sole();
@@ -148,7 +271,7 @@ test('a follow-up already moved through the queue is left untouched', function (
     $component
         ->set('form.returnOn', '2026-10-18')
         ->call('save')
-        ->set('form.schedulesReturn', false)
+        ->set('form.returnOn', '')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -230,9 +353,8 @@ test('the return date shows how many appointments of the return type it already 
     Appointment::factory()->for($team)->create($returnType + ['scheduled_on' => '2026-10-12']);
 
     $component
-        ->set('form.returnOn', '2026-10-11')
         ->assertDontSeeHtml('data-test="appointment-record-return-day-occupancy"')
-        ->set('form.schedulesReturn', true)
+        ->set('form.returnOn', '2026-10-11')
         ->assertSeeHtml('data-test="appointment-record-return-day-occupancy"')
         ->assertSee('2 agendamentos de Tratamento de Cura em 11/10/2026')
         ->assertSee('1 vaga')
@@ -245,7 +367,6 @@ test('the return already scheduled by the record does not take a place on its da
 
     $component
         ->set('form.returnOn', '2026-10-11')
-        ->set('form.schedulesReturn', true)
         ->call('save')
         ->assertHasNoErrors();
 
@@ -259,8 +380,8 @@ test('the return shortcuts count the days from the appointment', function () {
     $component
         ->call('setReturnInDays', 30)
         ->assertSet('form.returnOn', '2026-10-20')
-        ->call('setReturnInDays', 7)
-        ->assertSet('form.returnOn', '2026-09-27');
+        ->call('setReturnInDays', 15)
+        ->assertSet('form.returnOn', '2026-10-05');
 });
 
 test('a return date that reached the daily limit warns but still schedules the return', function () {
@@ -269,7 +390,6 @@ test('a return date that reached the daily limit warns but still schedules the r
     Appointment::factory()->for($team)->create(['appointment_type_id' => $appointment->appointment_type_id, 'scheduled_on' => '2026-10-11']);
 
     $component
-        ->set('form.schedulesReturn', true)
         ->set('form.returnOn', '2026-10-12')
         ->assertSee('Nenhum agendamento de Tratamento de Cura em 12/10/2026')
         ->assertDontSeeHtml('data-test="appointment-record-return-day-full"')
@@ -290,7 +410,6 @@ test('choosing another return type counts the appointments of that type, without
     Appointment::factory()->for($team)->count(2)->create(['appointment_type_id' => $otherType->id, 'scheduled_on' => '2026-10-11']);
 
     $component
-        ->set('form.schedulesReturn', true)
         ->set('form.returnOn', '2026-10-11')
         ->set('form.returnAppointmentTypeId', (string) $otherType->id)
         ->assertSee('2 agendamentos de Hidroterapia em 11/10/2026')
@@ -303,7 +422,6 @@ test('a return on a weekday its type does not take place warns but is still sche
     $appointment->appointmentType->update(['name' => 'Tratamento de cura', 'weekdays' => [Weekday::Monday, Weekday::Wednesday]]);
 
     $component
-        ->set('form.schedulesReturn', true)
         ->set('form.returnOn', '2026-09-30')
         ->assertDontSeeHtml('data-test="appointment-record-return-day-not-offered"')
         ->set('form.returnOn', '2026-10-01')
@@ -343,8 +461,8 @@ test('the return shortcuts and the removal date move to the next day their type 
     $removalType = AppointmentType::factory()->for($team)->onWeekdays(Weekday::Thursday)->create();
 
     $component
-        ->call('setReturnInDays', 7)
-        ->assertSet('form.returnOn', '2026-09-28')
+        ->call('setReturnInDays', 20)
+        ->assertSet('form.returnOn', '2026-10-12')
         ->call('setReturnInDays', 30)
         ->assertSet('form.returnOn', '2026-10-21')
         ->set('form.removalAppointmentTypeId', (string) $removalType->id)

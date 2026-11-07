@@ -4,9 +4,7 @@ namespace App\Actions\Appointments;
 
 use App\Models\Appointment;
 use App\Models\Team;
-use finfo;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Spatie\LaravelPdf\Enums\Format;
 use Spatie\LaravelPdf\Facades\Pdf;
@@ -26,27 +24,13 @@ class BuildAttendanceSheets
 
         return Pdf::view('pdf.attendance-sheets', [
             'team' => $team,
-            'logo' => $this->logoDataUri($team),
+            'logo' => $team->logoDataUri(),
             'appointments' => $appointments,
             'guidances' => $team->guidances()->orderBy('name')->pluck('name', 'id'),
             'passTypes' => $team->passTypes()->orderBy('name')->pluck('name', 'id'),
         ])
             ->format(Format::A5)
             ->inline($this->fileName($appointments));
-    }
-
-    /**
-     * Embed the team's logo as a data URI, so the PDF renderer never has to reach the disk or the network for it.
-     */
-    protected function logoDataUri(Team $team): ?string
-    {
-        $contents = $team->logo_path ? Storage::disk('public')->get($team->logo_path) : null;
-
-        if ($contents === null) {
-            return null;
-        }
-
-        return 'data:'.(new finfo(FILEINFO_MIME_TYPE))->buffer($contents).';base64,'.base64_encode($contents);
     }
 
     /**

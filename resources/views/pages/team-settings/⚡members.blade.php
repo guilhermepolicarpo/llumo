@@ -115,8 +115,8 @@ new class extends Component
                             <div class="flex min-w-0 items-center gap-4">
                                 <flux:avatar :name="$member->name" :initials="$member->initials()" class="shrink-0" />
                                 <div class="min-w-0">
-                                    <div class="truncate font-medium">{{ $member->name }}</div>
-                                    <flux:text class="truncate text-sm text-zinc-500 dark:text-zinc-400">{{ $member->email }}</flux:text>
+                                    <flux:heading>{{ $member->name }}</flux:heading>
+                                    <flux:text>{{ $member->email }}</flux:text>
                                 </div>
                             </div>
 

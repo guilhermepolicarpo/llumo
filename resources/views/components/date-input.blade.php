@@ -1,5 +1,5 @@
 {{--
-    A form field for a single date, bound with wire:model to a 'Y-m-d' string (empty for no date): the day is typed
+    A form field for a single date, bound with wire:model (or x-model, inside an Alpine loop) to a 'Y-m-d' string (empty for no date): the day is typed
     as dd/mm/yyyy or picked in the shared month calendar opened from the trailing button, and on touch devices a
     transparent native date input over the field opens the system picker instead. min/max ('Y-m-d') bound the days
     allowed; year-select adds a year picker to the calendar for far away dates, such as a birth date. Any other
@@ -18,7 +18,7 @@
 <div
     x-data="dateInput({ min: @js($min), max: @js($max) })"
     x-modelable="value"
-    {{ $attributes->whereStartsWith('wire:model') }}
+    {{ $attributes->whereStartsWith(['wire:model', 'x-model']) }}
     {{ $attributes->only('class') }}
 >
     <flux:field>
@@ -28,7 +28,7 @@
 
         <div class="relative">
             <flux:input
-                :attributes="$attributes->whereDoesntStartWith('wire:model')->except('class')"
+                :attributes="$attributes->whereDoesntStartWith(['wire:model', 'x-model'])->except('class')"
                 x-model="text"
                 x-ref="trigger"
                 x-on:blur="commit()"

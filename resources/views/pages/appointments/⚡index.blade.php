@@ -812,7 +812,7 @@ new class extends Component
                                 icon="arrow-top-right-on-square"
                                 icon:variant="outline"
                                 class="-ms-2 mt-1"
-                                :href="route('assisted-people.show', ['assistedPerson' => $assistedPerson, 'from' => route('appointments.index', absolute: false)])"
+                                :href="route('assisted-people.show', ['assistedPerson' => $assistedPerson])"
                                 wire:navigate
                                 data-test="appointment-details-assisted-person-link"
                                 >
@@ -880,7 +880,7 @@ new class extends Component
                 @php($opensRecord = $selectedAppointment->usesRecord() && $selectedAppointment->status === AppointmentStatus::Completed)
 
                 {{-- The footer only earns its place once it has a button to show. --}}
-                @if ($opensRecord || AppointmentAction::availableFor($selectedAppointment) !== [])
+                @if ($opensRecord || AppointmentAction::availableFor($selectedAppointment, auth()->user()) !== [])
                     <x-slot:footer data-test="appointment-details-actions">
                         <div class="flex flex-wrap items-center justify-end gap-2">
                             <x-pages::appointments.action-buttons :appointment="$selectedAppointment" edit-as="button" menu-first menu-apart emphasize-main class="flex-wrap" />

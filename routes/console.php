@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Appointments\CancelExpiredRemoteAppointments;
 use App\Actions\Appointments\MarkMissedAppointmentsAsNoShow;
 use App\Actions\Library\PruneBookCoverDownloads;
 use App\Models\TeamInvitation;
@@ -15,6 +16,10 @@ Schedule::call(function () {
 Schedule::call(function (MarkMissedAppointmentsAsNoShow $markMissedAppointmentsAsNoShow) {
     $markMissedAppointmentsAsNoShow->handle();
 })->dailyAt('00:05')->description('Mark missed appointments as no-show');
+
+Schedule::call(function (CancelExpiredRemoteAppointments $cancelExpiredRemoteAppointments) {
+    $cancelExpiredRemoteAppointments->handle();
+})->dailyAt('00:05')->description('Cancel remote appointments whose record can no longer be entered');
 
 Schedule::call(function (PruneBookCoverDownloads $pruneBookCoverDownloads) {
     $pruneBookCoverDownloads->handle();

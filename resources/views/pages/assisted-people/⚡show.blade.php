@@ -1,6 +1,5 @@
 <?php
 
-use App\Concerns\InteractsWithReturnUrl;
 use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
 use App\Models\AppointmentRecord;
@@ -17,8 +16,6 @@ use Livewire\Component;
 
 new class extends Component
 {
-    use InteractsWithReturnUrl;
-
     /**
      * How many previous appointments the history shows at first, and how many more each "load more" adds.
      */
@@ -89,7 +86,7 @@ new class extends Component
     {
         return $this->filteredAppointments()
             ->past()
-            ->with(['appointmentType', 'record.mentor', 'record.fluidicRemedies', 'record.guidances', 'record.passPrescriptions.passType'])
+            ->with(['appointmentType', 'attendant', 'record.mentor', 'record.fluidicRemedies', 'record.guidances', 'record.passPrescriptions.passType'])
             ->orderByDesc('scheduled_on')
             ->orderByDesc('id')
             ->limit($this->limit)
@@ -146,7 +143,9 @@ new class extends Component
      * List the follow-ups the latest record asked for that nobody has taken care of: an infiltration removal or a return
      * still to be scheduled, or a return whose date went by without the assisted person coming back.
      *
-     * Any appointment already booked counts as the return, since it may have been scheduled without the record's link.
+     * The removal counts as taken care of once its linked appointment is booked, even if it has already happened or
+     * was missed, unless it was canceled. Any appointment already booked counts as the return, since it may have been
+     * scheduled without the record's link.
      *
      * @return list<array{key: string, message: string, detail: string, action: string, url: string}>
      */
@@ -159,7 +158,6 @@ new class extends Component
             return [];
         }
 
-        $bookedIds = $this->assistedPerson->appointments()->upcoming()->pluck('id');
         $detail = $record->mentor
             ? __('Indicated by :mentor in the record of :date.', ['mentor' => $record->mentor->name, 'date' => $record->appointment->scheduled_on->format('d/m/Y')])
             : __('Indicated in the record of :date.', ['date' => $record->appointment->scheduled_on->format('d/m/Y')]);
@@ -167,7 +165,7 @@ new class extends Component
 
         if ($record->infiltration_removal_place?->schedulesRemoval()
             && $record->infiltration_remove_on?->gte(today())
-            && ! $bookedIds->contains($record->infiltration_removal_appointment_id)) {
+            && in_array($record->infiltrationRemovalAppointment?->status, [null, AppointmentStatus::Canceled], true)) {
             $followUps[] = [
                 'key' => 'infiltration',
                 'message' => __('The infiltration removal on :date has not been scheduled yet.', ['date' => $record->infiltration_remove_on->format('d/m/Y')]),
@@ -178,7 +176,7 @@ new class extends Component
         }
 
         $cameBack = $this->stats['last_visit_on']?->gt($record->appointment->scheduled_on) ?? false;
-        $hasBookedReturn = $bookedIds->contains(fn (int $id): bool => $id !== $record->infiltration_removal_appointment_id);
+        $hasBookedReturn = $this->assistedPerson->appointments()->upcoming()->whereKeyNot($record->infiltration_removal_appointment_id)->exists();
 
         if ($record->return_on && ! $cameBack && ! $hasBookedReturn) {
             $isAhead = $record->return_on->gte(today());
@@ -245,16 +243,6 @@ new class extends Component
             ->when(AppointmentStatus::tryFrom($this->status), fn (Builder $query, AppointmentStatus $status) => $query->where('status', $status));
     }
 
-    protected function defaultBackUrl(): string
-    {
-        return route('assisted-people.index');
-    }
-
-    protected function defaultBackLabel(): string
-    {
-        return __('Back to assisted people');
-    }
-
     public function render()
     {
         return $this->view()->title(__('History of :name', ['name' => $this->assistedPerson->name]));
@@ -265,8 +253,8 @@ new class extends Component
     $chipClasses = 'inline-flex items-center rounded-md bg-zinc-100 px-2.5 py-0.5 text-zinc-800 dark:bg-white/10 dark:text-zinc-200';
 @endphp
 
-<section class="w-full max-w-5xl">
-    <x-page-header :heading="$assistedPerson->name" :back-href="$this->backUrl()" :back-label="$this->backLabel()" :separator="false" stack-until="lg">
+<section class="w-full">
+    <x-page-header :heading="$assistedPerson->name" :back-href="route('assisted-people.index')" :back-label="__('Assisted people')" :separator="false" stack-until="lg">
         <x-slot:subheading>
             <span class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm" data-test="assisted-person-history-details">
                 @foreach (array_filter([
@@ -295,7 +283,7 @@ new class extends Component
         </x-slot:subheading>
 
         <div class="flex shrink-0 flex-wrap gap-2">
-            <flux:button icon="pencil" icon:variant="outline" :href="route('assisted-people.edit', ['assistedPerson' => $assistedPerson, 'from' => route('assisted-people.show', ['assistedPerson' => $assistedPerson, ...$this->returnUrlParameters()], absolute: false)])" wire:navigate data-test="assisted-person-history-edit-button">
+            <flux:button icon="pencil" icon:variant="outline" :href="route('assisted-people.edit', ['assistedPerson' => $assistedPerson])" wire:navigate data-test="assisted-person-history-edit-button">
                 {{ __('Edit registration') }}
             </flux:button>
 
@@ -555,6 +543,12 @@ new class extends Component
                                                     <dd class="whitespace-pre-line text-zinc-800 dark:text-zinc-200">{{ $record->observations }}</dd>
                                                 @endif
                                             </dl>
+                                        @endif
+
+                                        @if ($systemEntry = $appointment->system_entry_summary)
+                                            <div class="text-end text-[13px] text-zinc-500 dark:text-zinc-400" data-test="assisted-person-history-system-entry">
+                                                {{ $systemEntry }}
+                                            </div>
                                         @endif
                                     </div>
                                 @endif

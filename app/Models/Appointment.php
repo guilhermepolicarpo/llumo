@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Enums\AppointmentAction;
 use App\Enums\AppointmentMode;
 use App\Enums\AppointmentStatus;
+use App\Enums\TeamPermission;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Database\Factories\AppointmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -17,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection as SupportCollection;
 
 /**
  * @property int $id
@@ -45,6 +48,7 @@ use Illuminate\Support\Carbon;
  * @property-read AppointmentRecord|null $returnOfRecord
  * @property-read AppointmentRecord|null $infiltrationRemovalOfRecord
  * @property-read string $description
+ * @property-read string|null $system_entry_summary
  */
 #[Fillable([
     'team_id',
@@ -64,6 +68,11 @@ class Appointment extends Model
 {
     /** @use HasFactory<AppointmentFactory> */
     use HasFactory, SoftDeletes;
+
+    /**
+     * How many days after its date an appointment's record can still be entered or corrected by any member.
+     */
+    public const int RECORD_EDITING_WINDOW_DAYS = 7;
 
     /**
      * The model's default values for attributes.
@@ -181,11 +190,38 @@ class Appointment extends Model
     }
 
     /**
-     * Determine whether this appointment can be attended, either starting it or continuing it.
+     * Determine whether the given user can attend this appointment, either starting it or continuing it.
      */
-    public function isAttendable(): bool
+    public function isAttendableBy(User $user): bool
     {
-        return $this->status === AppointmentStatus::InProgress || AppointmentAction::Start->isAvailableFor($this);
+        return $this->status === AppointmentStatus::InProgress
+            || (AppointmentAction::Start->isAvailableFor($this) && AppointmentAction::Start->isPermittedFor($this, $user));
+    }
+
+    /**
+     * Get the earliest date whose appointments any member can still enter or correct the record of.
+     */
+    public static function recordEditingCutoff(): CarbonImmutable
+    {
+        return today()->subDays(self::RECORD_EDITING_WINDOW_DAYS);
+    }
+
+    /**
+     * Determine whether the appointment is recent enough for any member to enter or correct its record.
+     */
+    public function isWithinRecordEditingWindow(): bool
+    {
+        return $this->scheduled_on->greaterThanOrEqualTo(self::recordEditingCutoff());
+    }
+
+    /**
+     * Determine whether the given user may enter or correct this appointment's record: anyone while it is recent,
+     * and afterwards only those allowed to change past records.
+     */
+    public function acceptsRecordChangesFrom(User $user): bool
+    {
+        return $this->isWithinRecordEditingWindow()
+            || $user->hasTeamPermission($this->team, TeamPermission::EditPastRecords);
     }
 
     /**
@@ -200,6 +236,106 @@ class Appointment extends Model
 
         return in_array($this->status, [AppointmentStatus::Waiting, AppointmentStatus::InProgress], true)
             || $this->filledRecord() !== null;
+    }
+
+    /**
+     * Determine whether the record of this appointment, as it stands, prescribes any pass given remotely.
+     */
+    public function hasRemotePasses(): bool
+    {
+        $standing = $this->standingRecord();
+
+        return $standing instanceof AppointmentRecordDraft
+            ? $this->remotePassesOfDraft($standing)->isNotEmpty()
+            : $standing?->passPrescriptions()->where('mode', AppointmentMode::Remote)->exists() ?? false;
+    }
+
+    /**
+     * Get the remote passes of the record as it stands, each with its pass type, quantity and the dates chosen, in date
+     * order.
+     *
+     * The remote pass sheet is printed while the record is still being filled, before the mentor is picked, so an
+     * unsaved draft newer than the saved record is what stands; its rows are read leniently, skipping what does not fit.
+     *
+     * @return SupportCollection<int, array{passType: PassType, quantity: int, dates: list<CarbonImmutable>}>
+     */
+    public function remotePasses(): SupportCollection
+    {
+        $standing = $this->standingRecord();
+
+        if ($standing === null) {
+            return collect();
+        }
+
+        if ($standing instanceof AppointmentRecordDraft) {
+            return $this->remotePassesOfDraft($standing);
+        }
+
+        return $standing->passPrescriptions()
+            ->where('mode', AppointmentMode::Remote)
+            ->with(['passType', 'sessions'])
+            ->get()
+            ->map(fn (PassPrescription $prescription): array => [
+                'passType' => $prescription->passType,
+                'quantity' => $prescription->quantity,
+                'dates' => array_values($prescription->sessions->map(fn (PassSession $session): CarbonImmutable => $session->scheduled_on->toImmutable())->all()),
+            ]);
+    }
+
+    /**
+     * Get the record as it stands: the unsaved draft when it is newer than the saved record, or else the saved record.
+     */
+    private function standingRecord(): AppointmentRecord|AppointmentRecordDraft|null
+    {
+        $record = $this->record()->first();
+        $draft = $this->recordDraft()->first();
+
+        return $draft !== null && ($record === null || $draft->updated_at->greaterThan($record->updated_at)) ? $draft : $record;
+    }
+
+    /**
+     * Read the remote passes from the rows of a draft, keeping only the team's pass types, the quantities the form
+     * accepts and real dates after the appointment, one per pass at most.
+     *
+     * @return SupportCollection<int, array{passType: PassType, quantity: int, dates: list<CarbonImmutable>}>
+     */
+    private function remotePassesOfDraft(AppointmentRecordDraft $draft): SupportCollection
+    {
+        $draftRows = $draft->data['passPrescriptions'] ?? [];
+
+        $rows = collect(is_array($draftRows) ? $draftRows : [])
+            ->filter(fn (mixed $row): bool => is_array($row)
+                && ($row['mode'] ?? null) === AppointmentMode::Remote->value
+                && is_numeric($row['pass_type_id'] ?? null)
+                && is_numeric($row['quantity'] ?? null));
+
+        $passTypes = $this->team->passTypes()->whereKey($rows->pluck('pass_type_id')->map(fn ($id): int => (int) $id)->all())->get()->keyBy('id');
+
+        return $rows
+            ->map(function (array $row) use ($passTypes): ?array {
+                $passType = $passTypes->get((int) $row['pass_type_id']);
+
+                if ($passType === null) {
+                    return null;
+                }
+
+                $quantity = min(max((int) $row['quantity'], 1), 99);
+
+                $dates = array_values(collect(is_array($row['dates'] ?? null) ? $row['dates'] : [])
+                    ->filter(fn (mixed $date): bool => is_string($date)
+                        && preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $date, $parts) === 1
+                        && checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1]))
+                    ->map(fn (string $date): CarbonImmutable => CarbonImmutable::parse($date))
+                    ->filter(fn (CarbonImmutable $date): bool => $date->greaterThan($this->scheduled_on))
+                    ->unique(fn (CarbonImmutable $date): string => $date->toDateString())
+                    ->sortBy(fn (CarbonImmutable $date): string => $date->toDateString())
+                    ->take($quantity)
+                    ->all());
+
+                return ['passType' => $passType, 'quantity' => $quantity, 'dates' => $dates];
+            })
+            ->filter()
+            ->values();
     }
 
     /**
@@ -294,6 +430,22 @@ class Appointment extends Model
     }
 
     /**
+     * Scope the query to the appointments of the given type the assisted person has on the day, apart from canceled ones
+     * and the given one, as a person may have only one of them.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function sameDayAs(Builder $query, int $assistedPersonId, int $appointmentTypeId, CarbonInterface $day, ?int $exceptAppointmentId = null): void
+    {
+        $query->where('assisted_person_id', $assistedPersonId)
+            ->where('appointment_type_id', $appointmentTypeId)
+            ->scheduledOn($day)
+            ->takingPlace()
+            ->when($exceptAppointmentId, fn (Builder $query, int $id) => $query->whereKeyNot($id));
+    }
+
+    /**
      * Order the query by the status, following the workflow order of the AppointmentStatus cases.
      *
      * @param  Builder<self>  $query
@@ -319,6 +471,31 @@ class Appointment extends Model
     protected function description(): Attribute
     {
         return Attribute::make(get: fn (): string => $this->assistedPerson->name.' ('.$this->scheduled_on->format('d/m/Y').')');
+    }
+
+    /**
+     * Get who entered the concluded attendance in the system and when, or null while there is no such entry.
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function systemEntrySummary(): Attribute
+    {
+        return Attribute::make(get: function (): ?string {
+            if ($this->status !== AppointmentStatus::Completed || ! $this->started_at || ! $this->finished_at) {
+                return null;
+            }
+
+            $start = $this->started_at->format('H:i');
+            $end = $this->finished_at->format('H:i');
+            $user = $this->attendant?->name;
+
+            return __(match (true) {
+                $user && $start === $end => 'Entered in the system by :user, at :start.',
+                (bool) $user => 'Entered in the system by :user, from :start to :end.',
+                $start === $end => 'Entered in the system at :start.',
+                default => 'Entered in the system from :start to :end.',
+            }, ['user' => $user, 'start' => $start, 'end' => $end]);
+        });
     }
 
     /**

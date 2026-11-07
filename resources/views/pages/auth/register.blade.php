@@ -43,6 +43,7 @@
             <!-- Password -->
             <flux:input
                 name="password"
+                :description:trailing="__('At least 8 characters, with letters and numbers.')"
                 :label="__('Password')"
                 type="password"
                 required

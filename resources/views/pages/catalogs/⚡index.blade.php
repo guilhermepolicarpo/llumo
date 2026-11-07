@@ -4,8 +4,10 @@ use App\Actions\Catalogs\CreateCatalogEntry;
 use App\Actions\Catalogs\UpdateCatalogEntry;
 use App\Enums\Catalog;
 use App\Enums\LibraryCatalog;
+use App\Models\PassType;
 use App\Models\Team;
 use App\Rules\CatalogRules;
+use App\Rules\PassTypeRules;
 use Flux\Flux;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -35,6 +37,17 @@ new class extends Component
     public int $perPage = 5;
 
     public string $name = '';
+
+    /**
+     * The weekdays on which the center gives the pass type remotely, kept only for pass types.
+     *
+     * @var list<string>
+     */
+    public array $remoteWeekdays = [];
+
+    public string $remoteStartsAt = '';
+
+    public string $remoteEndsAt = '';
 
     #[Locked]
     public ?int $editingId = null;
@@ -70,7 +83,7 @@ new class extends Component
      */
     public function closeEntry(): void
     {
-        $fields = ['name', 'editingId'];
+        $fields = ['name', 'remoteWeekdays', 'remoteStartsAt', 'remoteEndsAt', 'editingId'];
         $previousValues = $this->only($fields);
         $hadErrors = $this->getErrorBag()->isNotEmpty();
 
@@ -90,6 +103,13 @@ new class extends Component
 
         $this->editingId = $entry->id;
         $this->name = $entry->name;
+
+        if ($entry instanceof PassType) {
+            $this->remoteWeekdays = array_map('strval', $entry->remoteWeekdayNumbers());
+            $this->remoteStartsAt = substr((string) $entry->remote_starts_at, 0, 5);
+            $this->remoteEndsAt = substr((string) $entry->remote_ends_at, 0, 5);
+        }
+
         $this->resetValidation();
 
         Flux::modal('catalog-entry')->show();
@@ -110,13 +130,16 @@ new class extends Component
 
         $validated = $this->validate([
             'name' => CatalogRules::name($team, $this->catalog, $entry),
+            ...($this->hasRemoteSchedule ? PassTypeRules::remoteSchedule() : []),
         ]);
 
+        $attributes = $this->hasRemoteSchedule ? $this->remoteScheduleAttributes($validated) : [];
+
         if ($entry !== null) {
-            $updateCatalogEntry->handle($entry, $validated['name']);
+            $updateCatalogEntry->handle($entry, $validated['name'], $attributes);
             $message = $this->catalog->updatedEntryLabel();
         } else {
-            $createCatalogEntry->handle($team, $this->catalog, $validated['name']);
+            $createCatalogEntry->handle($team, $this->catalog, $validated['name'], $attributes);
             $message = $this->catalog->newEntryLabel();
         }
 
@@ -165,6 +188,33 @@ new class extends Component
             ->when($this->countsBooks, fn ($query) => $query->withCount('books'))
             ->orderBy('name')
             ->paginate(in_array($this->perPage, self::PER_PAGE_OPTIONS, true) ? $this->perPage : self::PER_PAGE_OPTIONS[0]);
+    }
+
+    /**
+     * Whether the entries keep when the center gives them remotely, which only pass types do.
+     */
+    #[Computed]
+    public function hasRemoteSchedule(): bool
+    {
+        return $this->catalog === Catalog::PassType;
+    }
+
+    /**
+     * Map the validated remote schedule of a pass type to the attributes it is saved with.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array{remote_weekdays: ?list<int>, remote_starts_at: ?string, remote_ends_at: ?string}
+     */
+    private function remoteScheduleAttributes(array $validated): array
+    {
+        $weekdays = array_map('intval', $validated['remoteWeekdays'] ?? []);
+        sort($weekdays);
+
+        return [
+            'remote_weekdays' => $weekdays ?: null,
+            'remote_starts_at' => $validated['remoteStartsAt'] ?: null,
+            'remote_ends_at' => $validated['remoteEndsAt'] ?: null,
+        ];
     }
 
     /**
@@ -297,6 +347,29 @@ new class extends Component
             </div>
 
             <flux:input wire:model="name" :label="__('Name')" :placeholder="$catalog->namePlaceholder()" required autofocus data-test="catalog-entry-name-input" />
+
+            @if ($this->hasRemoteSchedule)
+                <flux:checkbox.group
+                    wire:model="remoteWeekdays"
+                    variant="pills"
+                    :label="__('Remote pass days')"
+                    :description="__('The dates of remote passes of this type are suggested on these days. Leave all unselected to suggest one a week.')"
+                    data-test="pass-type-remote-weekdays-checkbox-group"
+                >
+                    @foreach (\App\Enums\Weekday::options() as $weekdayOption)
+                        <flux:checkbox :value="$weekdayOption['value']" :label="$weekdayOption['label']" data-test="pass-type-remote-weekday-{{ $weekdayOption['value'] }}" />
+                    @endforeach
+                </flux:checkbox.group>
+
+                <flux:fieldset>
+                    <flux:legend>{{ __('Rest time') }}</flux:legend>
+                    <flux:description>{{ __('When the assisted person rests to receive the pass, printed on the remote pass sheet. Optional.') }}</flux:description>
+                    <div class="grid grid-cols-2 gap-3">
+                        <flux:input type="time" wire:model="remoteStartsAt" :label="__('Rest from')" data-test="pass-type-remote-starts-at-input" />
+                        <flux:input type="time" wire:model="remoteEndsAt" :label="__('Rest until')" data-test="pass-type-remote-ends-at-input" />
+                    </div>
+                </flux:fieldset>
+            @endif
 
             <div class="flex justify-end space-x-2 rtl:space-x-reverse">
                 <flux:modal.close>

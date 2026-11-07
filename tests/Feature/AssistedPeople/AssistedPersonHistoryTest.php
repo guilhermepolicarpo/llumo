@@ -189,6 +189,26 @@ test('follow-ups already on the schedule are not flagged', function () {
     expect(Livewire::test('pages::assisted-people.show', ['assistedPerson' => $person])->get('pendingFollowUps'))->toBe([]);
 });
 
+test('an infiltration removal already attended on its day is not flagged, but a canceled one is', function () {
+    $this->travelTo('2026-11-06 20:00:00');
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $person = AssistedPerson::factory()->for($team)->create();
+    $removal = Appointment::factory()->for($team)->completed()->create(['assisted_person_id' => $person, 'scheduled_on' => '2026-11-06']);
+
+    completedRecordFor($person, '2026-11-04', [
+        'infiltration_remove_on' => '2026-11-06',
+        'infiltration_removal_place' => InfiltrationRemovalPlace::AtTheCenter,
+        'infiltration_removal_appointment_id' => $removal,
+    ]);
+
+    expect(Livewire::test('pages::assisted-people.show', ['assistedPerson' => $person])->get('pendingFollowUps'))->toBe([]);
+
+    $removal->update(['status' => AppointmentStatus::Canceled]);
+
+    expect(Livewire::test('pages::assisted-people.show', ['assistedPerson' => $person])->get('pendingFollowUps'))
+        ->sequence(fn ($followUp) => $followUp->key->toBe('infiltration'));
+});
+
 test('a return date gone by is flagged until the assisted person comes back', function () {
     $this->travelTo('2026-09-27 10:00:00');
     $user = User::factory()->create();
@@ -225,6 +245,31 @@ test('an upcoming appointment scheduled by a record says so', function () {
 
     Livewire::test('pages::assisted-people.show', ['assistedPerson' => $person])
         ->assertSee(__('return from the record of :date', ['date' => '20/09']));
+});
+
+test('a completed appointment tells who entered it in the system and when', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $person = AssistedPerson::factory()->for($team)->create();
+    Appointment::factory()->for($team)->completed()->create([
+        'assisted_person_id' => $person,
+        'attendant_id' => User::factory()->create(['name' => 'Jessica Nunes']),
+        'started_at' => today()->setTime(22, 1),
+        'finished_at' => today()->setTime(22, 8),
+    ]);
+
+    Livewire::test('pages::assisted-people.show', ['assistedPerson' => $person])
+        ->assertSeeHtml('data-test="assisted-person-history-system-entry"')
+        ->assertSee(__('Entered in the system by :user, from :start to :end.', ['user' => 'Jessica Nunes', 'start' => '22:01', 'end' => '22:08']));
+});
+
+test('an appointment left in progress does not tell a system entry', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $person = AssistedPerson::factory()->for($team)->create();
+    Appointment::factory()->for($team)->inProgress()->create(['assisted_person_id' => $person, 'scheduled_on' => today()->subWeek()]);
+
+    Livewire::test('pages::assisted-people.show', ['assistedPerson' => $person])
+        ->assertSee(AppointmentStatus::InProgress->label())
+        ->assertDontSeeHtml('data-test="assisted-person-history-system-entry"');
 });
 
 test('the history header shows the full address', function () {
@@ -269,66 +314,68 @@ test('an assisted person history cannot be opened under another team the user be
         ->assertNotFound();
 });
 
-test('the back button returns to the page the history was opened from', function () {
+test('the back button of the history leads to the list', function () {
     [, $team] = actingAsTeamMember(TeamRole::Member);
     $person = AssistedPerson::factory()->for($team)->create();
-    $loansPath = "/{$team->slug}/library/loans";
 
-    Livewire::withQueryParams(['from' => $loansPath])
-        ->test('pages::assisted-people.show', ['assistedPerson' => $person])
-        ->assertSeeHtml('href="'.$loansPath.'"')
-        ->assertSeeHtml('href="'.route('assisted-people.edit', ['assistedPerson' => $person, 'from' => route('assisted-people.show', ['assistedPerson' => $person, 'from' => $loansPath], absolute: false)]).'"');
+    Livewire::test('pages::assisted-people.show', ['assistedPerson' => $person])
+        ->assertSeeHtml('href="'.route('assisted-people.index').'"')
+        ->assertSeeHtml('data-test="page-header-back-button"')
+        ->assertSeeText(__('Assisted people'))
+        ->assertSeeHtml('href="'.route('assisted-people.edit', ['assistedPerson' => $person]).'"');
 });
 
-test('the back button ignores an origin outside the app', function (string $from) {
+test('the back button of the history ignores an origin in the url', function (string $from) {
     [, $team] = actingAsTeamMember(TeamRole::Member);
     $person = AssistedPerson::factory()->for($team)->create();
 
     Livewire::withQueryParams(['from' => $from])
         ->test('pages::assisted-people.show', ['assistedPerson' => $person])
         ->assertDontSeeHtml('href="'.e($from).'"')
-        ->assertSeeHtml('aria-label="'.__('Back to assisted people').'"');
+        ->assertSeeHtml('href="'.route('assisted-people.index').'"');
 })->with([
     'absolute url' => 'https://evil.example/path',
     'protocol-relative url' => '//evil.example/path',
     'backslash' => '/\\evil.example/path',
     'tab' => "/\t/evil.example/path",
+    'dot segment' => '/.//evil.example/path',
+    'uploaded file' => '/storage/book-covers/x.png',
 ]);
 
-test('editing the registration returns to the page it was opened from', function (string $from) {
+test('editing the registration returns to the history and ignores an origin in the url', function () {
     [, $team] = actingAsTeamMember(TeamRole::Member);
     $person = AssistedPerson::factory()->for($team)->create();
-    $from = str_replace(['{team}', '{person}'], [$team->slug, $person->id], $from);
+    $from = '/.//evil.example/path';
 
     Livewire::withQueryParams(['from' => $from])
         ->test('pages::assisted-people.edit', ['assistedPerson' => $person])
-        ->assertSeeHtml('href="'.$from.'"')
+        ->assertDontSeeHtml('href="'.$from.'"')
+        ->assertSeeHtml('href="'.route('assisted-people.show', ['assistedPerson' => $person]).'"')
+        ->assertSeeHtml('data-test="page-header-back-button"')
+        ->assertSeeText($person->name)
         ->call('updateAssistedPerson')
         ->assertHasNoErrors()
-        ->assertRedirect($from);
-})->with([
-    'the list' => '/{team}/assisted-people',
-    'the history opened from the loans' => '/{team}/assisted-people/{person}?from=%2F{team}%2Flibrary%2Floans',
-]);
+        ->assertRedirectToRoute('assisted-people.show', ['assistedPerson' => $person]);
+});
 
-test('the edit menu item of the list tells the edit form to return to the list', function () {
+test('the edit menu item of the list links to the edit form without an origin', function () {
     [, $team] = actingAsTeamMember(TeamRole::Member);
     $person = AssistedPerson::factory()->for($team)->create();
 
     Livewire::test('pages::assisted-people.index')
-        ->assertSeeHtml('href="'.route('assisted-people.edit', ['assistedPerson' => $person, 'from' => "/{$team->slug}/assisted-people"]).'"');
+        ->assertSeeHtml('href="'.route('assisted-people.edit', ['assistedPerson' => $person]).'"');
 });
 
-test('the pages that link to the history tell it where to go back to', function () {
+test('the pages that link to the history do so without an origin', function () {
     [, $team] = actingAsTeamMember(TeamRole::Member);
     $person = AssistedPerson::factory()->for($team)->create();
     BookLoan::factory()->for(BookCopy::factory()->for(Book::factory()->for($team)), 'copy')->for($person)->create();
     $appointment = Appointment::factory()->for($team)->create(['assisted_person_id' => $person]);
 
     Livewire::test('pages::library.loans.index')
-        ->assertSeeHtml('href="'.route('assisted-people.show', ['assistedPerson' => $person, 'from' => "/{$team->slug}/library/loans"]).'"');
+        ->assertSeeHtml('href="'.route('assisted-people.show', ['assistedPerson' => $person]).'"');
 
     Livewire::test('pages::appointments.index')
         ->call('showAppointment', $appointment->id)
-        ->assertSeeHtml('href="'.route('assisted-people.show', ['assistedPerson' => $person, 'from' => "/{$team->slug}/appointments"]).'"');
+        ->assertSeeHtml('href="'.route('assisted-people.show', ['assistedPerson' => $person]).'"');
 });

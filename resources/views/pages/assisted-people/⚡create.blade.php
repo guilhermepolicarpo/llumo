@@ -39,7 +39,7 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <x-page-header :heading="__('New assisted person')" :subheading="__('Register a new assisted person for this Spiritist Center')" :back-href="route('assisted-people.index')" :back-label="__('Back to assisted people')" />
+    <x-page-header :heading="__('New assisted person')" :subheading="__('Register a new assisted person for this Spiritist Center')" :back-href="route('assisted-people.index')" :back-label="__('Assisted people')" />
 
     <form wire:submit="createAssistedPerson" class="max-w-xl space-y-6">
         <x-assisted-people.fields />

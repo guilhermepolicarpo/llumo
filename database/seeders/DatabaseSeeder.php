@@ -6,6 +6,7 @@ use App\Actions\Appointments\SaveAppointmentRecord;
 use App\Enums\AppointmentMode;
 use App\Enums\InfiltrationRemovalPlace;
 use App\Enums\TeamRole;
+use App\Enums\Weekday;
 use App\Models\Appointment;
 use App\Models\AppointmentType;
 use App\Models\AssistedPerson;
@@ -179,15 +180,15 @@ class DatabaseSeeder extends Seeder
             ->withBirthDate()
             ->create();
 
-        $healingTreatment = AppointmentType::factory()->for($team)->withRecord()->withDailyLimit(20)->create(['name' => 'Tratamento de Cura']);
-        $spiritualIntervention = AppointmentType::factory()->for($team)->withRecord()->create(['name' => 'Intervenção Espiritual']);
-        $hydrotherapy = AppointmentType::factory()->for($team)->create(['name' => 'Hidroterapia']);
-        $infiltrationRemoval = AppointmentType::factory()->for($team)->create(['name' => 'Retirada de Infiltração']);
+        $healingTreatment = AppointmentType::factory()->for($team)->withRecord()->withDailyLimit(20)->onWeekdays(Weekday::Monday, Weekday::Wednesday)->create(['name' => 'Tratamento de Cura']);
+        $spiritualIntervention = AppointmentType::factory()->for($team)->withRecord()->withDailyLimit(10)->onWeekdays(Weekday::Wednesday)->create(['name' => 'Intervenção Espiritual']);
+        $hydrotherapy = AppointmentType::factory()->for($team)->onWeekdays(Weekday::Thursday)->create(['name' => 'Hidroterapia']);
+        $infiltrationRemoval = AppointmentType::factory()->for($team)->onWeekdays(Weekday::Wednesday, Weekday::Friday)->create(['name' => 'Retirada de Infiltração']);
         AppointmentType::factory()->for($team)->trashed()->create(['name' => 'Palestra pública']);
 
         PassType::factory()->for($team)->createMany([
-            ['name' => 'Passe com 3 médiuns'],
-            ['name' => 'Passe com todos os médiuns'],
+            ['name' => 'Passe com 3 médiuns', 'remote_weekdays' => [Weekday::Monday], 'remote_starts_at' => '20:00', 'remote_ends_at' => '20:15'],
+            ['name' => 'Passe com todos os médiuns', 'remote_weekdays' => [Weekday::Wednesday], 'remote_starts_at' => '20:00', 'remote_ends_at' => '20:30'],
             ['name' => 'Hidroterapia'],
         ]);
 
@@ -315,7 +316,6 @@ class DatabaseSeeder extends Seeder
      *     infiltration_removal_place: ?string,
      *     removal_appointment_type_id: ?int,
      *     return_on: ?string,
-     *     schedules_return: bool,
      *     return_appointment_type_id: ?int,
      *     observations: ?string,
      * }
@@ -348,7 +348,6 @@ class DatabaseSeeder extends Seeder
             'infiltration_removal_place' => $removalPlace?->value,
             'removal_appointment_type_id' => $removalPlace?->schedulesRemoval() ? $infiltrationRemoval->id : null,
             'return_on' => fake()->boolean(60) ? $returnOn->toDateString() : null,
-            'schedules_return' => true,
             'return_appointment_type_id' => $appointment->appointment_type_id,
             'observations' => fake()->optional(0.4)->randomElement([
                 'Relatou melhora das dores desde o último atendimento.',

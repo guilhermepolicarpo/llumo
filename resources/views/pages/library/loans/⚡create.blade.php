@@ -206,7 +206,7 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <x-page-header :heading="__('New loan')" :subheading="__('Lend a copy to an assisted person')" :back-href="route('library.loans.index')" :back-label="__('Back to loans')" />
+    <x-page-header :heading="__('New loan')" :subheading="__('Lend a copy to an assisted person')" :back-href="route('library.loans.index')" :back-label="__('Loans')" />
 
     <div class="flex flex-wrap items-start gap-8">
         <form wire:submit="lendBookCopy" class="min-w-0 max-w-xl flex-1 basis-[28rem] space-y-6">

@@ -3,6 +3,7 @@
 namespace App\Enums;
 
 use Carbon\CarbonInterface;
+use Illuminate\Support\Arr;
 
 /**
  * A day of the week, numbered the ISO-8601 way (Monday is 1, Sunday is 7).
@@ -39,6 +40,20 @@ enum Weekday: int
             self::Saturday => __('Saturdays'),
             self::Sunday => __('Sundays'),
         };
+    }
+
+    /**
+     * Join the given weekdays in week order by their plural labels, as in "Mondays and Wednesdays".
+     *
+     * @param  iterable<self>  $weekdays
+     */
+    public static function pluralList(iterable $weekdays): string
+    {
+        return Arr::join(
+            collect($weekdays)->sortBy(fn (self $weekday): int => $weekday->value)->map(fn (self $weekday): string => $weekday->pluralLabel())->all(),
+            ', ',
+            ' '.__('and').' ',
+        );
     }
 
     /**

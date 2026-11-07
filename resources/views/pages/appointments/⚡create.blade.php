@@ -65,12 +65,13 @@ new class extends Component
 }; ?>
 
 <section class="w-full">
-    <x-page-header :heading="__('New appointment')" :subheading="__('Schedule an assisted person for an appointment')" :back-href="route('appointments.index')" :back-label="__('Back to appointments')" />
+    <x-page-header :heading="__('New appointment')" :subheading="__('Schedule an assisted person for an appointment')" :back-href="route('appointments.index')" :back-label="__('Appointments')" />
 
     <form wire:submit="createAppointment" class="max-w-xl space-y-6">
         <x-pages::appointments.form
             :appointment-types="$this->appointmentTypes"
             :weekday-restricted-types="$this->weekdayRestrictedAppointmentTypes"
+            :day-occupancy="$this->scheduledDayOccupancy"
             :modes="$this->modes"
             :selected-assisted-person="$this->selectedAssistedPerson"
             :assisted-person-search="$assistedPersonSearch"

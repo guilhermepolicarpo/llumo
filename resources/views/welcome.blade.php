@@ -75,13 +75,6 @@
             'aspect' => 'aspect-1625/860',
         ],
         [
-            'hour' => '19:00',
-            'status' => AppointmentStatus::Scheduled,
-            'title' => __('The talk begins'),
-            'description' => __('The house listens. At the front desk, whoever arrives later keeps joining the queue, without interrupting anyone.'),
-            'image' => null,
-        ],
-        [
             'hour' => '20:00',
             'status' => AppointmentStatus::InProgress,
             'title' => __('Passes and treatments begin'),

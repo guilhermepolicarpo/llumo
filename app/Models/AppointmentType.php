@@ -13,7 +13,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection as SupportCollection;
 
@@ -99,7 +98,7 @@ class AppointmentType extends Model
      */
     public function weekdaysLabel(): string
     {
-        return Arr::join($this->sortedWeekdays()->map(fn (Weekday $weekday): string => $weekday->pluralLabel())->all(), ', ', ' '.__('and').' ');
+        return Weekday::pluralList($this->weekdays ?? []);
     }
 
     /**
@@ -118,6 +117,32 @@ class AppointmentType extends Model
     public function notOfferedWarning(): string
     {
         return __(':type appointments only take place on :weekdays.', ['type' => $this->name, 'weekdays' => $this->weekdaysLabel()]);
+    }
+
+    /**
+     * Get how many appointments of this type the given day already has, and how many places are left.
+     *
+     * Canceled appointments do not take a place, and neither does the given appointment. Filtering by team lets the
+     * count use the team and date index instead of reading the type's whole history, so the type must be loaded with team_id.
+     *
+     * @return array{count: int, limit: ?int, remaining: ?int, type: string, date: string}
+     */
+    public function occupancyOn(CarbonInterface $day, ?int $exceptAppointmentId = null): array
+    {
+        $count = $this->appointments()
+            ->where('team_id', $this->team_id)
+            ->scheduledOn($day)
+            ->takingPlace()
+            ->when($exceptAppointmentId, fn ($query, int $id) => $query->whereKeyNot($id))
+            ->count();
+
+        return [
+            'count' => $count,
+            'limit' => $this->daily_limit,
+            'remaining' => $this->daily_limit === null ? null : max(0, $this->daily_limit - $count),
+            'type' => $this->name,
+            'date' => $day->format('d/m/Y'),
+        ];
     }
 
     /**

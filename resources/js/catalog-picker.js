@@ -53,6 +53,18 @@ const forgetDestroyedComponents = () => {
         .forEach((cacheId) => caches.delete(cacheId));
 };
 
+/**
+ * Get the name of a catalog entry from the options the component's pickers already loaded, or an empty string while
+ * they are still loading.
+ *
+ * @param {string} componentId
+ * @param {string} cacheKey
+ * @param {string} id
+ */
+export function catalogEntryName(componentId, cacheKey, id) {
+    return caches.get(`${componentId}:${cacheKey}`)?.options.find((option) => option.id === String(id))?.name ?? '';
+}
+
 export default function registerCatalogPicker(Alpine) {
     Alpine.data('catalogPicker', ({ model, multiple = false, cacheKey, create, detailModel = null }) => ({
         open: false,
