@@ -478,3 +478,32 @@ test('members cannot start attending an appointment older than seven days', func
 
     expect($appointment->fresh()->status)->toBe(AppointmentStatus::Scheduled);
 });
+
+test('a pass type is prescribed once in each mode', function (AppointmentMode $secondMode, bool $accepted) {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->inProgress()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+    $passTypeId = (string) PassType::factory()->for($team)->create()->id;
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    $component = Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->set('form.mentorId', (string) Mentor::factory()->for($team)->create()->id)
+        ->call('addPassPrescription')
+        ->call('addPassPrescription')
+        ->set('form.passPrescriptions.0.pass_type_id', $passTypeId)
+        ->set('form.passPrescriptions.0.mode', AppointmentMode::Remote->value)
+        ->set('form.passPrescriptions.1.pass_type_id', $passTypeId)
+        ->set('form.passPrescriptions.1.mode', $secondMode->value)
+        ->call('save');
+
+    $accepted
+        ? $component->assertHasNoErrors()
+        : $component->assertHasErrors(['form.passPrescriptions.1.pass_type_id'])->assertHasNoErrors(['form.passPrescriptions.0.pass_type_id']);
+})->with([
+    'twice remotely' => [AppointmentMode::Remote, false],
+    'remotely and in person' => [AppointmentMode::InPerson, true],
+]);

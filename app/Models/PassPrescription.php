@@ -6,9 +6,11 @@ use App\Enums\AppointmentMode;
 use Database\Factories\PassPrescriptionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -21,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read AppointmentRecord $appointmentRecord
  * @property-read PassType $passType
+ * @property-read Collection<int, PassSession> $sessions
  * @property-read string $label
  */
 #[Fillable([
@@ -52,6 +55,16 @@ class PassPrescription extends Model
     public function passType(): BelongsTo
     {
         return $this->belongsTo(PassType::class)->withTrashed();
+    }
+
+    /**
+     * Get the days on which the assisted person receives the remote passes, in date order.
+     *
+     * @return HasMany<PassSession, $this>
+     */
+    public function sessions(): HasMany
+    {
+        return $this->hasMany(PassSession::class)->orderBy('scheduled_on');
     }
 
     /**

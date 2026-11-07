@@ -8,6 +8,7 @@ use App\Concerns\HasFormattedPhone;
 use App\Enums\BrazilianState;
 use App\Enums\TeamRole;
 use Database\Factories\TeamFactory;
+use finfo;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -301,6 +302,20 @@ class Team extends Model
     public function bookLoans(): HasMany
     {
         return $this->hasMany(BookLoan::class);
+    }
+
+    /**
+     * Get the team's logo embedded as a data URI, so a PDF renderer never has to reach the disk or the network for it.
+     */
+    public function logoDataUri(): ?string
+    {
+        $contents = $this->logo_path ? Storage::disk('public')->get($this->logo_path) : null;
+
+        if ($contents === null) {
+            return null;
+        }
+
+        return 'data:'.(new finfo(FILEINFO_MIME_TYPE))->buffer($contents).';base64,'.base64_encode($contents);
     }
 
     /**

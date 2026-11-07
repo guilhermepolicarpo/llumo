@@ -187,8 +187,8 @@ class DatabaseSeeder extends Seeder
         AppointmentType::factory()->for($team)->trashed()->create(['name' => 'Palestra pública']);
 
         PassType::factory()->for($team)->createMany([
-            ['name' => 'Passe com 3 médiuns'],
-            ['name' => 'Passe com todos os médiuns'],
+            ['name' => 'Passe com 3 médiuns', 'remote_weekdays' => [Weekday::Monday], 'remote_starts_at' => '20:00', 'remote_ends_at' => '20:15'],
+            ['name' => 'Passe com todos os médiuns', 'remote_weekdays' => [Weekday::Wednesday], 'remote_starts_at' => '20:00', 'remote_ends_at' => '20:30'],
             ['name' => 'Hidroterapia'],
         ]);
 

@@ -82,6 +82,38 @@ trait InteractsWithAppointmentRecordForm
     }
 
     /**
+     * Get what the remote pass dates modal needs to suggest the dates in the browser: the appointment day, when the
+     * center gives each pass type remotely (keyed by pass type id), where the sheet is printed and its labels. Like
+     * the pickers' options, the pass type names are left out of the page: the modal takes them from the pickers.
+     *
+     * @return array{scheduledOn: string, schedules: object, printUrl: string, labels: array<string, string>}
+     */
+    #[Computed]
+    public function remotePassDatesConfig(): array
+    {
+        $schedules = $this->appointment->team->passTypes()
+            ->get(['id', 'remote_weekdays', 'remote_starts_at', 'remote_ends_at'])
+            ->mapWithKeys(fn (PassType $passType): array => [$passType->id => [
+                'weekdays' => $passType->remoteWeekdayNumbers(),
+                'schedule' => $passType->remoteScheduleLabel(),
+            ]])
+            ->filter(fn (array $schedule): bool => $schedule['schedule'] !== null);
+
+        return [
+            'scheduledOn' => $this->appointment->scheduled_on->toDateString(),
+            'schedules' => (object) $schedules->all(),
+            'printUrl' => route('appointments.remote-pass-sheet', ['appointment' => $this->appointment]),
+            'labels' => [
+                'noDays' => __('No days set for this pass type: the dates are suggested weekly.'),
+                'onePass' => __('1 pass'),
+                'passes' => __(':count passes'),
+                'position' => __('Pass :position'),
+                'datesSet' => __(':filled of :total dates set'),
+            ],
+        ];
+    }
+
+    /**
      * Get the team's appointment types, offered for the follow-up appointments.
      *
      * @return Collection<int, AppointmentType>
@@ -181,6 +213,7 @@ trait InteractsWithAppointmentRecordForm
             'pass_type_id' => '',
             'quantity' => 1,
             'mode' => $this->appointment->mode->value,
+            'dates' => [],
         ];
     }
 

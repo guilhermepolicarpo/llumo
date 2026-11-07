@@ -13,7 +13,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection as SupportCollection;
 
@@ -99,7 +98,7 @@ class AppointmentType extends Model
      */
     public function weekdaysLabel(): string
     {
-        return Arr::join($this->sortedWeekdays()->map(fn (Weekday $weekday): string => $weekday->pluralLabel())->all(), ', ', ' '.__('and').' ');
+        return Weekday::pluralList($this->weekdays ?? []);
     }
 
     /**
