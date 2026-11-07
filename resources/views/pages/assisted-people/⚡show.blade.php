@@ -143,7 +143,9 @@ new class extends Component
      * List the follow-ups the latest record asked for that nobody has taken care of: an infiltration removal or a return
      * still to be scheduled, or a return whose date went by without the assisted person coming back.
      *
-     * Any appointment already booked counts as the return, since it may have been scheduled without the record's link.
+     * The removal counts as taken care of once its linked appointment is booked, even if it has already happened or
+     * was missed, unless it was canceled. Any appointment already booked counts as the return, since it may have been
+     * scheduled without the record's link.
      *
      * @return list<array{key: string, message: string, detail: string, action: string, url: string}>
      */
@@ -156,7 +158,6 @@ new class extends Component
             return [];
         }
 
-        $bookedIds = $this->assistedPerson->appointments()->upcoming()->pluck('id');
         $detail = $record->mentor
             ? __('Indicated by :mentor in the record of :date.', ['mentor' => $record->mentor->name, 'date' => $record->appointment->scheduled_on->format('d/m/Y')])
             : __('Indicated in the record of :date.', ['date' => $record->appointment->scheduled_on->format('d/m/Y')]);
@@ -164,7 +165,7 @@ new class extends Component
 
         if ($record->infiltration_removal_place?->schedulesRemoval()
             && $record->infiltration_remove_on?->gte(today())
-            && ! $bookedIds->contains($record->infiltration_removal_appointment_id)) {
+            && in_array($record->infiltrationRemovalAppointment?->status, [null, AppointmentStatus::Canceled], true)) {
             $followUps[] = [
                 'key' => 'infiltration',
                 'message' => __('The infiltration removal on :date has not been scheduled yet.', ['date' => $record->infiltration_remove_on->format('d/m/Y')]),
@@ -175,7 +176,7 @@ new class extends Component
         }
 
         $cameBack = $this->stats['last_visit_on']?->gt($record->appointment->scheduled_on) ?? false;
-        $hasBookedReturn = $bookedIds->contains(fn (int $id): bool => $id !== $record->infiltration_removal_appointment_id);
+        $hasBookedReturn = $this->assistedPerson->appointments()->upcoming()->whereKeyNot($record->infiltration_removal_appointment_id)->exists();
 
         if ($record->return_on && ! $cameBack && ! $hasBookedReturn) {
             $isAhead = $record->return_on->gte(today());
