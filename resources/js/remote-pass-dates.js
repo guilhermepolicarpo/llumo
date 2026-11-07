@@ -50,6 +50,12 @@ export default function registerRemotePassDates(Alpine) {
     Alpine.data('remotePassDates', ({ scheduledOn, schedules, printUrl, labels }) => ({
         labels,
 
+        /**
+         * The dates being chosen in the modal, by the index of their pass row. They are written to the form only when
+         * saved, so closing the modal any other way leaves the form as it was.
+         */
+        chosenDates: {},
+
         /** The remote rows of the form, each with its index among all the pass rows. */
         get remoteRows() {
             return (this.$wire.form.passPrescriptions ?? [])
@@ -106,24 +112,24 @@ export default function registerRemotePassDates(Alpine) {
         },
 
         /**
-         * Give each remote row one date per pass: the dates already chosen are kept, and the missing ones are suggested
+         * Give each remote row one date per pass: the dates already saved are kept, and the missing ones are suggested
          * after the last of them. Called when the modal opens, so it always matches the quantities in the form.
          */
         fill() {
-            this.remoteRows.forEach((row) => {
+            this.chosenDates = Object.fromEntries(this.remoteRows.map((row) => {
                 const quantity = this.quantityOf(row);
                 const chosen = (row.dates ?? []).slice(0, quantity).map((date) => date ?? '');
                 const filled = chosen.filter((date) => date !== '').sort();
 
-                this.setDates(row, filled.length === 0
+                return [row.index, filled.length === 0
                     ? this.suggestFor(row, scheduledOn, quantity)
-                    : [...chosen, ...this.suggestFor(row, filled.at(-1), quantity - chosen.length)]);
-            });
+                    : [...chosen, ...this.suggestFor(row, filled.at(-1), quantity - chosen.length)]];
+            }));
         },
 
         /** Replace every remote row's dates with fresh suggestions. */
         suggestAll() {
-            this.remoteRows.forEach((row) => this.setDates(row, this.suggestFor(row, scheduledOn, this.quantityOf(row))));
+            this.remoteRows.forEach((row) => this.chosenDates[row.index] = this.suggestFor(row, scheduledOn, this.quantityOf(row)));
         },
 
         /**
@@ -135,23 +141,34 @@ export default function registerRemotePassDates(Alpine) {
             return suggestDates(after, count, this.scheduleOf(row).weekdays);
         },
 
-        /** @param {{index: number}} row @param {string[]} dates */
-        setDates(row, dates) {
-            this.$wire.form.passPrescriptions[row.index].dates = dates;
+        /**
+         * Write the chosen dates to the form and save it as a draft, then close the modal: when the passes do not
+         * validate, that uncovers their errors on the form. The form hears 'remote-pass-dates-saving' before the request,
+         * and 'remote-pass-dates-saved' with when the draft was saved (null when it was not) after it, which is also
+         * what this resolves with.
+         */
+        async save() {
+            Object.entries(this.chosenDates).forEach(([index, dates]) => this.$wire.form.passPrescriptions[index].dates = dates);
+
+            this.$dispatch('remote-pass-dates-saving');
+
+            const status = await this.$wire.saveRemotePassDates().catch(() => null);
+
+            this.$flux.modal('remote-pass-dates').close();
+            this.$dispatch('remote-pass-dates-saved', status);
+
+            return status;
         },
 
         /**
-         * Keep the form as a draft and open its remote pass sheet in a new tab. The tab is opened right on the click, so
-         * the browser does not block it, and pointed at the sheet once the draft is kept; when the passes do not validate,
-         * the tab closes and so does the modal, uncovering the errors on the form.
+         * Save the dates and open the remote pass sheet in a new tab. The tab is opened right on the click, so the browser
+         * does not block it, and pointed at the sheet once the draft is saved; when the passes do not validate, it closes.
          */
         async saveAndPrint() {
             const tab = window.open('', '_blank');
-            const saved = await this.$wire.prepareRemotePassSheet().catch(() => false);
+            const status = await this.save();
 
-            this.$flux.modal('remote-pass-dates').close();
-
-            if (saved === true && tab) {
+            if (status && tab) {
                 tab.location.href = printUrl;
             } else {
                 tab?.close();

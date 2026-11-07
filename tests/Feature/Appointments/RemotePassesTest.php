@@ -91,7 +91,7 @@ test('the remote pass dates are validated before the sheet is printed', function
         ->set('form.passPrescriptions.0.quantity', 2)
         ->set('form.passPrescriptions.0.mode', AppointmentMode::Remote->value)
         ->set('form.passPrescriptions.0.dates', $dates)
-        ->call('prepareRemotePassSheet')
+        ->call('saveRemotePassDates')
         ->assertHasErrors($rule === null ? [$error] : [$error => $rule]);
 
     expect($appointment->recordDraft()->exists())->toBeFalse();
@@ -103,6 +103,7 @@ test('the remote pass dates are validated before the sheet is printed', function
 ]);
 
 test('the remote pass sheet is printed from the form as it stands, before the mentor is picked', function () {
+    $this->travelTo('2026-11-09 19:30:00');
     [$component, $team, $appointment] = attendRemoteAppointment();
     $passType = PassType::factory()->for($team)->create(['name' => 'Passe com todos']);
 
@@ -113,9 +114,9 @@ test('the remote pass sheet is printed from the form as it stands, before the me
         ->set('form.passPrescriptions.0.quantity', 2)
         ->set('form.passPrescriptions.0.mode', AppointmentMode::Remote->value)
         ->set('form.passPrescriptions.0.dates', ['2026-11-18', '2026-11-11'])
-        ->call('prepareRemotePassSheet')
+        ->call('saveRemotePassDates')
         ->assertHasNoErrors()
-        ->assertReturned(true)
+        ->assertReturned(__('Draft saved at :time', ['time' => '19:30']))
         ->assertSeeHtml('data-test="appointment-record-print-remote-passes-button"');
 
     expect($appointment->record()->exists())->toBeFalse();
@@ -258,3 +259,22 @@ test('the record offers the remote pass sheet only once a remote pass is saved',
         ->assertSeeHtml('data-test="appointment-record-print-remote-passes-button"')
         ->assertSeeHtml(route('appointments.remote-pass-sheet', ['current_team' => $team, 'appointment' => $appointment]));
 });
+
+test('only those who manage the catalogs get the link to the pass type configuration', function (TeamRole $role, bool $seesLink) {
+    [, $team] = actingAsTeamMember($role);
+    $appointment = Appointment::factory()->for($team)->remote()->inProgress()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+
+    $component = Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->assertSeeText('Os dias e horários vêm da')
+        ->assertSeeText('configuração');
+
+    $seesLink
+        ? $component->assertSeeHtml('data-test="appointment-record-pass-type-settings-link"')
+        : $component->assertDontSeeHtml('data-test="appointment-record-pass-type-settings-link"');
+})->with([
+    'owner' => [TeamRole::Owner, true],
+    'admin' => [TeamRole::Admin, true],
+    'member' => [TeamRole::Member, false],
+]);

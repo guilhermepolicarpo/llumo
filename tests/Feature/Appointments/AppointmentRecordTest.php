@@ -85,7 +85,7 @@ test('members fill in the record of the appointment they attend', function () {
         ->started_at->toDateTimeString()->toBe($appointment->started_at->toDateTimeString());
 });
 
-test('completing the appointment saves the record and finishes it', function () {
+test('completing the appointment saves the record, finishes it and only then offers to print its sheet', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
     $appointment = Appointment::factory()->for($team)->inProgress()->create([
@@ -97,6 +97,7 @@ test('completing the appointment saves the record and finishes it', function () 
     $user->switchTeam($team);
 
     Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->assertDontSeeHtml('data-test="appointment-record-print-button"')
         ->set('form.mentorId', (string) Mentor::factory()->for($team)->create()->id)
         ->set('form.observations', 'Tudo certo')
         ->call('complete')
@@ -105,6 +106,9 @@ test('completing the appointment saves the record and finishes it', function () 
 
     expect($appointment->fresh()->status)->toBe(AppointmentStatus::Completed)
         ->and($appointment->record->observations)->toBe('Tudo certo');
+
+    Livewire::test('pages::appointments.attend', ['appointment' => $appointment->fresh()])
+        ->assertSeeHtml('data-test="appointment-record-print-button"');
 });
 
 test('whoever records an appointment someone else attends takes it over from when they opened the record', function (string $method, AppointmentStatus $status) {

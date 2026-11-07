@@ -327,6 +327,14 @@ trait InteractsWithAppointmentRecordForm
     {
         Gate::authorize('update', [AppointmentRecord::class, $this->appointment]);
 
+        return $this->keepDraft($saveAppointmentRecordDraft);
+    }
+
+    /**
+     * Save the form as the appointment's draft, once the caller has authorized it, and tell when it was saved.
+     */
+    protected function keepDraft(SaveAppointmentRecordDraft $saveAppointmentRecordDraft): string
+    {
         $draft = $saveAppointmentRecordDraft->handle($this->appointment, Auth::user(), $this->form->all());
 
         return __('Draft saved at :time', ['time' => $draft->updated_at->format('H:i')]);
