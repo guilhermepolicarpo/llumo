@@ -953,8 +953,6 @@
   "Follow an appointment from the schedule to the assisted person's story. The screens come from llumo itself, with demo data, and the times are examples: each house has its own.": "Acompanhe um agendamento, da agenda à história do assistido. As telas são do próprio llumo, com dados de demonstração, e os horários são de exemplo: cada casa tem os seus.",
   "The gates open": "Os portões se abrem",
   "The night's schedule is ready, with in-person and remote sessions and filters by status, type and attendant. The records come out as a PDF, ready for the session room.": "A agenda da noite já está pronta, com atendimentos presenciais ou a distância e filtros por situação, tipo e atendente. As fichas saem em PDF, prontas para a sala de atendimento.",
-  "The talk begins": "A palestra começa",
-  "The house listens. At the front desk, whoever arrives later keeps joining the queue, without interrupting anyone.": "A casa escuta. Na recepção, quem chega depois continua entrando na fila, sem interromper ninguém.",
   "llumo's scheduling screen: the day's schedule with search, filters, a notice about sessions awaiting a record, and the list of assisted persons with the Check in and Attend actions": "Tela de agendamentos do llumo: agenda do dia com busca, filtros, aviso de atendimentos pendentes e a lista de assistidos com as ações Receber e Atender",
   "Someone arrives at the front desk": "Alguém chega à recepção",
   "One click on Check in and the arrival is recorded, in order. The front desk sees who is in the house and for how long, and nobody needs to ask who is next.": "Um clique em Receber e a chegada fica registrada, por ordem. A recepção vê quem está na casa e há quanto tempo, e ninguém precisa perguntar quem é o próximo.",
