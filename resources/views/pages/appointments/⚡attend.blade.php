@@ -210,8 +210,8 @@ new class extends Component
     >
         <div class="flex flex-wrap items-center gap-3">
             {{-- While attending, the record is filled right here: its sheet is only worth printing once completed. --}}
-            @can('printAttendanceSheet', $appointment)
-                @if ($appointment->filledRecord() !== null)
+            @if ($appointment->filledRecord() !== null)
+                @can('printAttendanceSheet', $appointment)
                     <flux:button
                         icon="printer"
                         icon:variant="outline"
@@ -221,8 +221,8 @@ new class extends Component
                         >
                         {{ __('Print attendance sheet') }}
                     </flux:button>
-                @endif
-            @endcan
+                @endcan
+            @endif
 
             @can('printRemotePassSheet', $appointment)
                 <flux:button
