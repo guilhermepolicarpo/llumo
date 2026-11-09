@@ -172,6 +172,8 @@ Beyond the modules, also on the radar:
 - **Network of centers** — optional integration between instances to share library collections and refer assisted persons
 - **Artificial intelligence** — optional features, enabled per center, that support daily work without ever suggesting spiritual treatment (fluidics, passes, and guidance are up to the mentor and mediums)
   - Paper record digitization: photos of old records become assisted persons and sessions in llumo
+  - Reading the day's sheets: the sheet printed by llumo carries the appointment's QR code; a photo of the sheet marked by the medium becomes the session record, with checkboxes read by position, AI used only for handwriting, and everything reviewed before saving
+  - Spreadsheet and notebook import: columns matched to llumo's fields, names and addresses normalized, and duplicate assisted persons flagged before importing
   - Book cataloging from a photo of the cover or copyright page, including old books without an ISBN
   - Dictation of notes during sessions
   - Natural language questions about the center's numbers ("how many remote sessions in March?")
