@@ -143,13 +143,13 @@ test('the follow-ups of the latest record that are still unscheduled are flagged
     $team = teamOwnedBy($user);
     $person = AssistedPerson::factory()->for($team)->create();
 
-    completedRecordFor($person, '2026-09-06', ['return_on' => '2026-11-01']);
+    completedRecordFor($person, '2026-09-06', ['return_at' => '2026-11-01']);
     completedRecordFor($person, '2026-09-20', [
         'mentor_id' => Mentor::factory()->for($team)->create(['name' => 'Irmã Clara']),
         'infiltration_site' => 'Coluna',
-        'infiltration_remove_on' => '2026-09-30',
+        'infiltration_remove_at' => '2026-09-30',
         'infiltration_removal_place' => InfiltrationRemovalPlace::AtTheCenter,
-        'return_on' => '2026-10-04',
+        'return_at' => '2026-10-04',
     ]);
 
     $this->actingAs($user);
@@ -176,10 +176,10 @@ test('follow-ups already on the schedule are not flagged', function () {
     $removal = Appointment::factory()->for($team)->create(['assisted_person_id' => $person, 'scheduled_on' => '2026-09-30']);
 
     completedRecordFor($person, '2026-09-20', [
-        'infiltration_remove_on' => '2026-09-30',
+        'infiltration_remove_at' => '2026-09-30',
         'infiltration_removal_place' => InfiltrationRemovalPlace::AtTheCenter,
         'infiltration_removal_appointment_id' => $removal,
-        'return_on' => '2026-10-04',
+        'return_at' => '2026-10-04',
     ]);
     Appointment::factory()->for($team)->create(['assisted_person_id' => $person, 'scheduled_on' => '2026-10-05']);
 
@@ -196,7 +196,7 @@ test('an infiltration removal already attended on its day is not flagged, but a 
     $removal = Appointment::factory()->for($team)->completed()->create(['assisted_person_id' => $person, 'scheduled_on' => '2026-11-06']);
 
     completedRecordFor($person, '2026-11-04', [
-        'infiltration_remove_on' => '2026-11-06',
+        'infiltration_remove_at' => '2026-11-06',
         'infiltration_removal_place' => InfiltrationRemovalPlace::AtTheCenter,
         'infiltration_removal_appointment_id' => $removal,
     ]);
@@ -215,7 +215,7 @@ test('a return date gone by is flagged until the assisted person comes back', fu
     $team = teamOwnedBy($user);
     $person = AssistedPerson::factory()->for($team)->create();
 
-    completedRecordFor($person, '2026-08-01', ['return_on' => '2026-08-15']);
+    completedRecordFor($person, '2026-08-01', ['return_at' => '2026-08-15']);
 
     $this->actingAs($user);
     $user->switchTeam($team);
@@ -238,7 +238,7 @@ test('an upcoming appointment scheduled by a record says so', function () {
     $person = AssistedPerson::factory()->for($team)->create();
     $return = Appointment::factory()->for($team)->create(['assisted_person_id' => $person, 'scheduled_on' => '2026-10-04']);
 
-    completedRecordFor($person, '2026-09-20', ['return_on' => '2026-10-04', 'return_appointment_id' => $return]);
+    completedRecordFor($person, '2026-09-20', ['return_at' => '2026-10-04', 'return_appointment_id' => $return]);
 
     $this->actingAs($user);
     $user->switchTeam($team);

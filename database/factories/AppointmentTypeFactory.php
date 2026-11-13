@@ -56,6 +56,18 @@ class AppointmentTypeFactory extends Factory
     }
 
     /**
+     * Indicate the time, as "H:i", at which the assisted person must be at the center on each weekday.
+     *
+     * @param  array<int, string>  $times  keyed by weekday number
+     */
+    public function startingAt(array $times): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'weekday_times' => $times,
+        ]);
+    }
+
+    /**
      * Indicate that the appointment type has been deleted.
      */
     public function trashed(): static

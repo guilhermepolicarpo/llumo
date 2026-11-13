@@ -31,6 +31,14 @@ class AppointmentTypeForm extends Form
     public array $weekdays = [];
 
     /**
+     * The time, as "H:i", at which the assisted person must be at the center on each weekday, keyed by weekday number.
+     * Every weekday has a key, so the time inputs never bind into an empty list.
+     *
+     * @var array<int, string>
+     */
+    public array $weekdayTimes = [1 => '', 2 => '', 3 => '', 4 => '', 5 => '', 6 => '', 7 => ''];
+
+    /**
      * Fill the form with the given appointment type, to edit it.
      */
     public function setAppointmentType(AppointmentType $appointmentType): void
@@ -40,12 +48,16 @@ class AppointmentTypeForm extends Form
         $this->requiresRecord = $appointmentType->requires_record;
         $this->dailyLimit = (string) $appointmentType->daily_limit;
         $this->weekdays = array_values($appointmentType->weekdays?->map(fn (Weekday $weekday): string => (string) $weekday->value)->all() ?? []);
+
+        $this->weekdayTimes = array_replace($this->weekdayTimes, $appointmentType->weekday_times ?? []);
     }
 
     /**
      * Validate the form for the given team and map it to the attribute shape expected by the create/update actions.
      *
-     * @return array{name: string, requires_record: bool, daily_limit: ?int, weekdays: ?list<int>}
+     * Times are only kept for the chosen weekdays.
+     *
+     * @return array{name: string, requires_record: bool, daily_limit: ?int, weekdays: ?list<int>, weekday_times: ?array<int, string>}
      */
     public function validatedAttributes(Team $team, ?AppointmentType $ignore = null): array
     {
@@ -61,11 +73,14 @@ class AppointmentTypeForm extends Form
         $weekdays = array_map('intval', $validated['weekdays'] ?? []);
         sort($weekdays);
 
+        $weekdayTimes = array_filter(array_intersect_key($validated['weekdayTimes'] ?? [], array_flip($weekdays)), 'filled');
+
         return [
             'name' => $validated['name'],
             'requires_record' => $validated['requiresRecord'],
             'daily_limit' => (int) $validated['dailyLimit'] ?: null,
             'weekdays' => $weekdays ?: null,
+            'weekday_times' => $weekdayTimes ?: null,
         ];
     }
 }

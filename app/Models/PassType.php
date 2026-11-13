@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\TimeOfDay;
 use App\Enums\Weekday;
 use Database\Factories\PassTypeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -147,6 +148,8 @@ class PassType extends Model
     {
         return [
             'remote_weekdays' => AsEnumCollection::of(Weekday::class),
+            'remote_starts_at' => TimeOfDay::class,
+            'remote_ends_at' => TimeOfDay::class,
         ];
     }
 }

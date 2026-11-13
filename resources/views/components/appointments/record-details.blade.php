@@ -8,7 +8,7 @@
         __('Guidances') => $record->guidance_summary,
         __('Passes') => $record->pass_summary,
         __('Infiltration') => $record->infiltration_summary,
-        __('Return date') => $record->return_on?->format('d/m/Y'),
+        __('Return date') => $record->return_summary,
         __('Observations') => $record->observations,
         __('Mentor') => $record->mentor?->name,
     ], fn ($value) => filled($value)) as $label => $value)

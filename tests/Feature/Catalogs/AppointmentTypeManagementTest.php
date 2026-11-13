@@ -97,6 +97,37 @@ test('admins can restrict an appointment type to the weekdays it takes place', f
     expect($appointmentType->fresh()->weekdays)->toBeNull();
 });
 
+test('admins set the time the assisted person must be at the center on each weekday of a type', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Admin);
+
+    $component = Livewire::test('pages::catalogs.appointment-types')
+        ->set('form.name', 'Retirada de infiltração')
+        ->set('form.weekdays', ['3', '5'])
+        ->set('form.weekdayTimes.3', '18:30')
+        ->set('form.weekdayTimes.5', '18:00')
+        ->set('form.weekdayTimes.1', '07:00')
+        ->call('saveAppointmentType')
+        ->assertHasNoErrors()
+        ->assertSee('Qua 18:30, Sex 18:00');
+
+    $appointmentType = $team->appointmentTypes()->sole();
+
+    expect($appointmentType->weekday_times)->toBe([3 => '18:30', 5 => '18:00']);
+
+    $component
+        ->call('editAppointmentType', $appointmentType->id)
+        ->assertSet('form.weekdayTimes.3', '18:30')
+        ->set('form.weekdayTimes.5', '25:00')
+        ->call('saveAppointmentType')
+        ->assertHasErrors('form.weekdayTimes.5')
+        ->set('form.weekdayTimes.5', '')
+        ->call('saveAppointmentType')
+        ->assertHasNoErrors()
+        ->assertSee('Qua 18:30, Sex');
+
+    expect($appointmentType->fresh()->weekday_times)->toBe([3 => '18:30']);
+});
+
 test('members cannot open the appointment types', function () {
     actingAsTeamMember(TeamRole::Member);
 

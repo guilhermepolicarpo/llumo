@@ -46,6 +46,11 @@ trait InteractsWithAppointmentRecordForm
     public ?array $restoredDraft = null;
 
     /**
+     * Whether the update being applied only changes the time of a follow-up, on the same day.
+     */
+    protected bool $onlyFollowUpTimeChanged = false;
+
+    /**
      * @return Collection<int, Mentor>
      */
     #[Computed]
@@ -121,7 +126,7 @@ trait InteractsWithAppointmentRecordForm
     #[Computed]
     public function appointmentTypes(): Collection
     {
-        return $this->appointment->team->appointmentTypes()->orderBy('name')->get(['id', 'team_id', 'name', 'daily_limit', 'weekdays']);
+        return $this->appointment->team->appointmentTypes()->orderBy('name')->get(['id', 'team_id', 'name', 'daily_limit', 'weekdays', 'weekday_times']);
     }
 
     /**
@@ -135,7 +140,7 @@ trait InteractsWithAppointmentRecordForm
     #[Computed]
     public function returnDayOccupancy(): ?array
     {
-        $returnOn = $this->dateFrom($this->form->returnOn);
+        $returnOn = $this->followUpDay($this->form->returnAt);
         $returnType = $this->appointmentTypes->firstWhere('id', (int) $this->form->returnAppointmentTypeId);
 
         if ($returnOn === null || $returnType === null) {
@@ -160,7 +165,7 @@ trait InteractsWithAppointmentRecordForm
             return null;
         }
 
-        $removeOn = $this->dateFrom($this->form->infiltrationRemoveOn);
+        $removeOn = $this->followUpDay($this->form->infiltrationRemoveAt);
         $removalType = $this->appointmentTypes->firstWhere('id', (int) $this->form->removalAppointmentTypeId);
 
         if ($removeOn === null || $removalType === null || $removalType->isOfferedOn($removeOn)) {
@@ -194,8 +199,35 @@ trait InteractsWithAppointmentRecordForm
      */
     public function updatedFormInfiltrationSite(): void
     {
-        if (trim($this->form->infiltrationSite) !== '' && $this->form->infiltrationRemoveOn === '') {
-            $this->form->infiltrationRemoveOn = $this->nextOfferedDayFrom($this->form->removalAppointmentTypeId, $this->appointment->scheduled_on->addDays(3))->toDateString();
+        if (trim($this->form->infiltrationSite) !== '' && $this->form->infiltrationRemoveAt === '') {
+            $this->form->infiltrationRemoveAt = $this->nextOfferedDayFrom($this->form->removalAppointmentTypeId, $this->appointment->scheduled_on->addDays(3))->toDateString();
+            $this->fillFollowUpTimes();
+        }
+    }
+
+    /**
+     * Note whether a follow-up is only getting another time on the same day, which must be kept as it was chosen.
+     */
+    public function updatingForm(mixed $value, string $property): void
+    {
+        $this->onlyFollowUpTimeChanged = in_array($property, ['infiltrationRemoveAt', 'returnAt'], true)
+            && is_string($value)
+            && AppointmentRecordForm::splitFollowUp($value)[0] === AppointmentRecordForm::splitFollowUp($this->form->{$property})[0];
+    }
+
+    /**
+     * Follow the follow-up times when a field they depend on changes, unless only a time was chosen.
+     */
+    public function updatedForm(mixed $value, string $property): void
+    {
+        if ($this->onlyFollowUpTimeChanged) {
+            $this->onlyFollowUpTimeChanged = false;
+
+            return;
+        }
+
+        if (in_array($property, ['infiltrationRemoveAt', 'infiltrationRemovalPlace', 'removalAppointmentTypeId', 'returnAt', 'returnAppointmentTypeId'], true)) {
+            $this->fillFollowUpTimes();
         }
     }
 
@@ -204,7 +236,28 @@ trait InteractsWithAppointmentRecordForm
      */
     public function setReturnInDays(int $days): void
     {
-        $this->form->returnOn = $this->nextOfferedDayFrom($this->form->returnAppointmentTypeId, $this->appointment->scheduled_on->addDays($days))->toDateString();
+        $returnOn = $this->nextOfferedDayFrom($this->form->returnAppointmentTypeId, $this->appointment->scheduled_on->addDays($days));
+        $this->form->returnAt = AppointmentRecordForm::joinFollowUp($returnOn->toDateString(), AppointmentRecordForm::splitFollowUp($this->form->returnAt)[1]);
+        $this->fillFollowUpTimes();
+    }
+
+    /**
+     * Set the removal and return times to the ones their types take place at on the chosen days. The removal only
+     * takes a time from its type when it is removed at this center.
+     */
+    protected function fillFollowUpTimes(): void
+    {
+        $this->form->infiltrationRemoveAt = $this->withFollowUpTime(
+            value: $this->form->infiltrationRemoveAt,
+            appointmentTypeId: $this->form->removalAppointmentTypeId,
+            applies: (bool) InfiltrationRemovalPlace::tryFrom($this->form->infiltrationRemovalPlace)?->schedulesRemoval(),
+        );
+
+        $this->form->returnAt = $this->withFollowUpTime(
+            value: $this->form->returnAt,
+            appointmentTypeId: $this->form->returnAppointmentTypeId,
+            applies: true,
+        );
     }
 
     public function addPassPrescription(): void
@@ -312,6 +365,8 @@ trait InteractsWithAppointmentRecordForm
         unset($this->appointmentTypes);
         $this->resetValidation([$errorKey, 'form.'.$target]);
 
+        $this->fillFollowUpTimes();
+
         Flux::toast(variant: 'success', text: __('Appointment type created.'));
 
         return ['id' => (string) $appointmentType->id, 'name' => $appointmentType->name];
@@ -406,6 +461,42 @@ trait InteractsWithAppointmentRecordForm
             ->whereNull('appointment_types.deleted_at')
             ->latest('appointments.id')
             ->value('appointments.appointment_type_id');
+    }
+
+    /**
+     * Give a follow-up held by the form the time its type has on its day, keeping the day as it is.
+     *
+     * A time typed by hand, one that none of the team's types has, is kept. A time that came from a type is replaced,
+     * and cleared when the follow-up does not take place at this center or its type has no time for that day.
+     */
+    private function withFollowUpTime(string $value, string $appointmentTypeId, bool $applies): string
+    {
+        [$dayValue, $current] = AppointmentRecordForm::splitFollowUp($value);
+        $day = $this->dateFrom($dayValue);
+
+        if ($day === null) {
+            return $value;
+        }
+
+        $typedByHand = $current !== '' && ! $this->appointmentTypes
+            ->flatMap(fn (AppointmentType $appointmentType): array => $appointmentType->weekday_times ?? [])
+            ->contains($current);
+
+        $time = match (true) {
+            $typedByHand => $current,
+            $applies => $this->appointmentTypes->firstWhere('id', (int) $appointmentTypeId)?->startTimeOn($day),
+            default => null,
+        };
+
+        return AppointmentRecordForm::joinFollowUp($day->toDateString(), $time);
+    }
+
+    /**
+     * Get the day of a follow-up held by the form, or null when it has none.
+     */
+    private function followUpDay(string $value): ?CarbonInterface
+    {
+        return $this->dateFrom(AppointmentRecordForm::splitFollowUp($value)[0]);
     }
 
     /**
