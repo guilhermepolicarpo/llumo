@@ -31,7 +31,7 @@ test('saving a draft keeps the form state without validating or scheduling anyth
         ->set('form.observations', 'Em andamento')
         ->set('form.infiltrationSite', 'Braço')
         ->set('form.infiltrationRemovalPlace', '')
-        ->set('form.returnOn', '2026-10-11')
+        ->set('form.returnAt', '2026-10-11')
         ->call('saveDraft')
         ->assertHasNoErrors()
         ->assertReturned(__('Draft saved at :time', ['time' => '19:30']));
@@ -42,7 +42,7 @@ test('saving a draft keeps the form state without validating or scheduling anyth
         ->and($draft->data)->toMatchArray([
             'observations' => 'Em andamento',
             'infiltrationSite' => 'Braço',
-            'returnOn' => '2026-10-11',
+            'returnAt' => '2026-10-11',
         ])
         ->and($this->appointment->record()->exists())->toBeFalse()
         ->and(Appointment::query()->count())->toBe(1);
@@ -138,6 +138,18 @@ test('a draft with unknown keys or mismatched types does not break the record', 
         ->assertSet('form.passPrescriptions', [['pass_type_id' => '1', 'quantity' => 2, 'mode' => 'in_person', 'dates' => []]])
         ->assertSet('form.fluidInstructions', '3x ao dia')
         ->assertSet('appointment.id', $this->appointment->id);
+});
+
+test('a draft saved before the follow-ups had a time restores their dates', function () {
+    AppointmentRecordDraft::factory()->for($this->appointment)->create(['data' => [
+        'infiltrationSite' => 'Braço',
+        'infiltrationRemoveOn' => '2026-09-25',
+        'returnOn' => '2026-10-11',
+    ]]);
+
+    Livewire::test('pages::appointments.attend', ['appointment' => $this->appointment])
+        ->assertSet('form.infiltrationRemoveAt', '2026-09-25')
+        ->assertSet('form.returnAt', '2026-10-11');
 });
 
 test('members cannot save a draft of another team appointment', function () {

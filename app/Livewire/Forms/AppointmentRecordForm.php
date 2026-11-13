@@ -9,6 +9,7 @@ use App\Models\Guidance;
 use App\Models\PassPrescription;
 use App\Models\PassSession;
 use App\Rules\AppointmentRecordRules;
+use Carbon\CarbonInterface;
 use Livewire\Form;
 
 class AppointmentRecordForm extends Form
@@ -45,16 +46,18 @@ class AppointmentRecordForm extends Form
 
     public string $infiltrationSite = '';
 
-    public string $infiltrationRemoveOn = '';
-
+    /**
+     * When the infiltration is removed, as 'Y-m-d' or, with a time, 'Y-m-d H:i'.
+     */
     public string $infiltrationRemoveAt = '';
 
     public string $infiltrationRemovalPlace = '';
 
     public string $removalAppointmentTypeId = '';
 
-    public string $returnOn = '';
-
+    /**
+     * When the assisted person returns, as 'Y-m-d' or, with a time, 'Y-m-d H:i'.
+     */
     public string $returnAt = '';
 
     public string $returnAppointmentTypeId = '';
@@ -80,11 +83,9 @@ class AppointmentRecordForm extends Form
             'dates' => array_values($prescription->sessions->map(fn (PassSession $session): string => $session->scheduled_on->toDateString())->all()),
         ])->all());
         $this->infiltrationSite = $record->infiltration_site ?? '';
-        $this->infiltrationRemoveOn = $record->infiltration_remove_on?->toDateString() ?? '';
-        $this->infiltrationRemoveAt = $record->infiltration_remove_at ?? '';
+        $this->infiltrationRemoveAt = $this->followUpValue($record->infiltration_remove_at);
         $this->infiltrationRemovalPlace = $record->infiltration_removal_place->value ?? '';
-        $this->returnOn = $record->return_on?->toDateString() ?? '';
-        $this->returnAt = $record->return_at ?? '';
+        $this->returnAt = $this->followUpValue($record->return_at);
         $this->observations = $record->observations ?? '';
 
         if ($record->infiltrationRemovalAppointment) {
@@ -103,6 +104,9 @@ class AppointmentRecordForm extends Form
      */
     public function fillFromDraft(array $data): void
     {
+        $data['infiltrationRemoveAt'] ??= $data['infiltrationRemoveOn'] ?? null;
+        $data['returnAt'] ??= $data['returnOn'] ?? null;
+
         foreach ($this->all() as $property => $current) {
             if (! array_key_exists($property, $data)) {
                 continue;
@@ -125,7 +129,7 @@ class AppointmentRecordForm extends Form
     /**
      * Validate the form for the given appointment and map it to the attribute shape expected by the save action.
      *
-     * @return array{mentor_id: ?int, fluidic_remedy_ids: array<int, int>, fluid_instructions: ?string, guidances: array<int, array{guidance_id: int, detail: ?string}>, pass_prescriptions: array<int, array{pass_type_id: int, quantity: int, mode: string, dates: list<string>}>, infiltration_site: ?string, infiltration_remove_on: ?string, infiltration_remove_at: ?string, infiltration_removal_place: ?string, removal_appointment_type_id: ?int, return_on: ?string, return_at: ?string, return_appointment_type_id: ?int, observations: ?string}
+     * @return array{mentor_id: ?int, fluidic_remedy_ids: array<int, int>, fluid_instructions: ?string, guidances: array<int, array{guidance_id: int, detail: ?string}>, pass_prescriptions: array<int, array{pass_type_id: int, quantity: int, mode: string, dates: list<string>}>, infiltration_site: ?string, infiltration_remove_at: ?string, infiltration_removal_place: ?string, removal_appointment_type_id: ?int, return_at: ?string, return_appointment_type_id: ?int, observations: ?string}
      */
     public function validatedAttributes(Appointment $appointment): array
     {
@@ -148,12 +152,10 @@ class AppointmentRecordForm extends Form
                 'dates' => $this->filledDates($prescription['dates'] ?? []),
             ], $validated['passPrescriptions']),
             'infiltration_site' => $validated['infiltrationSite'],
-            'infiltration_remove_on' => $validated['infiltrationRemoveOn'],
-            'infiltration_remove_at' => $validated['infiltrationRemoveAt'] ?? null,
+            'infiltration_remove_at' => $validated['infiltrationRemoveAt'],
             'infiltration_removal_place' => $validated['infiltrationRemovalPlace'],
             'removal_appointment_type_id' => $this->blankToNullInteger($validated['removalAppointmentTypeId'] ?? null),
-            'return_on' => $validated['returnOn'],
-            'return_at' => $validated['returnAt'] ?? null,
+            'return_at' => $validated['returnAt'],
             'return_appointment_type_id' => $this->blankToNullInteger($validated['returnAppointmentTypeId'] ?? null),
             'observations' => $validated['observations'],
         ];
@@ -201,5 +203,31 @@ class AppointmentRecordForm extends Form
         sort($filled);
 
         return $filled;
+    }
+
+    /**
+     * Split a follow-up as the form holds it, 'Y-m-d' or 'Y-m-d H:i', into its day and its time, either of them blank.
+     *
+     * @return array{0: string, 1: string}
+     */
+    public static function splitFollowUp(string $value): array
+    {
+        return explode(' ', $value, 2) + ['', ''];
+    }
+
+    /**
+     * Join a day and a time, which may be blank, into a follow-up as the form holds it.
+     */
+    public static function joinFollowUp(string $day, ?string $time): string
+    {
+        return $day !== '' && filled($time) ? $day.' '.$time : $day;
+    }
+
+    /**
+     * Get a saved follow-up as the form holds it, where midnight stands for no time.
+     */
+    private function followUpValue(?CarbonInterface $at): string
+    {
+        return $at === null ? '' : self::joinFollowUp($at->toDateString(), AppointmentRecord::timeOf($at));
     }
 }

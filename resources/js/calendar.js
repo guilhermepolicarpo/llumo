@@ -5,7 +5,11 @@
  * zone never shifts a day. Today comes from the server, in the application time zone.
  *
  * The calendar is nested in the picker that opens it and works on that picker's scope: it reads and sets its
- * `value`, the chosen day, and gives the focus back to its `$refs.trigger` once it closes.
+ * `value`, the chosen day as 'Y-m-d', or with `timeList` the chosen day and time as 'Y-m-d H:i', and gives the focus
+ * back to its `$refs.trigger` once it closes.
+ *
+ * With `timeList`, the times of the day, `interval` minutes apart, are listed beside the weeks: picking a day keeps
+ * the time and the calendar open, and picking a time closes it.
  *
  * Days outside `min`/`max` cannot be picked. With `markers`, the name of a renderless method of the Livewire
  * component that returns the days of a month ('Y-m') to mark, those days get a dot, asked once per month shown;
@@ -19,10 +23,13 @@ export function toDate(iso) {
     return new Date(year, month - 1, day);
 }
 
+/** @param {number} number */
+export function pad(number) {
+    return String(number).padStart(2, '0');
+}
+
 /** @param {Date} date */
 export function toIso(date) {
-    const pad = (number) => String(number).padStart(2, '0');
-
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
@@ -70,17 +77,46 @@ export function makeFormatter(locale) {
     };
 }
 
+/**
+ * Splits a picker value, 'Y-m-d' or 'Y-m-d H:i', into its day and its time, either of them an empty string.
+ *
+ * @param {?string} value
+ * @returns {[string, string]}
+ */
+export function splitDateTime(value) {
+    const [day = '', time = ''] = (value ?? '').split(' ');
+
+    return [day, time];
+}
+
+/** Joins a day and a time, either of which may be empty, into a picker value. @param {string} day @param {string} time */
+export function joinDateTime(day, time) {
+    return day && time ? `${day} ${time}` : day;
+}
+
+/** The times of a day, 'H:i', the given number of minutes apart. @param {number} interval */
+function timesOfDay(interval) {
+    return Array.from({ length: Math.ceil(1440 / interval) }, (_, index) => {
+        const minutes = index * interval;
+
+        return `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
+    });
+}
+
 /** @param {string} month 'Y-m' */
 function lastDayOf(month) {
     return addDays(addMonths(`${month}-01`, 1), -1);
 }
 
 export default function registerCalendar(Alpine) {
-    Alpine.data('calendar', ({ today, locale, markers = null, min = null, max = null }) => {
+    Alpine.data('calendar', ({ today, locale, markers = null, min = null, max = null, timeList = false, interval = 15 }) => {
         const format = makeFormatter(locale);
 
         return {
             today,
+
+            /** The times listed beside the weeks, none without `timeList`. */
+            times: timeList ? timesOfDay(interval) : [],
 
             /** Whether the popover is open, so the weeks are only drawn while they can be seen. */
             open: false,
@@ -96,6 +132,16 @@ export default function registerCalendar(Alpine) {
 
             init() {
                 this.$watch('month', () => this.loadMarkers());
+            },
+
+            /** The chosen day, 'Y-m-d', or an empty string. */
+            get selectedDay() {
+                return splitDateTime(this.value)[0];
+            },
+
+            /** The chosen time, 'H:i', or an empty string. */
+            get selectedTime() {
+                return splitDateTime(this.value)[1];
             },
 
             get month() {
@@ -159,13 +205,35 @@ export default function registerCalendar(Alpine) {
                 this.focused = addMonths(this.focused, (Number(year) - this.year) * 12);
             },
 
-            /** Chooses a day, or none with an empty string, and closes the calendar. @param {string} iso */
+            /**
+             * Chooses a day, or none with an empty string, and closes the calendar. With the times listed, the time is
+             * kept and the calendar stays open to pick one. @param {string} iso
+             */
             pick(iso) {
                 if (iso && isOutOfRange(iso, min, max)) {
                     return;
                 }
 
-                this.value = iso;
+                if (! timeList || ! iso) {
+                    this.value = iso;
+                    this.close();
+
+                    return;
+                }
+
+                this.value = joinDateTime(iso, this.selectedTime);
+                this.focused = iso;
+            },
+
+            /** Chooses a time for the chosen day, or for the day in focus when none is chosen, and closes. @param {string} time */
+            pickTime(time) {
+                const day = this.selectedDay || this.focused;
+
+                if (isOutOfRange(day, min, max)) {
+                    return;
+                }
+
+                this.value = joinDateTime(day, time);
                 this.close();
             },
 
@@ -182,9 +250,10 @@ export default function registerCalendar(Alpine) {
                     return;
                 }
 
-                this.focused = this.value || today;
+                this.focused = this.selectedDay || today;
                 this.loadMarkers();
                 this.focusDay();
+                this.scrollToTime();
             },
 
             /** @param {KeyboardEvent} event */
@@ -205,6 +274,39 @@ export default function registerCalendar(Alpine) {
                 event.preventDefault();
                 this.focused = moves[event.key]();
                 this.focusDay();
+            },
+
+            /** Moves the focus between the listed times with the up and down arrows. @param {KeyboardEvent} event */
+            navigateTimes(event) {
+                const step = { ArrowUp: -1, ArrowDown: 1 }[event.key];
+                const index = this.times.indexOf(event.target.dataset.time);
+
+                if (! step || index === -1) {
+                    return;
+                }
+
+                event.preventDefault();
+                this.$refs.times.querySelector(`[data-time="${this.times[Math.min(Math.max(index + step, 0), this.times.length - 1)]}"]`)?.focus();
+            },
+
+            /** Scrolls the listed times to the chosen one, or to the current time when none is chosen. */
+            scrollToTime() {
+                if (! timeList) {
+                    return;
+                }
+
+                const now = new Date();
+                const time = this.selectedTime || this.times[Math.floor((now.getHours() * 60 + now.getMinutes()) / interval)];
+
+                this.$nextTick(() => {
+                    const list = this.$refs.times;
+                    const button = list?.querySelector(`[data-time="${time}"]`);
+
+                    if (button) {
+                        list.scrollTop = button.offsetTop - list.clientHeight / 2 + button.offsetHeight / 2;
+                        list.scrollLeft = button.offsetLeft - list.clientWidth / 2 + button.offsetWidth / 2;
+                    }
+                });
             },
 
             focusDay() {

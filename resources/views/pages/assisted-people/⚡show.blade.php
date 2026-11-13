@@ -164,31 +164,31 @@ new class extends Component
         $followUps = [];
 
         if ($record->infiltration_removal_place?->schedulesRemoval()
-            && $record->infiltration_remove_on?->gte(today())
+            && $record->infiltration_remove_at?->gte(today())
             && in_array($record->infiltrationRemovalAppointment?->status, [null, AppointmentStatus::Canceled], true)) {
             $followUps[] = [
                 'key' => 'infiltration',
-                'message' => __('The infiltration removal on :date has not been scheduled yet.', ['date' => $record->infiltration_remove_on->format('d/m/Y')]),
+                'message' => __('The infiltration removal on :date has not been scheduled yet.', ['date' => $record->infiltration_remove_at->format('d/m/Y')]),
                 'detail' => $detail,
                 'action' => __('Schedule removal'),
-                'url' => $this->newAppointmentUrl($record->infiltration_remove_on),
+                'url' => $this->newAppointmentUrl($record->infiltration_remove_at),
             ];
         }
 
         $cameBack = $this->stats['last_visit_on']?->gt($record->appointment->scheduled_on) ?? false;
         $hasBookedReturn = $this->assistedPerson->appointments()->upcoming()->whereKeyNot($record->infiltration_removal_appointment_id)->exists();
 
-        if ($record->return_on && ! $cameBack && ! $hasBookedReturn) {
-            $isAhead = $record->return_on->gte(today());
+        if ($record->return_at && ! $cameBack && ! $hasBookedReturn) {
+            $isAhead = $record->return_at->gte(today());
 
             $followUps[] = [
                 'key' => 'return',
                 'message' => $isAhead
-                    ? __('The return indicated for :date has not been scheduled yet.', ['date' => $record->return_on->format('d/m/Y')])
-                    : __('The return indicated for :date went by without the assisted person coming back.', ['date' => $record->return_on->format('d/m/Y')]),
+                    ? __('The return indicated for :date has not been scheduled yet.', ['date' => $record->return_at->format('d/m/Y')])
+                    : __('The return indicated for :date went by without the assisted person coming back.', ['date' => $record->return_at->format('d/m/Y')]),
                 'detail' => $detail,
                 'action' => __('Schedule return'),
-                'url' => $this->newAppointmentUrl($isAhead ? $record->return_on : null),
+                'url' => $this->newAppointmentUrl($isAhead ? $record->return_at : null),
             ];
         }
 
@@ -533,9 +533,9 @@ new class extends Component
                                                     <dd class="text-zinc-800 dark:text-zinc-200">{{ $infiltration }}</dd>
                                                 @endif
 
-                                                @if ($record->return_on)
+                                                @if ($record->return_at)
                                                     <dt>{{ __('Return') }}</dt>
-                                                    <dd class="text-zinc-800 dark:text-zinc-200">{{ $record->return_on->format('d/m/Y') }}</dd>
+                                                    <dd class="text-zinc-800 dark:text-zinc-200">{{ $record->return_summary }}</dd>
                                                 @endif
 
                                                 @if ($record->observations)

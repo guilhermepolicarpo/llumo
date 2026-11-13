@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Casts\TimeOfDay;
 use App\Enums\InfiltrationRemovalPlace;
 use Carbon\CarbonInterface;
 use Database\Factories\AppointmentRecordFactory;
@@ -23,12 +22,10 @@ use Illuminate\Support\Carbon;
  * @property int|null $mentor_id
  * @property string|null $fluid_instructions
  * @property string|null $infiltration_site
- * @property Carbon|null $infiltration_remove_on
- * @property string|null $infiltration_remove_at
+ * @property Carbon|null $infiltration_remove_at
  * @property InfiltrationRemovalPlace|null $infiltration_removal_place
  * @property int|null $infiltration_removal_appointment_id
- * @property Carbon|null $return_on
- * @property string|null $return_at
+ * @property Carbon|null $return_at
  * @property int|null $return_appointment_id
  * @property string|null $observations
  * @property Carbon|null $created_at
@@ -51,11 +48,9 @@ use Illuminate\Support\Carbon;
     'mentor_id',
     'fluid_instructions',
     'infiltration_site',
-    'infiltration_remove_on',
     'infiltration_remove_at',
     'infiltration_removal_place',
     'infiltration_removal_appointment_id',
-    'return_on',
     'return_at',
     'return_appointment_id',
     'observations',
@@ -174,7 +169,7 @@ class AppointmentRecord extends Model
     {
         return Attribute::make(get: fn (): string => collect([
             $this->infiltration_site,
-            $this->infiltration_remove_on ? __('remove on :date', ['date' => $this->dateWithTime($this->infiltration_remove_on, $this->infiltration_remove_at)]) : null,
+            $this->infiltration_remove_at ? __('remove on :date', ['date' => self::dateWithTime($this->infiltration_remove_at)]) : null,
             $this->infiltration_removal_place?->label(),
         ])->filter()->implode(' · '));
     }
@@ -186,17 +181,30 @@ class AppointmentRecord extends Model
      */
     protected function returnSummary(): Attribute
     {
-        return Attribute::make(get: fn (): ?string => $this->return_on ? $this->dateWithTime($this->return_on, $this->return_at) : null);
+        return Attribute::make(get: fn (): ?string => $this->return_at ? self::dateWithTime($this->return_at) : null);
     }
 
     /**
-     * Format a date with its time when there is one, as in "20/11/2026 at 19:15".
+     * Get the time of a follow-up as "H:i", or null when none was given: no center attends at midnight, so a
+     * follow-up saved at midnight only has its day.
      */
-    private function dateWithTime(CarbonInterface $date, ?string $time): string
+    public static function timeOf(?CarbonInterface $at): ?string
     {
+        $time = $at?->format('H:i');
+
+        return $time === '00:00' ? null : $time;
+    }
+
+    /**
+     * Format a follow-up with its time when there is one, as in "20/11/2026 at 19:15".
+     */
+    private static function dateWithTime(CarbonInterface $at): string
+    {
+        $time = self::timeOf($at);
+
         return $time === null
-            ? $date->format('d/m/Y')
-            : __(':date at :time', ['date' => $date->format('d/m/Y'), 'time' => $time]);
+            ? $at->format('d/m/Y')
+            : __(':date at :time', ['date' => $at->format('d/m/Y'), 'time' => $time]);
     }
 
     /**
@@ -207,11 +215,9 @@ class AppointmentRecord extends Model
     protected function casts(): array
     {
         return [
-            'infiltration_remove_on' => 'date',
-            'infiltration_remove_at' => TimeOfDay::class,
+            'infiltration_remove_at' => 'datetime',
             'infiltration_removal_place' => InfiltrationRemovalPlace::class,
-            'return_on' => 'date',
-            'return_at' => TimeOfDay::class,
+            'return_at' => 'datetime',
         ];
     }
 }

@@ -80,9 +80,8 @@ test('the attendance sheet of a completed appointment is printed filled in with 
         'mentor_id' => Mentor::factory()->for($team)->create(['name' => 'Irmã Clara']),
         'fluid_instructions' => 'Tomar em jejum',
         'infiltration_site' => 'Braço direito',
-        'infiltration_remove_on' => '2026-10-21',
-        'infiltration_remove_at' => '18:30',
-        'return_on' => '2026-10-24',
+        'infiltration_remove_at' => '2026-10-21 18:30',
+        'return_at' => '2026-10-24',
         'observations' => 'Manter o tratamento com regularidade',
     ]);
     $record->fluidicRemedies()->attach(FluidicRemedy::factory()->for($team)->create(['name' => 'Serotonina']), ['position' => 0]);

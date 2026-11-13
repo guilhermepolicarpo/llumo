@@ -19,7 +19,8 @@ class AppointmentRecordRules
     public static function all(Appointment $appointment): array
     {
         $team = $appointment->team;
-        $afterAppointment = 'after:'.$appointment->scheduled_on->toDateString();
+        $followUpDate = 'date_format:Y-m-d,Y-m-d H:i';
+        $afterAppointment = 'after_or_equal:'.$appointment->scheduled_on->addDay()->toDateString();
         $schedulesRemoval = 'required_if:infiltrationRemovalPlace,'.InfiltrationRemovalPlace::AtTheCenter->value;
         $removedElsewhere = 'exclude_unless:infiltrationRemovalPlace,'.InfiltrationRemovalPlace::AtTheCenter->value;
 
@@ -33,14 +34,12 @@ class AppointmentRecordRules
             'guidanceDetails' => ['array'],
             'guidanceDetails.*' => ['nullable', 'string', 'max:100'],
             ...static::passPrescriptions($appointment),
-            'infiltrationSite' => ['nullable', 'required_with:infiltrationRemoveOn,infiltrationRemovalPlace', 'string', 'max:150'],
-            'infiltrationRemoveOn' => ['nullable', 'required_with:infiltrationSite', $schedulesRemoval, 'date', $afterAppointment],
-            'infiltrationRemoveAt' => ['exclude_without:infiltrationRemoveOn', 'nullable', 'date_format:H:i'],
+            'infiltrationSite' => ['nullable', 'required_with:infiltrationRemoveAt,infiltrationRemovalPlace', 'string', 'max:150'],
+            'infiltrationRemoveAt' => ['nullable', 'required_with:infiltrationSite', $schedulesRemoval, $followUpDate, $afterAppointment],
             'infiltrationRemovalPlace' => ['nullable', 'required_with:infiltrationSite', 'string', Rule::enum(InfiltrationRemovalPlace::class)],
             'removalAppointmentTypeId' => [$removedElsewhere, 'required', ...static::appointmentTypeId($appointment)],
-            'returnOn' => ['nullable', 'date', $afterAppointment],
-            'returnAt' => ['exclude_without:returnOn', 'nullable', 'date_format:H:i'],
-            'returnAppointmentTypeId' => ['exclude_without:returnOn', 'required', ...static::appointmentTypeId($appointment)],
+            'returnAt' => ['nullable', $followUpDate, $afterAppointment],
+            'returnAppointmentTypeId' => ['exclude_without:returnAt', 'required', ...static::appointmentTypeId($appointment)],
             'observations' => ['nullable', 'string', 'max:5000'],
         ];
     }

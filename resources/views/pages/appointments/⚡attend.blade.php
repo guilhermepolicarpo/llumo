@@ -313,8 +313,8 @@ new class extends Component
                                             {{ $previous->guidance_summary }}
                                         </div>
                                     @endif
-                                    @if ($previous->return_on)
-                                        <div><span class="text-zinc-500 dark:text-zinc-400">{{ __('Return date') }}:</span> {{ $previous->return_on->format('d/m/Y') }}</div>
+                                    @if ($previous->return_at)
+                                        <div><span class="text-zinc-500 dark:text-zinc-400">{{ __('Return date') }}:</span> {{ $previous->return_summary }}</div>
                                     @endif
                                 </div>
                             @endforeach
@@ -572,20 +572,19 @@ new class extends Component
                     <flux:separator variant="subtle" />
 
                     {{-- Picking another removal type does not send a request, so the section asks for the removal date's warning again. --}}
-                    <div class="space-y-4" x-on:catalog-picker-change="$wire.form.infiltrationRemoveOn && $wire.$refresh()" data-test="appointment-record-infiltration-section">
+                    <div class="space-y-4" x-on:catalog-picker-change="$wire.form.infiltrationRemoveAt && $wire.$refresh()" data-test="appointment-record-infiltration-section">
                         <flux:heading size="lg">{{ __('Infiltration') }}</flux:heading>
 
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <flux:input wire:model.blur="form.infiltrationSite" :label="__('Site or reason')" :placeholder="__('E.g. Right arm or emotional state')" data-test="appointment-record-infiltration-site-input" />
-                            <div class="grid grid-cols-[1fr_auto] items-start gap-2">
-                                <x-date-input wire:model.live="form.infiltrationRemoveOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Remove on')" data-test="appointment-record-infiltration-remove-on-input" />
-                                <flux:input type="time" wire:model="form.infiltrationRemoveAt" :label="__('Time')" data-test="appointment-record-infiltration-remove-at-input" />
-                            </div>
-                        </div>
-
-                        {{-- The side columns squeeze this section, so the columns follow its own width: the three removal places need about half of 42rem. --}}
+                        {{--
+                            The fields follow the order of the decision: where it is removed comes before when, so choosing
+                            this center fills in the day and time its removal type takes place, and they are there to check
+                            by the time the date is reached. The side columns squeeze this section, so the columns follow
+                            its own width: the three removal places need about half of 42rem.
+                        --}}
                         <div class="@container">
                             <div class="grid items-start gap-4 @2xl:grid-cols-2">
+                                <flux:input wire:model.blur="form.infiltrationSite" :label="__('Site or reason')" :placeholder="__('E.g. Right arm or emotional state')" data-test="appointment-record-infiltration-site-input" />
+
                                 {{-- The removal place is optional, so clicking the chosen place again clears it. Captured before Flux handles the click, the place is still the chosen one. --}}
                                 <flux:radio.group
                                     wire:model.live="form.infiltrationRemovalPlace"
@@ -615,6 +614,8 @@ new class extends Component
                                         <flux:error name="form.removalAppointmentTypeId" />
                                     </flux:field>
                                 @endif
+
+                                <x-date-input wire:model.live="form.infiltrationRemoveAt" time :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Remove on')" data-test="appointment-record-infiltration-remove-at-input" />
                             </div>
                         </div>
 
@@ -631,10 +632,7 @@ new class extends Component
 
                         <div class="grid items-start gap-4 sm:grid-cols-2">
                             <div class="space-y-2">
-                                <div class="grid grid-cols-[1fr_auto] items-start gap-2">
-                                    <x-date-input wire:model.live="form.returnOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Return date')" data-test="appointment-record-return-on-input" />
-                                    <flux:input type="time" wire:model="form.returnAt" :label="__('Time')" data-test="appointment-record-return-at-input" />
-                                </div>
+                                <x-date-input wire:model.live="form.returnAt" time :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Return date')" data-test="appointment-record-return-at-input" />
 
                                 <div class="flex flex-wrap gap-1">
                                     @foreach (AppointmentRecord::RETURN_INTERVALS_DAYS as $days)
@@ -645,7 +643,7 @@ new class extends Component
                                 </div>
                             </div>
 
-                            @if ($form->returnOn !== '')
+                            @if ($form->returnAt !== '')
                                 <div class="space-y-3">
                                     <flux:field>
                                         <flux:label>{{ __('Schedule the return as') }}</flux:label>

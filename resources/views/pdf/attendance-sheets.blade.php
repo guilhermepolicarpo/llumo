@@ -223,12 +223,12 @@
                     <tr>
                         <td>
                             {{ __('Remove on day') }}:
-                            @if ($record?->infiltration_remove_on)
-                                <span class="filled">{{ $record->infiltration_remove_on->translatedFormat('d/m/Y (l)') }}</span>
+                            @if ($record?->infiltration_remove_at)
+                                <span class="filled">{{ $record->infiltration_remove_at->translatedFormat('d/m/Y (l)') }}</span>
                             @else
                                 <span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 8mm;"></span>
                             @endif
-                            @include('pdf.partials.time', ['time' => $record?->infiltration_remove_at])
+                            @include('pdf.partials.time', ['time' => AppointmentRecord::timeOf($record?->infiltration_remove_at)])
                         </td>
                     </tr>
                 </table>
@@ -236,12 +236,12 @@
 
             <div class="label section-label">{{ __('Return') }}</div>
             <div class="write-in">
-                @if ($record?->return_on)
+                @if ($record?->return_at)
                     <table>
                         <tr>
                             <td>
-                                {{ __('Return on day') }}: <span class="filled">{{ $record->return_on->translatedFormat('d/m/Y (l)') }}</span>
-                                @include('pdf.partials.time', ['time' => $record->return_at])
+                                {{ __('Return on day') }}: <span class="filled">{{ $record->return_at->translatedFormat('d/m/Y (l)') }}</span>
+                                @include('pdf.partials.time', ['time' => AppointmentRecord::timeOf($record->return_at)])
                             </td>
                         </tr>
                     </table>

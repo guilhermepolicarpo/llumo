@@ -7,6 +7,7 @@ use App\Enums\AppointmentMode;
 use App\Enums\InfiltrationRemovalPlace;
 use App\Enums\TeamRole;
 use App\Enums\Weekday;
+use App\Livewire\Forms\AppointmentRecordForm;
 use App\Models\Appointment;
 use App\Models\AppointmentType;
 use App\Models\AssistedPerson;
@@ -312,11 +313,9 @@ class DatabaseSeeder extends Seeder
      *     guidances: array<int, array{guidance_id: int, detail: ?string}>,
      *     pass_prescriptions: array<int, array{pass_type_id: int, quantity: int, mode: string}>,
      *     infiltration_site: ?string,
-     *     infiltration_remove_on: ?string,
      *     infiltration_remove_at: ?string,
      *     infiltration_removal_place: ?string,
      *     removal_appointment_type_id: ?int,
-     *     return_on: ?string,
      *     return_at: ?string,
      *     return_appointment_type_id: ?int,
      *     observations: ?string,
@@ -347,12 +346,10 @@ class DatabaseSeeder extends Seeder
                 'mode' => ($passType->name === 'Hidroterapia' ? AppointmentMode::InPerson : fake()->randomElement(AppointmentMode::cases()))->value,
             ])->values()->all(),
             'infiltration_site' => $hasInfiltration ? fake()->randomElement(self::INFILTRATION_SITES) : null,
-            'infiltration_remove_on' => $removeOn?->toDateString(),
-            'infiltration_remove_at' => $removalPlace?->schedulesRemoval() ? $infiltrationRemoval->startTimeOn($removeOn) : null,
+            'infiltration_remove_at' => $removeOn ? AppointmentRecordForm::joinFollowUp($removeOn->toDateString(), $removalPlace?->schedulesRemoval() ? $infiltrationRemoval->startTimeOn($removeOn) : null) : null,
             'infiltration_removal_place' => $removalPlace?->value,
             'removal_appointment_type_id' => $removalPlace?->schedulesRemoval() ? $infiltrationRemoval->id : null,
-            'return_on' => $returnOn?->toDateString(),
-            'return_at' => $returnOn ? $appointment->appointmentType->startTimeOn($returnOn) : null,
+            'return_at' => $returnOn ? AppointmentRecordForm::joinFollowUp($returnOn->toDateString(), $appointment->appointmentType->startTimeOn($returnOn)) : null,
             'return_appointment_type_id' => $appointment->appointment_type_id,
             'observations' => fake()->optional(0.4)->randomElement([
                 'Relatou melhora das dores desde o último atendimento.',
