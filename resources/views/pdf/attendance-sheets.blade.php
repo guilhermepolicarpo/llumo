@@ -228,6 +228,7 @@
                             @else
                                 <span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 8mm;"></span>
                             @endif
+                            @include('pdf.partials.time', ['time' => $record?->infiltration_remove_at])
                         </td>
                     </tr>
                 </table>
@@ -238,7 +239,10 @@
                 @if ($record?->return_on)
                     <table>
                         <tr>
-                            <td>{{ __('Return on day') }}: <span class="filled">{{ $record->return_on->translatedFormat('d/m/Y (l)') }}</span></td>
+                            <td>
+                                {{ __('Return on day') }}: <span class="filled">{{ $record->return_on->translatedFormat('d/m/Y (l)') }}</span>
+                                @include('pdf.partials.time', ['time' => $record->return_at])
+                            </td>
                         </tr>
                     </table>
                 @else
@@ -255,6 +259,7 @@
                         <tr>
                             <td class="shrink"><span class="box"></span>{{ __('Other date') }}:</td>
                             <td class="line-fill"></td>
+                            <td class="shrink">@include('pdf.partials.time', ['time' => null])</td>
                         </tr>
                     </table>
                 @endif

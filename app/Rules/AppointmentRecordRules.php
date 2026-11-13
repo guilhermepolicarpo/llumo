@@ -35,9 +35,11 @@ class AppointmentRecordRules
             ...static::passPrescriptions($appointment),
             'infiltrationSite' => ['nullable', 'required_with:infiltrationRemoveOn,infiltrationRemovalPlace', 'string', 'max:150'],
             'infiltrationRemoveOn' => ['nullable', 'required_with:infiltrationSite', $schedulesRemoval, 'date', $afterAppointment],
+            'infiltrationRemoveAt' => ['exclude_without:infiltrationRemoveOn', 'nullable', 'date_format:H:i'],
             'infiltrationRemovalPlace' => ['nullable', 'required_with:infiltrationSite', 'string', Rule::enum(InfiltrationRemovalPlace::class)],
             'removalAppointmentTypeId' => [$removedElsewhere, 'required', ...static::appointmentTypeId($appointment)],
             'returnOn' => ['nullable', 'date', $afterAppointment],
+            'returnAt' => ['exclude_without:returnOn', 'nullable', 'date_format:H:i'],
             'returnAppointmentTypeId' => ['exclude_without:returnOn', 'required', ...static::appointmentTypeId($appointment)],
             'observations' => ['nullable', 'string', 'max:5000'],
         ];

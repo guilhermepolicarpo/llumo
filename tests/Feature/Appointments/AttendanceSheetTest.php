@@ -44,7 +44,7 @@ test('members print the attendance sheet of a waiting appointment filled with th
                 '(34) 99729-2235',
                 'Culto no lar',
                 'Passe com 3 médiuns',
-            );
+            )->and(substr_count($pdf->getHtml(), '<span class="blank" style="width: 5mm;"></span>:<span class="blank" style="width: 5mm;"></span>'))->toBe(2);
 
         return true;
     });
@@ -79,6 +79,9 @@ test('the attendance sheet of a completed appointment is printed filled in with 
     $record = AppointmentRecord::factory()->for($appointment)->create([
         'mentor_id' => Mentor::factory()->for($team)->create(['name' => 'Irmã Clara']),
         'fluid_instructions' => 'Tomar em jejum',
+        'infiltration_site' => 'Braço direito',
+        'infiltration_remove_on' => '2026-10-21',
+        'infiltration_remove_at' => '18:30',
         'return_on' => '2026-10-24',
         'observations' => 'Manter o tratamento com regularidade',
     ]);
@@ -97,12 +100,16 @@ test('the attendance sheet of a completed appointment is printed filled in with 
             'Tratamento do copo',
             'Por 21 dias',
             'Hidroterapia',
+            '21/10/2026 (quarta-feira)',
+            'às',
+            '18:30',
             '24/10/2026',
             'Manter o tratamento com regularidade',
             'Serotonina',
             'Tomar em jejum',
             'Irmã Clara',
-        )->not->toContain('Culto no lar', 'Passe com 3 médiuns');
+        )->not->toContain('Culto no lar', 'Passe com 3 médiuns')
+            ->and(substr_count($pdf->getHtml(), '<span class="blank" style="width: 5mm;"></span>:<span class="blank" style="width: 5mm;"></span>'))->toBe(1);
 
         return true;
     });

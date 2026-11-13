@@ -469,3 +469,88 @@ test('the return shortcuts and the removal date move to the next day their type 
         ->set('form.infiltrationSite', 'Braço direito')
         ->assertSet('form.infiltrationRemoveOn', '2026-09-24');
 });
+
+test('the removal time follows the time its type has for the chosen day at the center, and is saved', function () {
+    [$component, $appointment, $team] = attendRecordAppointment();
+    $removalType = AppointmentType::factory()->for($team)->onWeekdays(Weekday::Wednesday, Weekday::Friday)
+        ->startingAt([Weekday::Wednesday->value => '18:30', Weekday::Friday->value => '18:00'])->create();
+    $otherType = AppointmentType::factory()->for($team)->create();
+
+    $component
+        ->set('form.removalAppointmentTypeId', (string) $removalType->id)
+        ->set('form.infiltrationSite', 'Braço direito')
+        ->assertSet('form.infiltrationRemoveOn', '2026-09-23')
+        ->assertSet('form.infiltrationRemoveAt', '')
+        ->set('form.infiltrationRemovalPlace', InfiltrationRemovalPlace::AtTheCenter->value)
+        ->assertSet('form.infiltrationRemoveAt', '18:30')
+        ->set('form.infiltrationRemoveOn', '2026-09-25')
+        ->assertSet('form.infiltrationRemoveAt', '18:00')
+        ->set('form.infiltrationRemoveOn', '2026-09-24')
+        ->assertSet('form.infiltrationRemoveAt', '')
+        ->set('form.infiltrationRemoveOn', '2026-09-25')
+        ->set('form.removalAppointmentTypeId', (string) $otherType->id)
+        ->assertSet('form.infiltrationRemoveAt', '')
+        ->set('form.removalAppointmentTypeId', (string) $removalType->id)
+        ->assertSet('form.infiltrationRemoveAt', '18:00')
+        ->set('form.infiltrationRemovalPlace', InfiltrationRemovalPlace::AtHome->value)
+        ->assertSet('form.infiltrationRemoveAt', '')
+        ->set('form.infiltrationRemovalPlace', InfiltrationRemovalPlace::AtTheCenter->value)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($appointment->record->infiltration_remove_at)->toBe('18:00');
+});
+
+test('a follow-up time typed by hand is kept when the date changes', function () {
+    [$component, $appointment, $team] = attendRecordAppointment();
+    $removalType = AppointmentType::factory()->for($team)->startingAt([Weekday::Wednesday->value => '18:30', Weekday::Friday->value => '18:00'])->create();
+
+    $component
+        ->set('form.removalAppointmentTypeId', (string) $removalType->id)
+        ->set('form.infiltrationSite', 'Braço direito')
+        ->set('form.infiltrationRemovalPlace', InfiltrationRemovalPlace::AtTheCenter->value)
+        ->set('form.infiltrationRemoveAt', '17:45')
+        ->set('form.infiltrationRemoveOn', '2026-09-25')
+        ->assertSet('form.infiltrationRemoveAt', '17:45');
+});
+
+test('the return time follows the time the return type has for the chosen day, and is saved', function () {
+    [$component, $appointment, $team] = attendRecordAppointment();
+    $appointment->appointmentType->update(['weekday_times' => [Weekday::Monday->value => '19:15', Weekday::Wednesday->value => '19:15']]);
+    $otherType = AppointmentType::factory()->for($team)->startingAt([Weekday::Monday->value => '08:00'])->create();
+
+    $component
+        ->call('setReturnInDays', 15)
+        ->assertSet('form.returnOn', '2026-10-05')
+        ->assertSet('form.returnAt', '19:15')
+        ->set('form.returnAppointmentTypeId', (string) $otherType->id)
+        ->assertSet('form.returnAt', '08:00')
+        ->set('form.returnAppointmentTypeId', (string) $appointment->appointment_type_id)
+        ->set('form.returnOn', '2026-10-06')
+        ->assertSet('form.returnAt', '')
+        ->set('form.returnOn', '2026-10-07')
+        ->assertSet('form.returnAt', '19:15')
+        ->call('createAppointmentType', 'Tratamento sem horário', 'returnAppointmentTypeId')
+        ->assertSet('form.returnAt', '')
+        ->set('form.returnAppointmentTypeId', (string) $appointment->appointment_type_id)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($appointment->record->return_at)->toBe('19:15')
+        ->and($appointment->record->return_summary)->toBe('07/10/2026 às 19:15');
+});
+
+test('a follow-up time is validated and dropped without its date', function () {
+    [$component, $appointment] = attendRecordAppointment();
+
+    $component
+        ->set('form.returnOn', '2026-10-07')
+        ->set('form.returnAt', '25:00')
+        ->call('save')
+        ->assertHasErrors(['form.returnAt'])
+        ->set('form.returnOn', '')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($appointment->record->return_at)->toBeNull();
+});

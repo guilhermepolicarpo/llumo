@@ -47,11 +47,15 @@ class AppointmentRecordForm extends Form
 
     public string $infiltrationRemoveOn = '';
 
+    public string $infiltrationRemoveAt = '';
+
     public string $infiltrationRemovalPlace = '';
 
     public string $removalAppointmentTypeId = '';
 
     public string $returnOn = '';
+
+    public string $returnAt = '';
 
     public string $returnAppointmentTypeId = '';
 
@@ -77,8 +81,10 @@ class AppointmentRecordForm extends Form
         ])->all());
         $this->infiltrationSite = $record->infiltration_site ?? '';
         $this->infiltrationRemoveOn = $record->infiltration_remove_on?->toDateString() ?? '';
+        $this->infiltrationRemoveAt = $record->infiltration_remove_at ?? '';
         $this->infiltrationRemovalPlace = $record->infiltration_removal_place->value ?? '';
         $this->returnOn = $record->return_on?->toDateString() ?? '';
+        $this->returnAt = $record->return_at ?? '';
         $this->observations = $record->observations ?? '';
 
         if ($record->infiltrationRemovalAppointment) {
@@ -119,7 +125,7 @@ class AppointmentRecordForm extends Form
     /**
      * Validate the form for the given appointment and map it to the attribute shape expected by the save action.
      *
-     * @return array{mentor_id: ?int, fluidic_remedy_ids: array<int, int>, fluid_instructions: ?string, guidances: array<int, array{guidance_id: int, detail: ?string}>, pass_prescriptions: array<int, array{pass_type_id: int, quantity: int, mode: string, dates: list<string>}>, infiltration_site: ?string, infiltration_remove_on: ?string, infiltration_removal_place: ?string, removal_appointment_type_id: ?int, return_on: ?string, return_appointment_type_id: ?int, observations: ?string}
+     * @return array{mentor_id: ?int, fluidic_remedy_ids: array<int, int>, fluid_instructions: ?string, guidances: array<int, array{guidance_id: int, detail: ?string}>, pass_prescriptions: array<int, array{pass_type_id: int, quantity: int, mode: string, dates: list<string>}>, infiltration_site: ?string, infiltration_remove_on: ?string, infiltration_remove_at: ?string, infiltration_removal_place: ?string, removal_appointment_type_id: ?int, return_on: ?string, return_at: ?string, return_appointment_type_id: ?int, observations: ?string}
      */
     public function validatedAttributes(Appointment $appointment): array
     {
@@ -143,9 +149,11 @@ class AppointmentRecordForm extends Form
             ], $validated['passPrescriptions']),
             'infiltration_site' => $validated['infiltrationSite'],
             'infiltration_remove_on' => $validated['infiltrationRemoveOn'],
+            'infiltration_remove_at' => $validated['infiltrationRemoveAt'] ?? null,
             'infiltration_removal_place' => $validated['infiltrationRemovalPlace'],
             'removal_appointment_type_id' => $this->blankToNullInteger($validated['removalAppointmentTypeId'] ?? null),
             'return_on' => $validated['returnOn'],
+            'return_at' => $validated['returnAt'] ?? null,
             'return_appointment_type_id' => $this->blankToNullInteger($validated['returnAppointmentTypeId'] ?? null),
             'observations' => $validated['observations'],
         ];

@@ -106,8 +106,8 @@ new class extends Component
 
         if ($entry instanceof PassType) {
             $this->remoteWeekdays = array_map('strval', $entry->remoteWeekdayNumbers());
-            $this->remoteStartsAt = substr((string) $entry->remote_starts_at, 0, 5);
-            $this->remoteEndsAt = substr((string) $entry->remote_ends_at, 0, 5);
+            $this->remoteStartsAt = $entry->remote_starts_at ?? '';
+            $this->remoteEndsAt = $entry->remote_ends_at ?? '';
         }
 
         $this->resetValidation();

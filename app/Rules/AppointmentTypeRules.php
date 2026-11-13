@@ -46,7 +46,8 @@ class AppointmentTypeRules
     }
 
     /**
-     * Get the validation rules used to validate the weekdays on which appointments of a type take place.
+     * Get the validation rules used to validate the weekdays on which appointments of a type take place, and the time
+     * the assisted person must be at the center on each of them.
      *
      * @return array<string, array<int, ValidationRule|array<mixed>|string|object>>
      */
@@ -55,6 +56,8 @@ class AppointmentTypeRules
         return [
             'weekdays' => ['array'],
             'weekdays.*' => ['distinct', Rule::enum(Weekday::class)],
+            'weekdayTimes' => ['array'],
+            'weekdayTimes.*' => ['nullable', 'date_format:H:i'],
         ];
     }
 }

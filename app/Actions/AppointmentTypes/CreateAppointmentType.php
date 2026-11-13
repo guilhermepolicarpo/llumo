@@ -10,7 +10,7 @@ class CreateAppointmentType
     /**
      * Create a new appointment type for the given team.
      *
-     * @param  array{name: string, requires_record?: bool, daily_limit?: ?int, weekdays?: ?list<int>}  $attributes
+     * @param  array{name: string, requires_record?: bool, daily_limit?: ?int, weekdays?: ?list<int>, weekday_times?: ?array<int, string>}  $attributes
      */
     public function handle(Team $team, array $attributes): AppointmentType
     {
@@ -19,6 +19,7 @@ class CreateAppointmentType
             'requires_record' => $attributes['requires_record'] ?? false,
             'daily_limit' => $attributes['daily_limit'] ?? null,
             'weekdays' => $attributes['weekdays'] ?? null,
+            'weekday_times' => $attributes['weekday_times'] ?? null,
         ]);
     }
 }

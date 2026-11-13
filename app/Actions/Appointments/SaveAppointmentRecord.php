@@ -32,9 +32,11 @@ class SaveAppointmentRecord
      *     pass_prescriptions: array<int, array{pass_type_id: int, quantity: int, mode: string, dates?: list<string>}>,
      *     infiltration_site: ?string,
      *     infiltration_remove_on: ?string,
+     *     infiltration_remove_at: ?string,
      *     infiltration_removal_place: ?string,
      *     removal_appointment_type_id: ?int,
      *     return_on: ?string,
+     *     return_at: ?string,
      *     return_appointment_type_id: ?int,
      *     observations: ?string,
      * }  $attributes
@@ -49,8 +51,10 @@ class SaveAppointmentRecord
                 'fluid_instructions' => $this->blankToNull($attributes['fluid_instructions']),
                 'infiltration_site' => $this->blankToNull($attributes['infiltration_site']),
                 'infiltration_remove_on' => $this->blankToNull($attributes['infiltration_remove_on']),
+                'infiltration_remove_at' => $this->blankToNull($attributes['infiltration_remove_at']),
                 'infiltration_removal_place' => $this->blankToNull($attributes['infiltration_removal_place']),
                 'return_on' => $this->blankToNull($attributes['return_on']),
+                'return_at' => $this->blankToNull($attributes['return_at']),
                 'observations' => $this->blankToNull($attributes['observations']),
             ]);
 

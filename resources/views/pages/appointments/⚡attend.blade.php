@@ -577,7 +577,10 @@ new class extends Component
 
                         <div class="grid gap-4 sm:grid-cols-2">
                             <flux:input wire:model.blur="form.infiltrationSite" :label="__('Site or reason')" :placeholder="__('E.g. Right arm or emotional state')" data-test="appointment-record-infiltration-site-input" />
-                            <x-date-input wire:model.live="form.infiltrationRemoveOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Remove on')" data-test="appointment-record-infiltration-remove-on-input" />
+                            <div class="grid grid-cols-[1fr_auto] items-start gap-2">
+                                <x-date-input wire:model.live="form.infiltrationRemoveOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Remove on')" data-test="appointment-record-infiltration-remove-on-input" />
+                                <flux:input type="time" wire:model="form.infiltrationRemoveAt" :label="__('Time')" data-test="appointment-record-infiltration-remove-at-input" />
+                            </div>
                         </div>
 
                         {{-- The side columns squeeze this section, so the columns follow its own width: the three removal places need about half of 42rem. --}}
@@ -628,7 +631,10 @@ new class extends Component
 
                         <div class="grid items-start gap-4 sm:grid-cols-2">
                             <div class="space-y-2">
-                                <x-date-input wire:model.live="form.returnOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Return date')" data-test="appointment-record-return-on-input" />
+                                <div class="grid grid-cols-[1fr_auto] items-start gap-2">
+                                    <x-date-input wire:model.live="form.returnOn" :min="$appointment->scheduled_on->addDay()->toDateString()" :label="__('Return date')" data-test="appointment-record-return-on-input" />
+                                    <flux:input type="time" wire:model="form.returnAt" :label="__('Time')" data-test="appointment-record-return-at-input" />
+                                </div>
 
                                 <div class="flex flex-wrap gap-1">
                                     @foreach (AppointmentRecord::RETURN_INTERVALS_DAYS as $days)

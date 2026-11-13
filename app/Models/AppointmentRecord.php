@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Casts\TimeOfDay;
 use App\Enums\InfiltrationRemovalPlace;
+use Carbon\CarbonInterface;
 use Database\Factories\AppointmentRecordFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -22,9 +24,11 @@ use Illuminate\Support\Carbon;
  * @property string|null $fluid_instructions
  * @property string|null $infiltration_site
  * @property Carbon|null $infiltration_remove_on
+ * @property string|null $infiltration_remove_at
  * @property InfiltrationRemovalPlace|null $infiltration_removal_place
  * @property int|null $infiltration_removal_appointment_id
  * @property Carbon|null $return_on
+ * @property string|null $return_at
  * @property int|null $return_appointment_id
  * @property string|null $observations
  * @property Carbon|null $created_at
@@ -40,6 +44,7 @@ use Illuminate\Support\Carbon;
  * @property-read string $guidance_summary
  * @property-read string $pass_summary
  * @property-read string $infiltration_summary
+ * @property-read string|null $return_summary
  */
 #[Fillable([
     'appointment_id',
@@ -47,9 +52,11 @@ use Illuminate\Support\Carbon;
     'fluid_instructions',
     'infiltration_site',
     'infiltration_remove_on',
+    'infiltration_remove_at',
     'infiltration_removal_place',
     'infiltration_removal_appointment_id',
     'return_on',
+    'return_at',
     'return_appointment_id',
     'observations',
 ])]
@@ -167,9 +174,29 @@ class AppointmentRecord extends Model
     {
         return Attribute::make(get: fn (): string => collect([
             $this->infiltration_site,
-            $this->infiltration_remove_on ? __('remove on :date', ['date' => $this->infiltration_remove_on->format('d/m/Y')]) : null,
+            $this->infiltration_remove_on ? __('remove on :date', ['date' => $this->dateWithTime($this->infiltration_remove_on, $this->infiltration_remove_at)]) : null,
             $this->infiltration_removal_place?->label(),
         ])->filter()->implode(' · '));
+    }
+
+    /**
+     * Get the return as a display string: its date and, when set, the time, as in "20/11/2026 at 19:15".
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function returnSummary(): Attribute
+    {
+        return Attribute::make(get: fn (): ?string => $this->return_on ? $this->dateWithTime($this->return_on, $this->return_at) : null);
+    }
+
+    /**
+     * Format a date with its time when there is one, as in "20/11/2026 at 19:15".
+     */
+    private function dateWithTime(CarbonInterface $date, ?string $time): string
+    {
+        return $time === null
+            ? $date->format('d/m/Y')
+            : __(':date at :time', ['date' => $date->format('d/m/Y'), 'time' => $time]);
     }
 
     /**
@@ -181,8 +208,10 @@ class AppointmentRecord extends Model
     {
         return [
             'infiltration_remove_on' => 'date',
+            'infiltration_remove_at' => TimeOfDay::class,
             'infiltration_removal_place' => InfiltrationRemovalPlace::class,
             'return_on' => 'date',
+            'return_at' => TimeOfDay::class,
         ];
     }
 }

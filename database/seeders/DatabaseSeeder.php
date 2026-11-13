@@ -180,10 +180,10 @@ class DatabaseSeeder extends Seeder
             ->withBirthDate()
             ->create();
 
-        $healingTreatment = AppointmentType::factory()->for($team)->withRecord()->withDailyLimit(20)->onWeekdays(Weekday::Monday, Weekday::Wednesday)->create(['name' => 'Tratamento de Cura']);
+        $healingTreatment = AppointmentType::factory()->for($team)->withRecord()->withDailyLimit(20)->onWeekdays(Weekday::Monday, Weekday::Wednesday)->startingAt([Weekday::Monday->value => '19:15', Weekday::Wednesday->value => '19:15'])->create(['name' => 'Tratamento de Cura']);
         $spiritualIntervention = AppointmentType::factory()->for($team)->withRecord()->withDailyLimit(10)->onWeekdays(Weekday::Wednesday)->create(['name' => 'Intervenção Espiritual']);
         $hydrotherapy = AppointmentType::factory()->for($team)->onWeekdays(Weekday::Thursday)->create(['name' => 'Hidroterapia']);
-        $infiltrationRemoval = AppointmentType::factory()->for($team)->onWeekdays(Weekday::Wednesday, Weekday::Friday)->create(['name' => 'Retirada de Infiltração']);
+        $infiltrationRemoval = AppointmentType::factory()->for($team)->onWeekdays(Weekday::Wednesday, Weekday::Friday)->startingAt([Weekday::Wednesday->value => '18:30', Weekday::Friday->value => '18:00'])->create(['name' => 'Retirada de Infiltração']);
         AppointmentType::factory()->for($team)->trashed()->create(['name' => 'Palestra pública']);
 
         PassType::factory()->for($team)->createMany([
@@ -313,9 +313,11 @@ class DatabaseSeeder extends Seeder
      *     pass_prescriptions: array<int, array{pass_type_id: int, quantity: int, mode: string}>,
      *     infiltration_site: ?string,
      *     infiltration_remove_on: ?string,
+     *     infiltration_remove_at: ?string,
      *     infiltration_removal_place: ?string,
      *     removal_appointment_type_id: ?int,
      *     return_on: ?string,
+     *     return_at: ?string,
      *     return_appointment_type_id: ?int,
      *     observations: ?string,
      * }
@@ -328,7 +330,8 @@ class DatabaseSeeder extends Seeder
 
         $hasInfiltration = fake()->boolean(30);
         $removalPlace = $hasInfiltration ? fake()->randomElement(InfiltrationRemovalPlace::cases()) : null;
-        $returnOn = $appointment->scheduled_on->addWeeks(fake()->randomElement([2, 3, 4]))->max(today()->addDay());
+        $returnOn = fake()->boolean(60) ? $appointment->scheduled_on->addWeeks(fake()->randomElement([2, 3, 4]))->max(today()->addDay()) : null;
+        $removeOn = $hasInfiltration ? $appointment->scheduled_on->addDays(fake()->numberBetween(7, 15))->max(today()->addDay()) : null;
 
         return [
             'mentor_id' => $team->mentors()->inRandomOrder()->value('id'),
@@ -344,10 +347,12 @@ class DatabaseSeeder extends Seeder
                 'mode' => ($passType->name === 'Hidroterapia' ? AppointmentMode::InPerson : fake()->randomElement(AppointmentMode::cases()))->value,
             ])->values()->all(),
             'infiltration_site' => $hasInfiltration ? fake()->randomElement(self::INFILTRATION_SITES) : null,
-            'infiltration_remove_on' => $hasInfiltration ? $appointment->scheduled_on->addDays(fake()->numberBetween(7, 15))->max(today()->addDay())->toDateString() : null,
+            'infiltration_remove_on' => $removeOn?->toDateString(),
+            'infiltration_remove_at' => $removalPlace?->schedulesRemoval() ? $infiltrationRemoval->startTimeOn($removeOn) : null,
             'infiltration_removal_place' => $removalPlace?->value,
             'removal_appointment_type_id' => $removalPlace?->schedulesRemoval() ? $infiltrationRemoval->id : null,
-            'return_on' => fake()->boolean(60) ? $returnOn->toDateString() : null,
+            'return_on' => $returnOn?->toDateString(),
+            'return_at' => $returnOn ? $appointment->appointmentType->startTimeOn($returnOn) : null,
             'return_appointment_type_id' => $appointment->appointment_type_id,
             'observations' => fake()->optional(0.4)->randomElement([
                 'Relatou melhora das dores desde o último atendimento.',

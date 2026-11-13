@@ -121,7 +121,7 @@ trait InteractsWithAppointmentRecordForm
     #[Computed]
     public function appointmentTypes(): Collection
     {
-        return $this->appointment->team->appointmentTypes()->orderBy('name')->get(['id', 'team_id', 'name', 'daily_limit', 'weekdays']);
+        return $this->appointment->team->appointmentTypes()->orderBy('name')->get(['id', 'team_id', 'name', 'daily_limit', 'weekdays', 'weekday_times']);
     }
 
     /**
@@ -196,6 +196,17 @@ trait InteractsWithAppointmentRecordForm
     {
         if (trim($this->form->infiltrationSite) !== '' && $this->form->infiltrationRemoveOn === '') {
             $this->form->infiltrationRemoveOn = $this->nextOfferedDayFrom($this->form->removalAppointmentTypeId, $this->appointment->scheduled_on->addDays(3))->toDateString();
+            $this->fillFollowUpTimes();
+        }
+    }
+
+    /**
+     * Follow the follow-up times when a field they depend on changes.
+     */
+    public function updatedForm(mixed $value, string $property): void
+    {
+        if (in_array($property, ['infiltrationRemoveOn', 'infiltrationRemovalPlace', 'removalAppointmentTypeId', 'returnOn', 'returnAppointmentTypeId'], true)) {
+            $this->fillFollowUpTimes();
         }
     }
 
@@ -205,6 +216,28 @@ trait InteractsWithAppointmentRecordForm
     public function setReturnInDays(int $days): void
     {
         $this->form->returnOn = $this->nextOfferedDayFrom($this->form->returnAppointmentTypeId, $this->appointment->scheduled_on->addDays($days))->toDateString();
+        $this->fillFollowUpTimes();
+    }
+
+    /**
+     * Set the removal and return times to the ones their types take place at on the chosen days. The removal only
+     * takes a time from its type when it is removed at this center.
+     */
+    protected function fillFollowUpTimes(): void
+    {
+        $this->form->infiltrationRemoveAt = $this->followUpTime(
+            current: $this->form->infiltrationRemoveAt,
+            date: $this->form->infiltrationRemoveOn,
+            appointmentTypeId: $this->form->removalAppointmentTypeId,
+            applies: (bool) InfiltrationRemovalPlace::tryFrom($this->form->infiltrationRemovalPlace)?->schedulesRemoval(),
+        );
+
+        $this->form->returnAt = $this->followUpTime(
+            current: $this->form->returnAt,
+            date: $this->form->returnOn,
+            appointmentTypeId: $this->form->returnAppointmentTypeId,
+            applies: true,
+        );
     }
 
     public function addPassPrescription(): void
@@ -312,6 +345,8 @@ trait InteractsWithAppointmentRecordForm
         unset($this->appointmentTypes);
         $this->resetValidation([$errorKey, 'form.'.$target]);
 
+        $this->fillFollowUpTimes();
+
         Flux::toast(variant: 'success', text: __('Appointment type created.'));
 
         return ['id' => (string) $appointmentType->id, 'name' => $appointmentType->name];
@@ -406,6 +441,31 @@ trait InteractsWithAppointmentRecordForm
             ->whereNull('appointment_types.deleted_at')
             ->latest('appointments.id')
             ->value('appointments.appointment_type_id');
+    }
+
+    /**
+     * Get the time a follow-up should take place at: the time its type has for the chosen day.
+     *
+     * A time typed by hand, one that none of the team's types has, is kept. A time that came from a type is replaced,
+     * and cleared when the follow-up does not take place at this center or its type has no time for that day.
+     */
+    private function followUpTime(string $current, string $date, string $appointmentTypeId, bool $applies): string
+    {
+        $typedByHand = $current !== '' && ! $this->appointmentTypes
+            ->flatMap(fn (AppointmentType $appointmentType): array => $appointmentType->weekday_times ?? [])
+            ->contains($current);
+
+        if ($typedByHand) {
+            return $current;
+        }
+
+        $day = $this->dateFrom($date);
+
+        if (! $applies || $day === null) {
+            return '';
+        }
+
+        return $this->appointmentTypes->firstWhere('id', (int) $appointmentTypeId)?->startTimeOn($day) ?? '';
     }
 
     /**
