@@ -19,6 +19,8 @@ trait InteractsWithAppointmentForm
 
     public string $mode = AppointmentMode::InPerson->value;
 
+    public string $reason = '';
+
     public string $scheduledOn = '';
 
     public string $notes = '';
@@ -104,8 +106,10 @@ trait InteractsWithAppointmentForm
     /**
      * Map validated form data to the attribute shape expected by the create/update actions.
      *
+     * The reason is only kept for remote appointments, so one typed before switching to in person is discarded.
+     *
      * @param  array<string, mixed>  $validated
-     * @return array{appointment_type_id: int, assisted_person_id: int, mode: string, scheduled_on: string, notes: ?string}
+     * @return array{appointment_type_id: int, assisted_person_id: int, mode: string, reason: ?string, scheduled_on: string, notes: ?string}
      */
     protected function appointmentAttributes(array $validated): array
     {
@@ -113,6 +117,7 @@ trait InteractsWithAppointmentForm
             'appointment_type_id' => (int) $validated['appointmentTypeId'],
             'assisted_person_id' => (int) $validated['assistedPersonId'],
             'mode' => $validated['mode'],
+            'reason' => $validated['mode'] === AppointmentMode::Remote->value ? $validated['reason'] : null,
             'scheduled_on' => $validated['scheduledOn'],
             'notes' => $validated['notes'],
         ];
