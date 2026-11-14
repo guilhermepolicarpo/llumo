@@ -402,6 +402,8 @@
   "In person": "Presencial",
   "Remote": "À distância",
   "Notes": "Observações",
+  "Reason for seeking care": "Motivo da procura",
+  "Describe in detail what led the assisted person to seek care: their need, symptoms or situation. This is how the team will know why the remote treatment was requested.": "Descreva detalhadamente o que levou o assistido a procurar o atendimento: a necessidade, os sintomas ou a situação. É por esse registro que a equipe saberá por que o tratamento à distância foi solicitado.",
   "Appointment created.": "Agendamento cadastrado.",
   "Appointment updated.": "Agendamento atualizado.",
   "Appointment deleted.": "Agendamento excluído.",

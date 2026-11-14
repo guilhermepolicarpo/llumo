@@ -27,6 +27,7 @@ new class extends Component
 
         $this->appointmentTypeId = (string) $appointment->appointment_type_id;
         $this->mode = $appointment->mode->value;
+        $this->reason = $appointment->reason ?? '';
         $this->assistedPersonId = $appointment->assisted_person_id;
         $this->scheduledOn = $appointment->scheduled_on->toDateString();
         $this->notes = $appointment->notes ?? '';

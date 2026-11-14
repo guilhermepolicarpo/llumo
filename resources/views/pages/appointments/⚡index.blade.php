@@ -913,6 +913,13 @@ new class extends Component
                         @endif
                     </dl>
 
+                    @if ($selectedAppointment->reason)
+                        <div class="space-y-1">
+                            <flux:text size="sm">{{ __('Reason for seeking care') }}</flux:text>
+                            <flux:text class="rounded-lg bg-zinc-50 px-3 py-2 whitespace-pre-line dark:bg-white/5" data-test="appointment-details-reason">{{ $selectedAppointment->reason }}</flux:text>
+                        </div>
+                    @endif
+
                     @if ($selectedAppointment->notes)
                         <div class="space-y-1">
                             <flux:text size="sm">{{ __('Notes') }}</flux:text>
