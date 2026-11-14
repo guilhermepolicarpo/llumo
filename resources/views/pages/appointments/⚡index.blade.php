@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Js;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Async;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -104,6 +105,8 @@ new class extends Component
     /**
      * The appointments whose attendance sheets are picked to print, every printable one when left empty.
      *
+     * Bound without a request per click: the print button reads it in the browser and the server sees it on the next request.
+     *
      * @var list<string>
      */
     public array $selectedSheetIds = [];
@@ -123,15 +126,13 @@ new class extends Component
     }
 
     /**
-     * Go back to the first page when the listing changes, but not when only the sheets picked to print do.
+     * Go back to the first page when the search, the day, the page size or a flyout filter changes.
      */
     public function updated(string $property): void
     {
-        if (str_starts_with($property, 'selectedSheetIds')) {
-            return;
+        if (in_array(Str::before($property, '.'), ['search', 'date', 'perPage', ...array_keys(self::FILTER_GROUPS)], true)) {
+            $this->resetPage();
         }
-
-        $this->resetPage();
     }
 
     /**
@@ -142,8 +143,6 @@ new class extends Component
         if ($this->date !== '') {
             $this->pending = false;
         }
-
-        $this->reset('selectedSheetIds');
     }
 
     /**
@@ -153,7 +152,6 @@ new class extends Component
     {
         $this->pending = true;
         $this->date = '';
-        $this->reset('selectedSheetIds');
         $this->resetPage();
     }
 
@@ -164,7 +162,6 @@ new class extends Component
     {
         $this->pending = false;
         $this->date = today()->toDateString();
-        $this->reset('selectedSheetIds');
         $this->resetPage();
     }
 
@@ -299,14 +296,11 @@ new class extends Component
     }
 
     /**
-     * Keep the selected sheets that can still be printed, leaving out those whose appointment stopped waiting.
-     *
-     * @return list<int>
+     * Drop the sheets picked to print that can no longer be printed: those of another day, or whose appointment stopped waiting.
      */
-    #[Computed]
-    public function selectedPrintableSheetIds(): array
+    public function rendering(): void
     {
-        return array_values(array_intersect($this->printableSheetIds, array_map('intval', $this->selectedSheetIds)));
+        $this->selectedSheetIds = array_values(array_intersect($this->selectedSheetIds, $this->printableSheetIds));
     }
 
     #[Computed]
@@ -611,27 +605,31 @@ new class extends Component
         />
 
         @if ($this->printableSheetIds !== [])
+            @php
+                $printSheetsUrl = route('appointments.attendance-sheets', ['date' => $this->filteredDate->toDateString()]);
+            @endphp
             <flux:button
                 icon="printer"
                 icon:variant="outline"
-                :href="route('appointments.attendance-sheets', ['date' => $this->filteredDate->toDateString(), 'ids' => $this->selectedPrintableSheetIds ?: null])"
+                :href="$printSheetsUrl"
+                x-data="{ get url() { let url = new URL({{ Js::from($printSheetsUrl) }}); $wire.selectedSheetIds.forEach((id) => url.searchParams.append('ids[]', id)); return url.href } }"
+                x-bind:href="url"
                 target="_blank"
                 class="sm:ms-auto"
                 data-test="appointments-print-sheets-button"
                 >
-                {{ $this->selectedPrintableSheetIds !== [] ? __('Print selected sheets') : __('Print sheets') }}
-                <flux:badge size="sm" color="amber" inset="top bottom" data-test="appointments-print-sheets-count">{{ count($this->selectedPrintableSheetIds ?: $this->printableSheetIds) }}</flux:badge>
+                <span x-text="$wire.selectedSheetIds.length ? {{ Js::from(__('Print selected sheets')) }} : {{ Js::from(__('Print sheets')) }}">{{ __('Print sheets') }}</span>
+                <flux:badge size="sm" color="amber" inset="top bottom" x-text="$wire.selectedSheetIds.length || {{ count($this->printableSheetIds) }}" data-test="appointments-print-sheets-count">{{ count($this->printableSheetIds) }}</flux:badge>
             </flux:button>
         @endif
     </div>
 
     <flux:card class="mt-4 scroll-mt-6 px-4 pb-4 [--flux-bleed:1rem]" id="appointments-table">
         @if ($this->appointments->isNotEmpty())
-            @php($selectsSheets = $this->printableSheetIds !== [])
-            <flux:checkbox.group wire:model.live="selectedSheetIds">
+            <flux:checkbox.group wire:model="selectedSheetIds">
                 <flux:table bleed>
                     <flux:table.columns>
-                        @if ($selectsSheets)
+                        @if ($this->printableSheetIds !== [])
                             <flux:table.column class="w-12">
                                 <flux:checkbox.all :aria-label="__('Select all sheets to print')" data-test="appointments-select-all-sheets" />
                             </flux:table.column>
@@ -648,7 +646,7 @@ new class extends Component
                     <flux:table.rows>
                         @foreach ($this->appointments as $appointment)
                             <flux:table.row :key="$appointment->id" class="relative cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800" data-test="appointment-row">
-                                @if ($selectsSheets)
+                                @if ($this->printableSheetIds !== [])
                                     <flux:table.cell class="relative z-10">
                                         @if (in_array($appointment->id, $this->printableSheetIds, true))
                                             <flux:checkbox :value="(string) $appointment->id" :aria-label="__('Select the sheet of :name to print', ['name' => $appointment->assistedPerson->name])" data-test="appointment-select-sheet" />

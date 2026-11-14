@@ -301,7 +301,7 @@ test('the appointments list offers to print the sheet of waiting appointments on
     expect($component->html())->toMatch('/data-test="appointments-print-sheets-count">\s*2\s*</');
 });
 
-test('the appointments list prints only the sheets selected among the waiting appointments', function () {
+test('the appointments list lets only the waiting sheets be picked to print', function () {
     [, $team] = actingAsTeamMember(TeamRole::Owner);
     $recordType = AppointmentType::factory()->for($team)->withRecord()->create();
     $selected = Appointment::factory()->for($team)->for($recordType)->waiting()->create();
@@ -311,8 +311,30 @@ test('the appointments list prints only the sheets selected among the waiting ap
     $component = Livewire::test('pages::appointments.index')
         ->assertSeeHtml('data-test="appointments-select-all-sheets"')
         ->set('selectedSheetIds', [(string) $selected->id, (string) $scheduled->id])
-        ->assertSeeHtml(e(route('appointments.attendance-sheets', ['current_team' => $team, 'date' => today()->toDateString(), 'ids' => [$selected->id]])));
+        ->assertSet('selectedSheetIds', [(string) $selected->id]);
 
-    expect($component->html())->toMatch('/data-test="appointments-print-sheets-count">\s*1\s*</')
-        ->and(substr_count($component->html(), 'data-test="appointment-select-sheet"'))->toBe(2);
+    expect(substr_count($component->html(), 'data-test="appointment-select-sheet"'))->toBe(2);
+});
+
+test('picking the sheets to print keeps the current page of the appointments list', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $recordType = AppointmentType::factory()->for($team)->withRecord()->create();
+    $waiting = Appointment::factory()->count(6)->for($team)->for($recordType)->waiting()->create();
+
+    Livewire::test('pages::appointments.index')
+        ->call('nextPage')
+        ->set('selectedSheetIds', [(string) $waiting->first()->id])
+        ->assertSet('paginators.page', 2)
+        ->assertSet('selectedSheetIds', [(string) $waiting->first()->id]);
+});
+
+test('changing the listed day forgets the sheets picked to print', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $recordType = AppointmentType::factory()->for($team)->withRecord()->create();
+    $waiting = Appointment::factory()->for($team)->for($recordType)->waiting()->create();
+
+    Livewire::test('pages::appointments.index')
+        ->set('selectedSheetIds', [(string) $waiting->id])
+        ->set('date', today()->addDay()->toDateString())
+        ->assertSet('selectedSheetIds', []);
 });
