@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Js;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Async;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -101,6 +102,15 @@ new class extends Component
     #[Session('appointments-per-page')]
     public int $perPage = 5;
 
+    /**
+     * The appointments whose attendance sheets are picked to print, every printable one when left empty.
+     *
+     * Bound without a request per click: the print button reads it in the browser and the server sees it on the next request.
+     *
+     * @var list<string>
+     */
+    public array $selectedSheetIds = [];
+
     #[Locked]
     public ?int $selectedAppointmentId = null;
 
@@ -115,9 +125,14 @@ new class extends Component
         }
     }
 
-    public function updated(): void
+    /**
+     * Go back to the first page when the search, the day, the page size or a flyout filter changes.
+     */
+    public function updated(string $property): void
     {
-        $this->resetPage();
+        if (in_array(Str::before($property, '.'), ['search', 'date', 'perPage', ...array_keys(self::FILTER_GROUPS)], true)) {
+            $this->resetPage();
+        }
     }
 
     /**
@@ -262,19 +277,30 @@ new class extends Component
     }
 
     /**
-     * Count the filtered day's appointments waiting to be attended whose attendance sheet can be printed.
+     * List the filtered day's appointments waiting to be attended whose attendance sheet can be printed.
+     *
+     * @return list<int>
      */
     #[Computed]
-    public function printableSheetCount(): int
+    public function printableSheetIds(): array
     {
         if ($this->pending || ! $this->filteredDate) {
-            return 0;
+            return [];
         }
 
         return Auth::user()->currentTeam->appointments()
             ->scheduledOn($this->filteredDate)
             ->waitingForRecord()
-            ->count();
+            ->pluck('id')
+            ->all();
+    }
+
+    /**
+     * Drop the sheets picked to print that can no longer be printed: those of another day, or whose appointment stopped waiting.
+     */
+    public function rendering(): void
+    {
+        $this->selectedSheetIds = array_values(array_intersect($this->selectedSheetIds, $this->printableSheetIds));
     }
 
     #[Computed]
@@ -578,100 +604,120 @@ new class extends Component
             data-test="appointments-day-picker"
         />
 
-        @if ($this->printableSheetCount > 0)
+        @if ($this->printableSheetIds !== [])
+            @php
+                $printSheetsUrl = route('appointments.attendance-sheets', ['date' => $this->filteredDate->toDateString()]);
+            @endphp
             <flux:button
                 icon="printer"
                 icon:variant="outline"
-                :href="route('appointments.attendance-sheets', ['date' => $this->filteredDate->toDateString()])"
+                :href="$printSheetsUrl"
+                x-data="{ get url() { let url = new URL({{ Js::from($printSheetsUrl) }}); $wire.selectedSheetIds.forEach((id) => url.searchParams.append('ids[]', id)); return url.href } }"
+                x-bind:href="url"
                 target="_blank"
                 class="sm:ms-auto"
                 data-test="appointments-print-sheets-button"
                 >
-                {{ __('Print sheets') }}
-                <flux:badge size="sm" color="amber" inset="top bottom" data-test="appointments-print-sheets-count">{{ $this->printableSheetCount }}</flux:badge>
+                <span x-text="$wire.selectedSheetIds.length ? {{ Js::from(__('Print selected sheets')) }} : {{ Js::from(__('Print sheets')) }}">{{ __('Print sheets') }}</span>
+                <flux:badge size="sm" color="amber" inset="top bottom" x-text="$wire.selectedSheetIds.length || {{ count($this->printableSheetIds) }}" data-test="appointments-print-sheets-count">{{ count($this->printableSheetIds) }}</flux:badge>
             </flux:button>
         @endif
     </div>
 
     <flux:card class="mt-4 scroll-mt-6 px-4 pb-4 [--flux-bleed:1rem]" id="appointments-table">
         @if ($this->appointments->isNotEmpty())
-            <flux:table bleed>
-                <flux:table.columns>
-                    @unless ($this->filteredDate)
-                        <flux:table.column sortable :sorted="$sortBy === 'date'" :direction="$sortDirection" wire:click="sort('date')" data-test="appointments-date-column">{{ __('Date') }}</flux:table.column>
-                    @endunless
-                    <flux:table.column sortable :sorted="$sortBy === 'assisted_person'" :direction="$sortDirection" wire:click="sort('assisted_person')" data-test="appointments-sort-assisted-person">{{ __('Assisted person') }}</flux:table.column>
-                    <flux:table.column sortable :sorted="$sortBy === 'appointment_type'" :direction="$sortDirection" wire:click="sort('appointment_type')" data-test="appointments-sort-appointment-type">{{ __('Appointment') }}</flux:table.column>
-                    <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" data-test="appointments-sort-status">{{ __('Status') }}</flux:table.column>
-                    <flux:table.column></flux:table.column>
-                </flux:table.columns>
+            <flux:checkbox.group wire:model="selectedSheetIds">
+                <flux:table bleed>
+                    <flux:table.columns>
+                        @if ($this->printableSheetIds !== [])
+                            <flux:table.column class="w-12">
+                                <flux:checkbox.all :aria-label="__('Select all sheets to print')" data-test="appointments-select-all-sheets" />
+                            </flux:table.column>
+                        @endif
+                        @unless ($this->filteredDate)
+                            <flux:table.column sortable :sorted="$sortBy === 'date'" :direction="$sortDirection" wire:click="sort('date')" data-test="appointments-date-column">{{ __('Date') }}</flux:table.column>
+                        @endunless
+                        <flux:table.column sortable :sorted="$sortBy === 'assisted_person'" :direction="$sortDirection" wire:click="sort('assisted_person')" data-test="appointments-sort-assisted-person">{{ __('Assisted person') }}</flux:table.column>
+                        <flux:table.column sortable :sorted="$sortBy === 'appointment_type'" :direction="$sortDirection" wire:click="sort('appointment_type')" data-test="appointments-sort-appointment-type">{{ __('Appointment') }}</flux:table.column>
+                        <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" data-test="appointments-sort-status">{{ __('Status') }}</flux:table.column>
+                        <flux:table.column></flux:table.column>
+                    </flux:table.columns>
 
-                <flux:table.rows>
-                    @foreach ($this->appointments as $appointment)
-                        <flux:table.row :key="$appointment->id" class="relative cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800" data-test="appointment-row">
-                            @unless ($this->filteredDate)
-                                <flux:table.cell>
-                                    <div class="text-zinc-800 dark:text-white">{{ $appointment->scheduled_on->format('d/m/Y') }}</div>
-                                    <div class="mt-1">{{ $appointment->scheduled_on->translatedFormat('l') }}</div>
-                                </flux:table.cell>
-                            @endunless
-
-                            <flux:table.cell>
-                                <button
-                                    type="button"
-                                    wire:click="showAppointment({{ $appointment->id }})"
-                                    class="absolute inset-0 cursor-pointer"
-                                    aria-label="{{ __('View appointment details') }}"
-                                    data-test="appointment-details-trigger"
-                                ></button>
-
-                                <div class="flex min-w-0 flex-col gap-0.5">
-                                    <div class="font-medium text-zinc-800 dark:text-white">{{ $appointment->assistedPerson->name }}</div>
-                                    <div>{{ collect([$appointment->assistedPerson->formatted_age, $appointment->assistedPerson->address_city_line])->filter()->implode(' · ') }}</div>
-                                </div>
-                            </flux:table.cell>
-
-                            <flux:table.cell>
-                                <div class="text-zinc-800 dark:text-white">{{ $appointment->appointmentType->name }}</div>
-                                <div class="mt-1 flex items-center gap-1">
-                                    <flux:icon :icon="$appointment->mode->icon()" variant="outline" class="size-3.5" />
-                                    {{ $appointment->mode->label() }}
-                                </div>
-                            </flux:table.cell>
-
-                            <flux:table.cell>
-                                <flux:badge size="sm" :color="$appointment->status->color()" data-test="appointment-status-badge">{{ $appointment->status->label() }}</flux:badge>
-                                @php
-                                    $statusContext = match ($appointment->status) {
-                                        AppointmentStatus::Scheduled => match (true) {
-                                            AppointmentAction::Start->isAvailableFor($appointment) => __('Awaiting entry'),
-                                            $appointment->mode->expectsArrival() => __('Not arrived yet'),
-                                            default => null,
-                                        },
-                                        AppointmentStatus::Waiting => $appointment->received_at
-                                            ? __('Arrived at :time', ['time' => $appointment->received_at->format('H:i')]).' · '.$appointment->received_at->diffForHumans(short: true)
-                                            : null,
-                                        AppointmentStatus::InProgress => $appointment->attendant ? __('Attendant: :name', ['name' => $appointment->attendant->name]) : null,
-                                        AppointmentStatus::Completed => $appointment->record?->mentor ? __('by :name', ['name' => $appointment->record->mentor->name]) : null,
-                                        AppointmentStatus::NoShow => __('Did not show up'),
-                                        AppointmentStatus::Canceled => __('Appointment canceled'),
-                                    };
-                                @endphp
-                                @if ($statusContext)
-                                    <div @class([
-                                        'mt-1',
-                                        'text-amber-800 dark:text-amber-400' => $appointment->status === AppointmentStatus::Waiting,
-                                    ]) data-test="appointment-status-context">{{ $statusContext }}</div>
+                    <flux:table.rows>
+                        @foreach ($this->appointments as $appointment)
+                            <flux:table.row :key="$appointment->id" class="relative cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800" data-test="appointment-row">
+                                @if ($this->printableSheetIds !== [])
+                                    <flux:table.cell class="relative z-10">
+                                        @if (in_array($appointment->id, $this->printableSheetIds, true))
+                                            <flux:checkbox :value="(string) $appointment->id" :aria-label="__('Select the sheet of :name to print', ['name' => $appointment->assistedPerson->name])" data-test="appointment-select-sheet" />
+                                        @endif
+                                    </flux:table.cell>
                                 @endif
-                            </flux:table.cell>
 
-                            <flux:table.cell align="end" class="relative z-10">
-                                <x-pages::appointments.action-buttons :appointment="$appointment" size="sm" />
-                            </flux:table.cell>
-                        </flux:table.row>
-                    @endforeach
-                </flux:table.rows>
-            </flux:table>
+                                @unless ($this->filteredDate)
+                                    <flux:table.cell>
+                                        <div class="text-zinc-800 dark:text-white">{{ $appointment->scheduled_on->format('d/m/Y') }}</div>
+                                        <div class="mt-1">{{ $appointment->scheduled_on->translatedFormat('l') }}</div>
+                                    </flux:table.cell>
+                                @endunless
+
+                                <flux:table.cell>
+                                    <button
+                                        type="button"
+                                        wire:click="showAppointment({{ $appointment->id }})"
+                                        class="absolute inset-0 cursor-pointer"
+                                        aria-label="{{ __('View appointment details') }}"
+                                        data-test="appointment-details-trigger"
+                                    ></button>
+
+                                    <div class="flex min-w-0 flex-col gap-0.5">
+                                        <div class="font-medium text-zinc-800 dark:text-white">{{ $appointment->assistedPerson->name }}</div>
+                                        <div>{{ collect([$appointment->assistedPerson->formatted_age, $appointment->assistedPerson->address_city_line])->filter()->implode(' · ') }}</div>
+                                    </div>
+                                </flux:table.cell>
+
+                                <flux:table.cell>
+                                    <div class="text-zinc-800 dark:text-white">{{ $appointment->appointmentType->name }}</div>
+                                    <div class="mt-1 flex items-center gap-1">
+                                        <flux:icon :icon="$appointment->mode->icon()" variant="outline" class="size-3.5" />
+                                        {{ $appointment->mode->label() }}
+                                    </div>
+                                </flux:table.cell>
+
+                                <flux:table.cell>
+                                    <flux:badge size="sm" :color="$appointment->status->color()" data-test="appointment-status-badge">{{ $appointment->status->label() }}</flux:badge>
+                                    @php
+                                        $statusContext = match ($appointment->status) {
+                                            AppointmentStatus::Scheduled => match (true) {
+                                                AppointmentAction::Start->isAvailableFor($appointment) => __('Awaiting entry'),
+                                                $appointment->mode->expectsArrival() => __('Not arrived yet'),
+                                                default => null,
+                                            },
+                                            AppointmentStatus::Waiting => $appointment->received_at
+                                                ? __('Arrived at :time', ['time' => $appointment->received_at->format('H:i')]).' · '.$appointment->received_at->diffForHumans(short: true)
+                                                : null,
+                                            AppointmentStatus::InProgress => $appointment->attendant ? __('Attendant: :name', ['name' => $appointment->attendant->name]) : null,
+                                            AppointmentStatus::Completed => $appointment->record?->mentor ? __('by :name', ['name' => $appointment->record->mentor->name]) : null,
+                                            AppointmentStatus::NoShow => __('Did not show up'),
+                                            AppointmentStatus::Canceled => __('Appointment canceled'),
+                                        };
+                                    @endphp
+                                    @if ($statusContext)
+                                        <div @class([
+                                            'mt-1',
+                                            'text-amber-800 dark:text-amber-400' => $appointment->status === AppointmentStatus::Waiting,
+                                        ]) data-test="appointment-status-context">{{ $statusContext }}</div>
+                                    @endif
+                                </flux:table.cell>
+
+                                <flux:table.cell align="end" class="relative z-10">
+                                    <x-pages::appointments.action-buttons :appointment="$appointment" size="sm" />
+                                </flux:table.cell>
+                            </flux:table.row>
+                        @endforeach
+                    </flux:table.rows>
+                </flux:table>
+            </flux:checkbox.group>
 
             <div class="@container -mx-4 flex flex-wrap items-center justify-center gap-3 border-t border-zinc-800/10 px-4 pt-3 dark:border-white/20">
                 <flux:pagination :paginator="$this->appointments" scroll-to="#appointments-table" class="contents! @container-normal! *:order-2 [&>:first-child]:order-none [&>:first-child]:font-normal @max-[40rem]:[&>:first-child]:w-full @max-[40rem]:[&>:first-child]:text-center" />

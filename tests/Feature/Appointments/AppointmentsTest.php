@@ -1100,3 +1100,19 @@ test('deleting the appointment closes the details flyout', function () {
         ->assertDispatched('modal-close', name: 'appointment-details')
         ->assertDontSeeHtml('data-test="appointment-details"');
 });
+
+test('the appointments list goes back to the first page when the search, the day, the page size or a filter changes', function (string $property, mixed $value) {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    Appointment::factory()->for($team)->count(6)->create(['scheduled_on' => today()]);
+
+    Livewire::test('pages::appointments.index')
+        ->call('nextPage')
+        ->assertSet('paginators.page', 2)
+        ->set($property, $value)
+        ->assertSet('paginators.page', 1);
+})->with([
+    'search' => ['search', 'Ana'],
+    'day' => ['date', ''],
+    'page size' => ['perPage', 10],
+    'filter' => ['statuses', [AppointmentStatus::Scheduled->value]],
+]);
