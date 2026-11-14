@@ -39,11 +39,16 @@ Route::prefix('{current_team}')
         Route::get('appointments/attendance-sheets', function (Request $request, Team $current_team, BuildAttendanceSheets $buildAttendanceSheets) {
             Gate::authorize('viewAny', [Appointment::class, $current_team]);
 
-            $request->validate(['date' => ['nullable', 'date_format:Y-m-d']]);
+            $request->validate([
+                'date' => ['nullable', 'date_format:Y-m-d'],
+                'ids' => ['nullable', 'array'],
+                'ids.*' => ['integer'],
+            ]);
 
             $appointments = $current_team->appointments()
                 ->scheduledOn($request->date('date', 'Y-m-d') ?? today())
                 ->waitingForRecord()
+                ->when($request->array('ids'), fn ($query, array $ids) => $query->whereKey($ids))
                 ->orderBy('received_at')
                 ->get();
 

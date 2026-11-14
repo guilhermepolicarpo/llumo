@@ -228,6 +228,33 @@ test('the batch prints the waiting appointments of the given day', function () {
     Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => $pdf->viewData['appointments']->modelKeys() === [$appointment->id]);
 });
 
+test('the batch prints only the selected sheets that can be printed, in arrival order', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $recordType = AppointmentType::factory()->for($team)->withRecord()->create();
+    $arrivedLater = Appointment::factory()->for($team)->for($recordType)->waiting()->create(['received_at' => now()]);
+    $arrivedFirst = Appointment::factory()->for($team)->for($recordType)->waiting()->create(['received_at' => now()->subHour()]);
+    Appointment::factory()->for($team)->for($recordType)->waiting()->create();
+    $inProgress = Appointment::factory()->for($team)->for($recordType)->inPerson()->inProgress()->create();
+    $otherTeam = teamOwnedBy(User::factory()->create());
+    $otherTeamAppointment = Appointment::factory()->for($otherTeam)->waiting()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($otherTeam)->withRecord(),
+    ]);
+
+    $this->get(route('appointments.attendance-sheets', [
+        'current_team' => $team,
+        'ids' => [$arrivedLater->id, $arrivedFirst->id, $inProgress->id, $otherTeamAppointment->id],
+    ]));
+
+    Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => $pdf->viewData['appointments']->modelKeys() === [$arrivedFirst->id, $arrivedLater->id]);
+});
+
+test('the batch rejects malformed selected sheets', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+
+    $this->get(route('appointments.attendance-sheets', ['current_team' => $team, 'ids' => ['abc']]))
+        ->assertSessionHasErrors('ids.0');
+});
+
 test('the batch is not found when nobody is waiting', function () {
     [, $team] = actingAsTeamMember(TeamRole::Owner);
     Appointment::factory()->for($team)->inPerson()->create([
@@ -272,4 +299,20 @@ test('the appointments list offers to print the sheet of waiting appointments on
         ->assertSeeHtml(route('appointments.attendance-sheets', ['current_team' => $team, 'date' => today()->toDateString()]));
 
     expect($component->html())->toMatch('/data-test="appointments-print-sheets-count">\s*2\s*</');
+});
+
+test('the appointments list prints only the sheets selected among the waiting appointments', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $recordType = AppointmentType::factory()->for($team)->withRecord()->create();
+    $selected = Appointment::factory()->for($team)->for($recordType)->waiting()->create();
+    Appointment::factory()->for($team)->for($recordType)->waiting()->create();
+    $scheduled = Appointment::factory()->for($team)->for($recordType)->inPerson()->create(['scheduled_on' => today()]);
+
+    $component = Livewire::test('pages::appointments.index')
+        ->assertSeeHtml('data-test="appointments-select-all-sheets"')
+        ->set('selectedSheetIds', [(string) $selected->id, (string) $scheduled->id])
+        ->assertSeeHtml(e(route('appointments.attendance-sheets', ['current_team' => $team, 'date' => today()->toDateString(), 'ids' => [$selected->id]])));
+
+    expect($component->html())->toMatch('/data-test="appointments-print-sheets-count">\s*1\s*</')
+        ->and(substr_count($component->html(), 'data-test="appointment-select-sheet"'))->toBe(2);
 });
