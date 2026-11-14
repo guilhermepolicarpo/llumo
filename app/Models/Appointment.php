@@ -27,6 +27,7 @@ use Illuminate\Support\Collection as SupportCollection;
  * @property int $appointment_type_id
  * @property int $assisted_person_id
  * @property AppointmentMode $mode
+ * @property string|null $reason
  * @property Carbon $scheduled_on
  * @property AppointmentStatus $status
  * @property Carbon|null $received_at
@@ -55,6 +56,7 @@ use Illuminate\Support\Collection as SupportCollection;
     'appointment_type_id',
     'assisted_person_id',
     'mode',
+    'reason',
     'scheduled_on',
     'status',
     'received_at',

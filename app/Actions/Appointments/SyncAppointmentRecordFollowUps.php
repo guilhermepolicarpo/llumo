@@ -51,7 +51,8 @@ class SyncAppointmentRecordFollowUps
      *
      * A null date means the follow-up is no longer requested. Follow-ups the assisted person already moved
      * through the queue are left untouched. When the person already has an appointment of the type on the
-     * date, that one becomes the follow-up instead of a second one being scheduled.
+     * date, that one becomes the follow-up instead of a second one being scheduled. A new follow-up starts without a reason
+     * for seeking care, while one already typed on the follow-up is kept.
      */
     private function syncFollowUp(
         Appointment $appointment,
@@ -88,6 +89,7 @@ class SyncAppointmentRecordFollowUps
             'appointment_type_id' => $appointmentTypeId,
             'assisted_person_id' => $appointment->assisted_person_id,
             'mode' => $mode->value,
+            'reason' => $followUp?->reason,
             'scheduled_on' => $scheduledOn->toDateString(),
             'notes' => $followUp?->notes,
         ];
