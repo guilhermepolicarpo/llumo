@@ -33,4 +33,14 @@ class GuidanceFactory extends Factory
             'deleted_at' => now(),
         ]);
     }
+
+    /**
+     * Indicate that the guidance is left off the blank attendance sheet.
+     */
+    public function leftOffAttendanceSheet(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'printed_on_attendance_sheet' => false,
+        ]);
+    }
 }

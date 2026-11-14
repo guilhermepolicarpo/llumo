@@ -1098,5 +1098,18 @@
   "Your remote pass": "Seu passe à distância",
   "Questions or a problem with any date? Call": "Dúvidas ou imprevisto com alguma data? Ligue para",
   ":start to :end": ":start às :end",
-  ":day of :month": ":day de :month"
+  ":day of :month": ":day de :month",
+  "Attendance sheet": "Ficha de atendimento",
+  "Attendance sheet updated.": "Ficha de atendimento atualizada.",
+  "What the blank sheet brings when printed. Sheets of completed appointments always show everything recorded.": "O que a ficha em branco traz ao ser impressa. A ficha de um atendimento concluído sempre mostra tudo o que foi registrado.",
+  "Back with the fluidic remedies": "Verso com os fluídicos",
+  "The selected guidances, each with a box to tick.": "As orientações selecionadas, cada uma com um quadrado para marcar.",
+  "The selected passes, with the quantity and the mode to mark.": "Os passes selecionados, com a quantidade e o modo para marcar.",
+  "Lines for the site or reason and the day to remove it.": "Linhas para o local ou motivo e o dia da retirada.",
+  "Boxes for the usual return intervals and a line for another date.": "Quadrados com os prazos de retorno mais usados e uma linha para outra data.",
+  "Lines for notes, filling the room left at the bottom of the front.": "Linhas para anotações, ocupando o espaço que sobra no fim da frente.",
+  "A second page, lined to write the fluidic remedies. Without it, each sheet takes a single page, so do not print a batch double-sided.": "Uma segunda página com linhas para escrever os fluídicos. Sem ela, cada ficha ocupa uma única página, então não imprima um lote em frente e verso.",
+  "Nothing registered yet.": "Nada cadastrado ainda.",
+  "All guidances": "Todas as orientações",
+  "All passes": "Todos os passes"
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\AppointmentMode;
+use App\Enums\AttendanceSheetSection;
 use App\Enums\TeamRole;
 use App\Models\Appointment;
 use App\Models\AppointmentRecord;
@@ -175,6 +176,80 @@ test('a filled sheet lists only the given guidances, ticked with their detail, s
 
         expect(array_map(fn (string $column) => substr_count($column, 'class="tick"'), $columns[1]))->toBe([2, 1])
             ->and($pdf->getHtml())->toContain('Por 21 dias')->not->toContain('Alfa');
+
+        return true;
+    });
+});
+
+test('a blank sheet prints only the sections, guidances and passes the team chose', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $team->update(['attendance_sheet_hidden_sections' => [AttendanceSheetSection::Infiltration, AttendanceSheetSection::Observations, AttendanceSheetSection::FluidicRemedies]]);
+    Guidance::factory()->for($team)->create(['name' => 'Culto no lar']);
+    Guidance::factory()->for($team)->leftOffAttendanceSheet()->create(['name' => 'Tratamento do copo']);
+    PassType::factory()->for($team)->create(['name' => 'Passe com 3 médiuns']);
+    PassType::factory()->for($team)->leftOffAttendanceSheet()->create(['name' => 'Hidroterapia']);
+    $appointment = Appointment::factory()->for($team)->waiting()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+
+    $this->get(route('appointments.attendance-sheet', ['current_team' => $team, 'appointment' => $appointment]));
+
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
+        expect($pdf->getHtml())
+            ->toContain('Culto no lar', 'Passe com 3 médiuns', 'Retorno')
+            ->not->toContain('Tratamento do copo', 'Hidroterapia', 'Infiltração', 'Observações', 'Fluídicos', 'class="notes-line"');
+
+        return true;
+    });
+});
+
+test('a blank sheet leaves out the guidances and passes sections the team hid', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $team->update(['attendance_sheet_hidden_sections' => [AttendanceSheetSection::Guidances, AttendanceSheetSection::Passes]]);
+    Guidance::factory()->for($team)->create(['name' => 'Culto no lar']);
+    PassType::factory()->for($team)->create(['name' => 'Passe com 3 médiuns']);
+    $appointment = Appointment::factory()->for($team)->waiting()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+
+    $this->get(route('appointments.attendance-sheet', ['current_team' => $team, 'appointment' => $appointment]));
+
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
+        expect($pdf->getHtml())
+            ->toContain('Infiltração', 'Fluídicos')
+            ->not->toContain('Culto no lar', 'Passe com 3 médiuns', 'Orientações');
+
+        return true;
+    });
+});
+
+test('a filled sheet shows everything recorded, whatever the team hides from the blank sheet', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $team->update(['attendance_sheet_hidden_sections' => AttendanceSheetSection::cases()]);
+    $appointment = Appointment::factory()->for($team)->inPerson()->completed()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+    $record = AppointmentRecord::factory()->for($appointment)->create([
+        'infiltration_site' => 'Braço direito',
+        'observations' => 'Manter o tratamento com regularidade',
+    ]);
+    $record->fluidicRemedies()->attach(FluidicRemedy::factory()->for($team)->create(['name' => 'Serotonina']), ['position' => 0]);
+    $record->guidances()->attach(Guidance::factory()->for($team)->leftOffAttendanceSheet()->create(['name' => 'Tratamento do copo']));
+    PassPrescription::factory()->for($record, 'appointmentRecord')->create([
+        'pass_type_id' => PassType::factory()->for($team)->leftOffAttendanceSheet()->create(['name' => 'Hidroterapia']),
+    ]);
+
+    $this->get(route('appointments.attendance-sheet', ['current_team' => $team, 'appointment' => $appointment]));
+
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
+        expect($pdf->getHtml())->toContain(
+            'Tratamento do copo',
+            'Hidroterapia',
+            'Braço direito',
+            'Retorno',
+            'Manter o tratamento com regularidade',
+            'Serotonina',
+        );
 
         return true;
     });

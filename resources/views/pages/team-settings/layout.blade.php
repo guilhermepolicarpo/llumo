@@ -15,6 +15,7 @@
                 @foreach (Catalog::cases() as $catalog)
                     <flux:navlist.item :href="$catalog->url()" wire:navigate data-test="team-settings-nav-{{ $catalog->value }}">{{ $catalog->label() }}</flux:navlist.item>
                 @endforeach
+                <flux:navlist.item :href="route('team-settings.attendance-sheet')" wire:navigate data-test="team-settings-nav-attendance-sheet">{{ __('Attendance sheet') }}</flux:navlist.item>
             </flux:navlist.group>
 
             <flux:navlist.group :heading="__('Library')" class="grid mt-2">

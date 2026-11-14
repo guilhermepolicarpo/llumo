@@ -1,4 +1,5 @@
 @use('App\Enums\AppointmentMode')
+@use('App\Enums\AttendanceSheetSection')
 @use('App\Models\AppointmentRecord')
 
 <!DOCTYPE html>
@@ -80,8 +81,9 @@
         @php
             $assistedPerson = $appointment->assistedPerson;
             // A completed appointment's sheet is printed filled in with its record, listing only what was given; a blank sheet
-            // lists the whole catalogs to be marked by hand.
+            // lists the catalogs to be marked by hand, keeping only the sections, guidances and passes the team chose to print.
             $record = $appointment->filledRecord();
+            $sheetHiddenSections = $record ? collect() : $hiddenSections;
             $givenGuidances = $record?->guidances->keyBy('id') ?? collect();
             $prescriptionsByPass = $record?->passPrescriptions->groupBy('pass_type_id') ?? collect();
             $sheetGuidances = $record ? $givenGuidances->pluck('name', 'id') : $guidances;
@@ -98,9 +100,17 @@
 
             // The closing is pinned to the page bottom, leaving ≈23mm below the notes title for its lines (≈6.2mm each, border
             // included) on a sheet laid out for three rows of guidances and three passes. Each guidance row or pass (≈9mm)
-            // short of the three gives its room to the notes, and each one beyond them takes from it.
+            // short of the three gives its room to the notes, and each one beyond them takes from it. A section left out, or
+            // a catalog with nothing to list, also gives the height of its title and lines.
             $extraCatalogHeight = ($guidancesHeight - 3 * $guidanceRowHeight) + ($sheetPassTypes->count() - 3) * 9;
-            $notesLineCount = max(0, (int) floor((23 - $extraCatalogHeight) / 6.2));
+            $leftOutSectionHeights = [
+                AttendanceSheetSection::Guidances->value => $sheetGuidances->isEmpty() ? 8 : 0,
+                AttendanceSheetSection::Passes->value => $sheetPassTypes->isEmpty() ? 6 : 0,
+                AttendanceSheetSection::Infiltration->value => $sheetHiddenSections->contains(AttendanceSheetSection::Infiltration) ? 20 : 0,
+                AttendanceSheetSection::Return->value => $sheetHiddenSections->contains(AttendanceSheetSection::Return) ? 20 : 0,
+            ];
+            $leftOutHeight = array_sum($leftOutSectionHeights);
+            $notesLineCount = max(0, (int) floor((23 + $leftOutHeight - $extraCatalogHeight) / 6.2));
             $sheetDay = $appointment->received_at ?? today();
             $sheetDate = $sheetDay->translatedFormat('d \d\e F \d\e Y');
         @endphp
@@ -203,76 +213,82 @@
                 </table>
             @endif
 
-            <div class="label section-label">{{ __('Infiltration') }}</div>
-            <div class="write-in">
-                @if ($record?->infiltration_site)
-                    <table>
-                        <tr>
-                            <td>{{ __('Site or reason') }}: <span class="filled">{{ $record->infiltration_site }}</span></td>
-                        </tr>
-                    </table>
-                @else
-                    <table>
-                        <tr>
-                            <td class="shrink">{{ __('Site or reason') }}:</td>
-                            <td class="line-fill"></td>
-                        </tr>
-                    </table>
-                @endif
-                <table>
-                    <tr>
-                        <td>
-                            {{ __('Remove on day') }}:
-                            @if ($record?->infiltration_remove_at)
-                                <span class="filled">{{ $record->infiltration_remove_at->translatedFormat('d/m/Y (l)') }}</span>
-                            @else
-                                <span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 8mm;"></span>
-                            @endif
-                            @include('pdf.partials.time', ['time' => AppointmentRecord::timeOf($record?->infiltration_remove_at)])
-                        </td>
-                    </tr>
-                </table>
-            </div>
-
-            <div class="label section-label">{{ __('Return') }}</div>
-            <div class="write-in">
-                @if ($record?->return_at)
+            @unless ($sheetHiddenSections->contains(AttendanceSheetSection::Infiltration))
+                <div class="label section-label">{{ __('Infiltration') }}</div>
+                <div class="write-in">
+                    @if ($record?->infiltration_site)
+                        <table>
+                            <tr>
+                                <td>{{ __('Site or reason') }}: <span class="filled">{{ $record->infiltration_site }}</span></td>
+                            </tr>
+                        </table>
+                    @else
+                        <table>
+                            <tr>
+                                <td class="shrink">{{ __('Site or reason') }}:</td>
+                                <td class="line-fill"></td>
+                            </tr>
+                        </table>
+                    @endif
                     <table>
                         <tr>
                             <td>
-                                {{ __('Return on day') }}: <span class="filled">{{ $record->return_at->translatedFormat('d/m/Y (l)') }}</span>
-                                @include('pdf.partials.time', ['time' => AppointmentRecord::timeOf($record->return_at)])
+                                {{ __('Remove on day') }}:
+                                @if ($record?->infiltration_remove_at)
+                                    <span class="filled">{{ $record->infiltration_remove_at->translatedFormat('d/m/Y (l)') }}</span>
+                                @else
+                                    <span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 5mm;"></span>/<span class="blank" style="width: 8mm;"></span>
+                                @endif
+                                @include('pdf.partials.time', ['time' => AppointmentRecord::timeOf($record?->infiltration_remove_at)])
                             </td>
                         </tr>
                     </table>
-                @else
-                    {{-- The same intervals the record form offers as shortcuts, plus a line below for any other return. --}}
-                    <table>
-                        <tr>
-                            @foreach (AppointmentRecord::RETURN_INTERVALS_DAYS as $days)
-                                <td class="shrink return-option"><span class="box"></span>{{ __('+:days days', ['days' => $days]) }}</td>
-                            @endforeach
-                            <td></td>
-                        </tr>
-                    </table>
-                    <table>
-                        <tr>
-                            <td class="shrink"><span class="box"></span>{{ __('Other date') }}:</td>
-                            <td class="line-fill"></td>
-                            <td class="shrink">@include('pdf.partials.time', ['time' => null])</td>
-                        </tr>
-                    </table>
-                @endif
-            </div>
+                </div>
+            @endunless
 
-            <div class="label section-label">{{ __('Observations') }}</div>
-            @if ($record?->observations)
-                <div class="written-notes filled">{{ $record->observations }}</div>
-            @else
-                @for ($line = 0; $line < $notesLineCount; $line++)
-                    <div class="notes-line"></div>
-                @endfor
-            @endif
+            @unless ($sheetHiddenSections->contains(AttendanceSheetSection::Return))
+                <div class="label section-label">{{ __('Return') }}</div>
+                <div class="write-in">
+                    @if ($record?->return_at)
+                        <table>
+                            <tr>
+                                <td>
+                                    {{ __('Return on day') }}: <span class="filled">{{ $record->return_at->translatedFormat('d/m/Y (l)') }}</span>
+                                    @include('pdf.partials.time', ['time' => AppointmentRecord::timeOf($record->return_at)])
+                                </td>
+                            </tr>
+                        </table>
+                    @else
+                        {{-- The same intervals the record form offers as shortcuts, plus a line below for any other return. --}}
+                        <table>
+                            <tr>
+                                @foreach (AppointmentRecord::RETURN_INTERVALS_DAYS as $days)
+                                    <td class="shrink return-option"><span class="box"></span>{{ __('+:days days', ['days' => $days]) }}</td>
+                                @endforeach
+                                <td></td>
+                            </tr>
+                        </table>
+                        <table>
+                            <tr>
+                                <td class="shrink"><span class="box"></span>{{ __('Other date') }}:</td>
+                                <td class="line-fill"></td>
+                                <td class="shrink">@include('pdf.partials.time', ['time' => null])</td>
+                            </tr>
+                        </table>
+                    @endif
+                </div>
+            @endunless
+
+            @unless ($sheetHiddenSections->contains(AttendanceSheetSection::Observations))
+                <div class="label section-label">{{ __('Observations') }}</div>
+                @if ($record?->observations)
+                    <div class="written-notes filled">{{ $record->observations }}</div>
+                @else
+                    @for ($line = 0; $line < $notesLineCount; $line++)
+                        <div class="notes-line"></div>
+                    @endfor
+                @endif
+            @endunless
 
             <div class="closing">
                 <table>
@@ -294,50 +310,52 @@
         </div>
 
         {{-- Back: lined for the fluidic remedies, written by hand during the attendance. --}}
-        <div class="page page-break">
-            <div class="back-title">{{ __('Fluidic remedies') }}</div>
-            <div class="back-detail">{{ $assistedPerson->name }} · {{ $sheetDate }}</div>
-            <hr class="back-rule">
-            @php
-                // Each written line takes one ruled line, so the instructions are wrapped to the width of the page; when the
-                // remedies would not fit the ruled lines in one column, they are split into two columns, filled top to bottom.
-                $backLineCount = 20;
-                $remedies = $record?->fluidicRemedies->pluck('name') ?? collect();
-                $instructionsLabel = __('How to take').':';
-                $instructionLines = $record?->fluid_instructions
-                    ? collect(explode("\n", wordwrap($instructionsLabel.' '.$record->fluid_instructions, 75)))
-                    : collect();
-                $remedyColumns = $remedies->count() + $instructionLines->count() > $backLineCount ? $remedies->split(2) : collect([$remedies]);
-                $writtenLineCount = $remedyColumns->first()->count() + $instructionLines->count();
-            @endphp
-            @if ($remedyColumns->count() > 1)
-                <table class="back-columns">
-                    @foreach ($remedyColumns->first()->zip($remedyColumns->last()) as [$leftRemedy, $rightRemedy])
-                        <tr>
-                            <td><div class="back-line filled">{{ $leftRemedy }}</div></td>
-                            <td><div class="back-line filled">{{ $rightRemedy }}</div></td>
-                        </tr>
+        @unless ($sheetHiddenSections->contains(AttendanceSheetSection::FluidicRemedies))
+            <div class="page page-break">
+                <div class="back-title">{{ __('Fluidic remedies') }}</div>
+                <div class="back-detail">{{ $assistedPerson->name }} · {{ $sheetDate }}</div>
+                <hr class="back-rule">
+                @php
+                    // Each written line takes one ruled line, so the instructions are wrapped to the width of the page; when the
+                    // remedies would not fit the ruled lines in one column, they are split into two columns, filled top to bottom.
+                    $backLineCount = 20;
+                    $remedies = $record?->fluidicRemedies->pluck('name') ?? collect();
+                    $instructionsLabel = __('How to take').':';
+                    $instructionLines = $record?->fluid_instructions
+                        ? collect(explode("\n", wordwrap($instructionsLabel.' '.$record->fluid_instructions, 75)))
+                        : collect();
+                    $remedyColumns = $remedies->count() + $instructionLines->count() > $backLineCount ? $remedies->split(2) : collect([$remedies]);
+                    $writtenLineCount = $remedyColumns->first()->count() + $instructionLines->count();
+                @endphp
+                @if ($remedyColumns->count() > 1)
+                    <table class="back-columns">
+                        @foreach ($remedyColumns->first()->zip($remedyColumns->last()) as [$leftRemedy, $rightRemedy])
+                            <tr>
+                                <td><div class="back-line filled">{{ $leftRemedy }}</div></td>
+                                <td><div class="back-line filled">{{ $rightRemedy }}</div></td>
+                            </tr>
+                        @endforeach
+                    </table>
+                @else
+                    @foreach ($remedies as $remedy)
+                        <div class="back-line filled">{{ $remedy }}</div>
                     @endforeach
-                </table>
-            @else
-                @foreach ($remedies as $remedy)
-                    <div class="back-line filled">{{ $remedy }}</div>
+                @endif
+                @foreach ($instructionLines as $line)
+                    <div class="back-line filled">
+                        @if ($loop->first)
+                            <span class="label">{{ $instructionsLabel }}</span>{{ mb_substr($line, mb_strlen($instructionsLabel)) }}
+                        @else
+                            {{ $line }}
+                        @endif
+                    </div>
                 @endforeach
-            @endif
-            @foreach ($instructionLines as $line)
-                <div class="back-line filled">
-                    @if ($loop->first)
-                        <span class="label">{{ $instructionsLabel }}</span>{{ mb_substr($line, mb_strlen($instructionsLabel)) }}
-                    @else
-                        {{ $line }}
-                    @endif
-                </div>
-            @endforeach
-            @for ($line = $writtenLineCount; $line < $backLineCount; $line++)
-                <div class="back-line"></div>
-            @endfor
-            <div class="back-footer">{{ $team->display_legal_name }}</div>
-        </div>
+                @for ($line = $writtenLineCount; $line < $backLineCount; $line++)
+                    <div class="back-line"></div>
+                @endfor
+                <div class="back-footer">{{ $team->display_legal_name }}</div>
+            </div>
+        @endunless
     @endforeach
 </body>
 </html>
