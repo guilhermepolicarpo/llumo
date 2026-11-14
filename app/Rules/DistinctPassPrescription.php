@@ -2,6 +2,7 @@
 
 namespace App\Rules;
 
+use App\Enums\AppointmentMode;
 use Closure;
 use Illuminate\Contracts\Validation\DataAwareRule;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -29,7 +30,8 @@ class DistinctPassPrescription implements DataAwareRule, ValidationRule
 
     /**
      * Fail when an earlier row already prescribes the same pass type in the same mode, so each pass is written once
-     * with its whole quantity. The same pass type may still be given in person and remotely.
+     * with its whole quantity. The same pass type may still be given in person and remotely. A row with an invalid mode
+     * is left to the rules of its own field.
      *
      * @param  Closure(string, ?string=): PotentiallyTranslatedString  $fail
      */
@@ -42,10 +44,15 @@ class DistinctPassPrescription implements DataAwareRule, ValidationRule
         $index = (int) $matches[1];
         $rows = Arr::get($this->data, 'passPrescriptions', []);
         $mode = $rows[$index]['mode'] ?? null;
+        $mode = is_string($mode) ? AppointmentMode::tryFrom($mode) : null;
+
+        if ($mode === null) {
+            return;
+        }
 
         foreach (array_slice(is_array($rows) ? $rows : [], 0, $index) as $row) {
-            if (is_array($row) && (string) ($row['pass_type_id'] ?? '') === (string) $value && ($row['mode'] ?? null) === $mode) {
-                $fail(__('This pass type was already added in this mode. Change the quantity of the first one instead.'));
+            if (is_array($row) && (string) ($row['pass_type_id'] ?? '') === (string) $value && ($row['mode'] ?? null) === $mode->value) {
+                $fail(__('This pass type is already on the list (:mode). Raise the quantity on its row instead of repeating it.', ['mode' => $mode->label()]));
 
                 return;
             }

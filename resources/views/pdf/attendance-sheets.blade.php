@@ -287,7 +287,7 @@
                         <td class="signature-line" style="text-align: center; vertical-align: bottom;">{{ $record?->mentor?->name }}</td>
                     </tr>
                     <tr>
-                        <td class="caption" style="text-align: center;">{{ __('Medium signature') }}</td>
+                        <td class="caption" style="text-align: center;">{{ __('Mentor signature') }}</td>
                     </tr>
                 </table>
             </div>

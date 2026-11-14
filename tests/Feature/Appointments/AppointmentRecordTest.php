@@ -514,3 +514,57 @@ test('a pass type is prescribed once in each mode', function (AppointmentMode $s
     'twice remotely' => [AppointmentMode::Remote, false],
     'remotely and in person' => [AppointmentMode::InPerson, true],
 ]);
+
+test('the record opens with a blank pass row, which records no pass and stays on the form', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->inProgress()->inPerson()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+    $blankRow = ['pass_type_id' => '', 'quantity' => 1, 'mode' => AppointmentMode::InPerson->value, 'dates' => []];
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->assertSet('form.passPrescriptions', [$blankRow])
+        ->set('form.mentorId', (string) Mentor::factory()->for($team)->create()->id)
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertSet('form.passPrescriptions', [$blankRow]);
+
+    expect($appointment->record()->sole()->passPrescriptions)->toBeEmpty();
+});
+
+test('pass rows left without a pass type are skipped while the others save and keep their errors on their own row', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->inProgress()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+    $passType = PassType::factory()->for($team)->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->set('form.mentorId', (string) Mentor::factory()->for($team)->create()->id)
+        ->call('addPassPrescription')
+        ->call('addPassPrescription')
+        ->set('form.passPrescriptions.0.pass_type_id', (string) $passType->id)
+        ->set('form.passPrescriptions.0.mode', AppointmentMode::InPerson->value)
+        ->set('form.passPrescriptions.2.pass_type_id', (string) $passType->id)
+        ->set('form.passPrescriptions.2.mode', AppointmentMode::Remote->value)
+        ->set('form.passPrescriptions.2.quantity', 100)
+        ->call('save')
+        ->assertHasErrors(['form.passPrescriptions.2.quantity' => 'between'])
+        ->assertHasNoErrors(['form.passPrescriptions.1.pass_type_id', 'form.passPrescriptions.2.pass_type_id'])
+        ->set('form.passPrescriptions.2.quantity', 4)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($appointment->record()->sole()->passPrescriptions->map->only(['quantity', 'mode'])->all())->toBe([
+        ['quantity' => 1, 'mode' => AppointmentMode::InPerson],
+        ['quantity' => 4, 'mode' => AppointmentMode::Remote],
+    ]);
+});

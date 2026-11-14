@@ -270,6 +270,17 @@ trait InteractsWithAppointmentRecordForm
         ];
     }
 
+    /**
+     * Start a form without passes with a blank pass row, so the first pass is picked without adding a row. A row left
+     * without a pass type records nothing.
+     */
+    protected function addBlankPassPrescriptionWhenEmpty(): void
+    {
+        if ($this->form->passPrescriptions === []) {
+            $this->addPassPrescription();
+        }
+    }
+
     public function removePassPrescription(int $index): void
     {
         unset($this->form->passPrescriptions[$index]);
@@ -427,6 +438,7 @@ trait InteractsWithAppointmentRecordForm
         }
 
         $this->form->fillFromDraft($draft->data);
+        $this->addBlankPassPrescriptionWhenEmpty();
 
         $this->restoredDraft = [
             'time' => $draft->updated_at->format('d/m/Y H:i'),
@@ -446,6 +458,8 @@ trait InteractsWithAppointmentRecordForm
         if ($record !== null) {
             $this->form->fillFromRecord($record);
         }
+
+        $this->addBlankPassPrescriptionWhenEmpty();
     }
 
     /**
