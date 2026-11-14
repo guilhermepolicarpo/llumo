@@ -58,6 +58,33 @@ test('the guidances of another team cannot be chosen for the sheet', function ()
     expect($otherTeamGuidance->fresh()->printed_on_attendance_sheet)->toBeTrue();
 });
 
+test('the sections are grouped by the page of the sheet they print on', function () {
+    actingAsTeamMember(TeamRole::Admin);
+
+    Livewire::test('pages::team-settings.attendance-sheet')
+        ->assertSeeHtmlInOrder([
+            'data-test="attendance-sheet-front-group"',
+            'data-test="attendance-sheet-section-guidances"',
+            'data-test="attendance-sheet-section-observations"',
+            'data-test="attendance-sheet-back-group"',
+            'data-test="attendance-sheet-section-fluidic_remedies"',
+            'data-test="attendance-sheet-preview"',
+        ]);
+});
+
+test('the page and its preview list only the guidances and passes of the current team', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Admin);
+    $otherTeam = teamOwnedBy(User::factory()->create());
+    Guidance::factory()->for($team)->create(['name' => 'Fazer o culto do evangelho no lar']);
+    PassType::factory()->for($team)->create(['name' => 'Passe com 3 médiuns']);
+    Guidance::factory()->for($otherTeam)->create(['name' => 'Orientação de outra casa']);
+    PassType::factory()->for($otherTeam)->create(['name' => 'Passe de outra casa']);
+
+    Livewire::test('pages::team-settings.attendance-sheet')
+        ->assertSee(['Fazer o culto do evangelho no lar', 'Passe com 3 médiuns'])
+        ->assertDontSee(['Orientação de outra casa', 'Passe de outra casa']);
+});
+
 test('members cannot open the attendance sheet settings', function () {
     actingAsTeamMember(TeamRole::Member);
 

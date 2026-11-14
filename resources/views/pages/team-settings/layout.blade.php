@@ -44,10 +44,23 @@
 
                 {{ $actions ?? '' }}
             </div>
+        </div>
 
-            <div class="mt-5">
+        {{-- A page with an aside (like a preview) widens past the form column once the content area has room for both. --}}
+        @isset($aside)
+            <div class="@container mt-5">
+                <div class="grid gap-8 @3xl:grid-cols-[minmax(0,42rem)_23rem] @3xl:items-start">
+                    <div class="min-w-0">
+                        {{ $slot }}
+                    </div>
+
+                    {{ $aside }}
+                </div>
+            </div>
+        @else
+            <div class="mt-5 w-full max-w-2xl">
                 {{ $slot }}
             </div>
-        </div>
+        @endisset
     </div>
 </div>

@@ -25,6 +25,17 @@ enum AttendanceSheetSection: string
     }
 
     /**
+     * Get the sections printed on the front of the sheet, in the order the sheet prints them: all but the fluidic
+     * remedies, which are the back.
+     *
+     * @return array<int, self>
+     */
+    public static function onFront(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $section): bool => $section !== self::FluidicRemedies));
+    }
+
+    /**
      * Get the catalog whose entries the section lists, or null when it lists none.
      */
     public function catalog(): ?Catalog
@@ -74,7 +85,7 @@ enum AttendanceSheetSection: string
             self::Infiltration => __('Lines for the site or reason and the day to remove it.'),
             self::Return => __('Boxes for the usual return intervals and a line for another date.'),
             self::Observations => __('Lines for notes, filling the room left at the bottom of the front.'),
-            self::FluidicRemedies => __('A second page, lined to write the fluidic remedies. Without it, each sheet takes a single page, so do not print a batch double-sided.'),
+            self::FluidicRemedies => __('Lines to write the fluidic remedies and how to take them.'),
         };
     }
 }
