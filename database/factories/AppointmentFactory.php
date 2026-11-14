@@ -49,6 +49,7 @@ class AppointmentFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'mode' => AppointmentMode::Remote,
+            'reason' => fake()->sentence(),
         ]);
     }
 

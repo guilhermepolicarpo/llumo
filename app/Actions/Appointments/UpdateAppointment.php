@@ -12,7 +12,7 @@ class UpdateAppointment
     /**
      * Update an existing appointment.
      *
-     * @param  array{appointment_type_id: int, assisted_person_id: int, mode: string, scheduled_on: string, notes?: ?string}  $attributes
+     * @param  array{appointment_type_id: int, assisted_person_id: int, mode: string, reason?: ?string, scheduled_on: string, notes?: ?string}  $attributes
      */
     public function handle(Appointment $appointment, array $attributes): Appointment
     {

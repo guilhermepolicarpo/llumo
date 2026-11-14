@@ -39,6 +39,7 @@ test('members can schedule an appointment', function () {
         ->assertSet('scheduledOn', today()->toDateString())
         ->set('appointmentTypeId', (string) $appointmentType->id)
         ->set('mode', AppointmentMode::Remote->value)
+        ->set('reason', '  Insônia e ansiedade há dois meses  ')
         ->call('selectAssistedPerson', $assistedPerson->id)
         ->set('scheduledOn', today()->addWeek()->toDateString())
         ->set('notes', '  Trazer exames  ')
@@ -51,6 +52,7 @@ test('members can schedule an appointment', function () {
     expect($appointment->appointment_type_id)->toBe($appointmentType->id)
         ->and($appointment->assisted_person_id)->toBe($assistedPerson->id)
         ->and($appointment->mode)->toBe(AppointmentMode::Remote)
+        ->and($appointment->reason)->toBe('Insônia e ansiedade há dois meses')
         ->and($appointment->scheduled_on->toDateString())->toBe(today()->addWeek()->toDateString())
         ->and($appointment->notes)->toBe('Trazer exames')
         ->and($appointment->creator_id)->toBe($user->id)
@@ -127,6 +129,46 @@ test('an appointment cannot be scheduled for a past date', function () {
         ->assertHasErrors(['scheduledOn' => 'after_or_equal']);
 
     expect(Appointment::count())->toBe(0);
+});
+
+test('a remote appointment requires the reason the assisted person sought care', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointmentType = AppointmentType::factory()->for($team)->create();
+    $assistedPerson = AssistedPerson::factory()->for($team)->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.create')
+        ->set('appointmentTypeId', (string) $appointmentType->id)
+        ->set('mode', AppointmentMode::Remote->value)
+        ->set('reason', '   ')
+        ->call('selectAssistedPerson', $assistedPerson->id)
+        ->call('createAppointment')
+        ->assertHasErrors(['reason' => 'required_if']);
+
+    expect(Appointment::count())->toBe(0);
+});
+
+test('an in-person appointment does not require the reason and discards one typed before switching mode', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointmentType = AppointmentType::factory()->for($team)->create();
+    $assistedPerson = AssistedPerson::factory()->for($team)->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.create')
+        ->set('appointmentTypeId', (string) $appointmentType->id)
+        ->set('mode', AppointmentMode::InPerson->value)
+        ->set('reason', 'Digitado antes de trocar o modo')
+        ->call('selectAssistedPerson', $assistedPerson->id)
+        ->call('createAppointment')
+        ->assertHasNoErrors();
+
+    expect($team->appointments()->sole()->reason)->toBeNull();
 });
 
 test('an appointment on a weekday its type does not take place warns but can still be scheduled', function () {
@@ -438,6 +480,8 @@ test('members can update an appointment', function () {
         ->assertSet('mode', AppointmentMode::InPerson->value)
         ->set('appointmentTypeId', (string) $newType->id)
         ->set('mode', AppointmentMode::Remote->value)
+        ->assertSet('reason', '')
+        ->set('reason', 'Dores de cabeça frequentes')
         ->set('scheduledOn', today()->addMonth()->toDateString())
         ->set('notes', '')
         ->call('updateAppointment')
@@ -448,6 +492,7 @@ test('members can update an appointment', function () {
 
     expect($appointment->appointment_type_id)->toBe($newType->id)
         ->and($appointment->mode)->toBe(AppointmentMode::Remote)
+        ->and($appointment->reason)->toBe('Dores de cabeça frequentes')
         ->and($appointment->scheduled_on->toDateString())->toBe(today()->addMonth()->toDateString())
         ->and($appointment->notes)->toBeNull();
 });
@@ -801,8 +846,9 @@ test('the details flyout shows the assisted person, their last visit, and the ap
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
     $assistedPerson = AssistedPerson::factory()->for($team)->create(['name' => 'Maria Silva', 'phone' => '16999998888']);
-    $appointment = Appointment::factory()->for($team)->for($assistedPerson)->create([
+    $appointment = Appointment::factory()->for($team)->for($assistedPerson)->remote()->create([
         'scheduled_on' => '2026-09-21',
+        'reason' => 'Insônia e ansiedade há dois meses',
         'notes' => 'Trazer exames',
     ]);
     Appointment::factory()->for($team)->for($assistedPerson)->completed()->create(['scheduled_on' => '2026-09-10']);
@@ -818,6 +864,7 @@ test('the details flyout shows the assisted person, their last visit, and the ap
         ->assertDispatched('modal-show', name: 'appointment-details')
         ->assertSeeHtml('data-test="appointment-details"')
         ->assertSee($assistedPerson->formatted_phone)
+        ->assertSee('Insônia e ansiedade há dois meses')
         ->assertSee('Trazer exames')
         ->assertSeeHtml('data-test="appointment-edit-button"')
         ->assertSee('10/09/2026')

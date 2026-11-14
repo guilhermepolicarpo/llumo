@@ -249,6 +249,7 @@ return [
         'scheduledOn' => 'data',
         'mode' => 'modo',
         'notes' => 'observações',
+        'reason' => 'motivo',
         'birthDate' => 'data de nascimento',
         'postalCode' => 'CEP',
         'dailyLimit' => 'limite diário de agendamentos',
@@ -283,6 +284,9 @@ return [
         ],
         'infiltrationRemovalPlace' => [
             'at_the_center' => 'na casa',
+        ],
+        'mode' => [
+            'remote' => 'à distância',
         ],
     ],
 

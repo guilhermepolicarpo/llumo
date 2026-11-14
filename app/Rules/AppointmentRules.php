@@ -20,6 +20,7 @@ class AppointmentRules
         return [
             'appointmentTypeId' => static::appointmentTypeId($team),
             'mode' => static::mode(),
+            'reason' => static::reason(),
             'assistedPersonId' => static::assistedPersonId($team),
             'scheduledOn' => [...static::scheduledOn(), new UniqueAppointmentOfDay($team, $appointment?->id)],
             'notes' => static::notes(),
@@ -48,6 +49,16 @@ class AppointmentRules
     public static function mode(): array
     {
         return ['required', 'string', Rule::enum(AppointmentMode::class)];
+    }
+
+    /**
+     * Get the validation rules used to validate the reason the assisted person sought care, required for remote appointments.
+     *
+     * @return array<int, ValidationRule|array<mixed>|string|object>
+     */
+    public static function reason(): array
+    {
+        return ['required_if:mode,'.AppointmentMode::Remote->value, 'nullable', 'string', 'max:2000'];
     }
 
     /**
