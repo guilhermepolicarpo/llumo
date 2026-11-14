@@ -206,7 +206,8 @@ new class extends Component
             </div>
 
             <div class="sticky bottom-0 z-10 mt-6 flex flex-col-reverse gap-2 border-t border-zinc-200 bg-white py-3 sm:flex-row sm:items-center sm:justify-end dark:border-white/10 dark:bg-zinc-800">
-                <flux:text wire:dirty.flex class="flex items-center gap-2 sm:me-auto" data-test="attendance-sheet-unsaved-changes">
+                {{-- Livewire's own CSS only hides a bare wire:dirty on load, so with the .flex modifier the text starts hidden here and Livewire shows it as flex once the form is dirty. --}}
+                <flux:text wire:dirty.flex class="hidden items-center gap-2 sm:me-auto" data-test="attendance-sheet-unsaved-changes">
                     <span class="size-2 shrink-0 rounded-full bg-amber-500" aria-hidden="true"></span>
                     {{ __('Unsaved changes') }}
                 </flux:text>
