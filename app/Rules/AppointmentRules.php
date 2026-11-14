@@ -52,13 +52,14 @@ class AppointmentRules
     }
 
     /**
-     * Get the validation rules used to validate the reason the assisted person sought care, required for remote appointments.
+     * Get the validation rules used to validate the reason the assisted person sought care, required for remote appointments
+     * and left out of in-person ones.
      *
      * @return array<int, ValidationRule|array<mixed>|string|object>
      */
     public static function reason(): array
     {
-        return ['required_if:mode,'.AppointmentMode::Remote->value, 'nullable', 'string', 'max:2000'];
+        return ['exclude_unless:mode,'.AppointmentMode::Remote->value, 'required', 'string', 'max:2000'];
     }
 
     /**

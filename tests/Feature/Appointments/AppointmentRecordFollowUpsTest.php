@@ -133,6 +133,30 @@ test('saving again updates the follow-ups instead of duplicating them', function
     expect(followUpsOf($appointment)->sole()->scheduled_on->toDateString())->toBe('2026-10-18');
 });
 
+test('a remote return starts without a reason for seeking care and keeps the one typed later when the record moves it', function () {
+    [$component, $appointment] = attendRecordAppointment(['mode' => AppointmentMode::Remote]);
+
+    $component
+        ->set('form.returnAt', '2026-10-11')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $return = followUpsOf($appointment)->sole();
+
+    expect($return->reason)->toBeNull();
+
+    $return->update(['reason' => 'Insônia e ansiedade há dois meses']);
+
+    $component
+        ->set('form.returnAt', '2026-10-18')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($return->refresh())
+        ->scheduled_on->toDateString()->toBe('2026-10-18')
+        ->reason->toBe('Insônia e ansiedade há dois meses');
+});
+
 test('a return on a day the assisted person already has that type becomes the appointment already scheduled', function () {
     [$component, $appointment, $team] = attendRecordAppointment();
     $sameDayOf = fn (string $date): array => [

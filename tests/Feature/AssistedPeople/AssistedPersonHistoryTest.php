@@ -54,6 +54,31 @@ test('the history splits the assisted person appointments into upcoming and prev
         ->and($component->get('previousAppointments')->pluck('id')->all())->toBe([$completedToday->id, $completed->id, $noShow->id]);
 });
 
+test('the history shows the reason for seeking care of upcoming and previous appointments', function () {
+    $this->travelTo('2026-09-27 10:00:00');
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $person = AssistedPerson::factory()->for($team)->create();
+
+    Appointment::factory()->for($team)->remote()->completed()->create([
+        'assisted_person_id' => $person,
+        'scheduled_on' => '2026-09-20',
+        'reason' => 'Insônia e ansiedade há dois meses',
+    ]);
+    Appointment::factory()->for($team)->remote()->create([
+        'assisted_person_id' => $person,
+        'scheduled_on' => '2026-10-04',
+        'reason' => 'Dores de cabeça frequentes',
+    ]);
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::assisted-people.show', ['assistedPerson' => $person])
+        ->assertSee('Insônia e ansiedade há dois meses')
+        ->assertSee('Dores de cabeça frequentes');
+});
+
 test('the history filters appointments by type and status', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);

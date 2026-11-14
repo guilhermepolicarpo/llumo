@@ -146,7 +146,7 @@ test('a remote appointment requires the reason the assisted person sought care',
         ->set('reason', '   ')
         ->call('selectAssistedPerson', $assistedPerson->id)
         ->call('createAppointment')
-        ->assertHasErrors(['reason' => 'required_if']);
+        ->assertHasErrors(['reason' => 'required']);
 
     expect(Appointment::count())->toBe(0);
 });

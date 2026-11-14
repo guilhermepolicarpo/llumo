@@ -285,9 +285,6 @@ return [
         'infiltrationRemovalPlace' => [
             'at_the_center' => 'na casa',
         ],
-        'mode' => [
-            'remote' => 'à distância',
-        ],
     ],
 
 ];

@@ -28,6 +28,7 @@ class AppointmentFactory extends Factory
             'appointment_type_id' => fn (array $attributes) => AppointmentType::factory()->create(['team_id' => $attributes['team_id']]),
             'assisted_person_id' => fn (array $attributes) => AssistedPerson::factory()->create(['team_id' => $attributes['team_id']]),
             'mode' => fake()->randomElement(AppointmentMode::cases()),
+            'reason' => fn (array $attributes): ?string => $attributes['mode'] === AppointmentMode::Remote ? fake()->sentence() : null,
             'scheduled_on' => fake()->dateTimeBetween('-1 month', '+1 month')->format('Y-m-d'),
         ];
     }
@@ -49,7 +50,6 @@ class AppointmentFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'mode' => AppointmentMode::Remote,
-            'reason' => fake()->sentence(),
         ]);
     }
 

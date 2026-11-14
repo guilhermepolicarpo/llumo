@@ -373,6 +373,12 @@ new class extends Component
                                         {{ $origin }}
                                     @endif
                                 </div>
+                                @if ($appointment->reason)
+                                    <div class="mt-2 flex items-start gap-1.5 text-sm text-zinc-600 dark:text-zinc-400" data-test="assisted-person-history-reason">
+                                        <flux:icon.lifebuoy class="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                                        <span class="min-w-0 whitespace-pre-line"><span class="font-medium text-zinc-700 dark:text-zinc-300">{{ __('Reason for seeking care') }}:</span> {{ $appointment->reason }}</span>
+                                    </div>
+                                @endif
                                 @if ($appointment->notes)
                                     <div class="mt-2 flex items-start gap-1.5 text-sm text-zinc-600 dark:text-zinc-400">
                                         <flux:icon.chat-bubble-left-ellipsis class="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
@@ -483,6 +489,13 @@ new class extends Component
                                                 <flux:badge size="sm" :color="$appointment->status->color()" data-test="assisted-person-history-status">{{ $appointment->status->label() }}</flux:badge>
                                             </div>
                                         </div>
+
+                                        @if ($appointment->reason)
+                                            <div class="flex items-start gap-1.5 text-sm text-zinc-600 dark:text-zinc-400" data-test="assisted-person-history-reason">
+                                                <flux:icon.lifebuoy class="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                                                <span class="min-w-0 whitespace-pre-line"><span class="font-medium text-zinc-700 dark:text-zinc-300">{{ __('Reason for seeking care') }}:</span> {{ $appointment->reason }}</span>
+                                            </div>
+                                        @endif
 
                                         @if ($appointment->notes)
                                             <div class="flex items-start gap-1.5 text-sm text-zinc-600 dark:text-zinc-400">
