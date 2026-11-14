@@ -47,6 +47,8 @@ class AppointmentRecordRules
     /**
      * Get the validation rules used to validate the passes prescribed on the record, with the days of the remote ones.
      *
+     * A row without a pass type records nothing: it is the blank row the form starts with, or one added and left empty.
+     *
      * @return array<string, array<int, ValidationRule|array<mixed>|string|object>>
      */
     public static function passPrescriptions(Appointment $appointment): array
@@ -55,6 +57,7 @@ class AppointmentRecordRules
 
         return [
             'passPrescriptions' => ['array'],
+            'passPrescriptions.*' => ['exclude_without:passPrescriptions.*.pass_type_id'],
             'passPrescriptions.*.pass_type_id' => ['required', ...CatalogRules::entryId($appointment->team, Catalog::PassType), new DistinctPassPrescription],
             'passPrescriptions.*.quantity' => ['required', 'integer', 'between:1,99'],
             'passPrescriptions.*.mode' => AppointmentRules::mode(),

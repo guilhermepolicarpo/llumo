@@ -278,3 +278,18 @@ test('only those who manage the catalogs get the link to the pass type configura
     'admin' => [TeamRole::Admin, true],
     'member' => [TeamRole::Member, false],
 ]);
+
+test('the remote pass sheet is printed without the pass rows left blank', function () {
+    [$component, $team, $appointment] = attendRemoteAppointment();
+    $passType = PassType::factory()->for($team)->create();
+
+    $component
+        ->call('addPassPrescription')
+        ->set('form.passPrescriptions.1.pass_type_id', (string) $passType->id)
+        ->set('form.passPrescriptions.1.dates', ['2026-11-11'])
+        ->call('saveRemotePassDates')
+        ->assertHasNoErrors()
+        ->assertSet('form.passPrescriptions.0.pass_type_id', '');
+
+    expect($appointment->remotePasses()->sole()['passType']->is($passType))->toBeTrue();
+});

@@ -145,12 +145,12 @@ class AppointmentRecordForm extends Form
                 'guidance_id' => (int) $guidanceId,
                 'detail' => $validated['guidanceDetails'][$guidanceId] ?? null,
             ], $guidanceIds),
-            'pass_prescriptions' => array_map(fn (array $prescription): array => [
+            'pass_prescriptions' => array_values(array_map(fn (array $prescription): array => [
                 'pass_type_id' => (int) $prescription['pass_type_id'],
                 'quantity' => (int) $prescription['quantity'],
                 'mode' => $prescription['mode'],
                 'dates' => $this->filledDates($prescription['dates'] ?? []),
-            ], $validated['passPrescriptions']),
+            ], $validated['passPrescriptions'])),
             'infiltration_site' => $validated['infiltrationSite'],
             'infiltration_remove_at' => $validated['infiltrationRemoveAt'],
             'infiltration_removal_place' => $validated['infiltrationRemovalPlace'],
