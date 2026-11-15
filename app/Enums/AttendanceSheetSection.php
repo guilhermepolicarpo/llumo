@@ -32,7 +32,7 @@ enum AttendanceSheetSection: string
      */
     public static function onFront(): array
     {
-        return array_values(array_filter(self::cases(), fn (self $section): bool => $section !== self::FluidicRemedies));
+        return array_filter(self::cases(), fn (self $section): bool => $section !== self::FluidicRemedies);
     }
 
     /**
