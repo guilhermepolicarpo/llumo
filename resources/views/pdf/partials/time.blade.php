@@ -3,5 +3,5 @@
 @if ($time ?? null)
     <span class="filled">{{ $time }}</span>
 @else
-    <span class="blank" style="width: 5mm;"></span>:<span class="blank" style="width: 5mm;"></span>
+    <span class="blank digits"></span>:<span class="blank digits"></span>
 @endif

@@ -15,6 +15,7 @@
                 @foreach (Catalog::cases() as $catalog)
                     <flux:navlist.item :href="$catalog->url()" wire:navigate data-test="team-settings-nav-{{ $catalog->value }}">{{ $catalog->label() }}</flux:navlist.item>
                 @endforeach
+                <flux:navlist.item :href="route('team-settings.attendance-sheet')" wire:navigate data-test="team-settings-nav-attendance-sheet">{{ __('Attendance sheet') }}</flux:navlist.item>
             </flux:navlist.group>
 
             <flux:navlist.group :heading="__('Library')" class="grid mt-2">
@@ -43,10 +44,23 @@
 
                 {{ $actions ?? '' }}
             </div>
+        </div>
 
-            <div class="mt-5">
+        {{-- A page with an aside (like a preview) widens past the form column once the content area has room for both. --}}
+        @isset($aside)
+            <div class="@container mt-5">
+                <div class="grid gap-8 @3xl:grid-cols-[minmax(0,42rem)_23rem] @3xl:items-start">
+                    <div class="min-w-0">
+                        {{ $slot }}
+                    </div>
+
+                    {{ $aside }}
+                </div>
+            </div>
+        @else
+            <div class="mt-5 w-full max-w-2xl">
                 {{ $slot }}
             </div>
-        </div>
+        @endisset
     </div>
 </div>

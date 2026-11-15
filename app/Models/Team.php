@@ -5,12 +5,14 @@ namespace App\Models;
 use App\Concerns\GeneratesUniqueTeamSlugs;
 use App\Concerns\HasFormattedAddress;
 use App\Concerns\HasFormattedPhone;
+use App\Enums\AttendanceSheetSection;
 use App\Enums\BrazilianState;
 use App\Enums\TeamRole;
 use Database\Factories\TeamFactory;
 use finfo;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
+use Illuminate\Database\Eloquent\Casts\AsEnumCollection;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -38,6 +41,7 @@ use Illuminate\Support\Facades\Storage;
  * @property int $loan_period_days
  * @property int|null $loan_max_renewals
  * @property int|null $loan_max_active_per_person
+ * @property SupportCollection<int, AttendanceSheetSection>|null $attendance_sheet_hidden_sections
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -80,6 +84,7 @@ use Illuminate\Support\Facades\Storage;
     'loan_period_days',
     'loan_max_renewals',
     'loan_max_active_per_person',
+    'attendance_sheet_hidden_sections',
 ])]
 #[RouteKey('slug')]
 class Team extends Model
@@ -305,6 +310,14 @@ class Team extends Model
     }
 
     /**
+     * Determine whether the blank attendance sheet prints the given section. A team that never chose prints them all.
+     */
+    public function printsOnAttendanceSheet(AttendanceSheetSection $section): bool
+    {
+        return ! $this->attendance_sheet_hidden_sections?->contains($section);
+    }
+
+    /**
      * Get the team's logo embedded as a data URI, so a PDF renderer never has to reach the disk or the network for it.
      */
     public function logoDataUri(): ?string
@@ -352,6 +365,7 @@ class Team extends Model
             'loan_period_days' => 'integer',
             'loan_max_renewals' => 'integer',
             'loan_max_active_per_person' => 'integer',
+            'attendance_sheet_hidden_sections' => AsEnumCollection::of(AttendanceSheetSection::class),
         ];
     }
 }

@@ -85,6 +85,7 @@ Route::prefix('{current_team}')
                 Route::livewire('members', 'pages::team-settings.members')->name('members');
                 Route::livewire('appointment-types', 'pages::catalogs.appointment-types')->name('appointment-types');
                 Route::livewire('catalogs/{catalog}', 'pages::catalogs.index')->name('catalogs');
+                Route::livewire('attendance-sheet', 'pages::team-settings.attendance-sheet')->name('attendance-sheet');
                 Route::livewire('library/{libraryCatalog}', 'pages::catalogs.index')->name('library-catalogs');
                 Route::livewire('loan-rules', 'pages::library.settings')->name('loan-rules');
             });

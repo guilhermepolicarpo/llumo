@@ -18,6 +18,7 @@ use Illuminate\Support\Collection as SupportCollection;
  * @property int $id
  * @property int $team_id
  * @property string $name
+ * @property bool $printed_on_attendance_sheet
  * @property SupportCollection<int, Weekday>|null $remote_weekdays
  * @property string|null $remote_starts_at
  * @property string|null $remote_ends_at
@@ -29,6 +30,7 @@ use Illuminate\Support\Collection as SupportCollection;
 #[Fillable([
     'team_id',
     'name',
+    'printed_on_attendance_sheet',
     'remote_weekdays',
     'remote_starts_at',
     'remote_ends_at',
@@ -37,6 +39,15 @@ class PassType extends Model
 {
     /** @use HasFactory<PassTypeFactory> */
     use HasFactory, SoftDeletes;
+
+    /**
+     * The model's default values for attributes, matching the database defaults.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'printed_on_attendance_sheet' => true,
+    ];
 
     /**
      * Get the team this pass type belongs to.
@@ -147,6 +158,7 @@ class PassType extends Model
     protected function casts(): array
     {
         return [
+            'printed_on_attendance_sheet' => 'boolean',
             'remote_weekdays' => AsEnumCollection::of(Weekday::class),
             'remote_starts_at' => TimeOfDay::class,
             'remote_ends_at' => TimeOfDay::class,
