@@ -17,12 +17,12 @@
         ->map(fn ($sectionEntries) => $sectionEntries->map(fn ($entry): array => ['id' => (string) $entry->id, 'name' => $entry->name])->values())
         ->all();
     $sheetDay = today();
-    $paper = 'relative flex h-[472px] w-[333px] shrink-0 flex-col overflow-hidden rounded-[2px] bg-white px-[25px] py-[22px] font-[DejaVu_Sans,Verdana,sans-serif] text-[6.5px] leading-[1.25] text-[#141414] shadow-[0_1px_2px_rgb(0_0_0/0.08),0_0_0_1px_rgb(0_0_0/0.06)]';
+    $paper = 'relative flex h-118 w-83.25 shrink-0 flex-col overflow-hidden rounded-[2px] bg-white px-6.25 py-5.5 font-[DejaVu_Sans,Verdana,sans-serif] text-[6.5px] leading-[1.25] text-[#141414] shadow-[0_1px_2px_rgb(0_0_0/0.08),0_0_0_1px_rgb(0_0_0/0.06)]';
     $label = 'text-[6px] font-bold uppercase tracking-[0.3px] text-[#333]';
-    $sectionLabel = $label.' mt-[9px] mb-[3px]';
-    $box = 'inline-block size-[7px] shrink-0 rounded-[1px] border-[0.8px] border-[#141414]';
-    $blank = 'inline-block h-[7px] border-b-[0.6px] border-[#bdbdbd] align-[-1px]';
-    $fill = 'h-[8px] flex-1 border-b-[0.6px] border-[#bdbdbd]';
+    $sectionLabel = $label.' mt-2.25 mb-0.75';
+    $box = 'inline-block size-1.75 shrink-0 rounded-[1px] border-[0.8px] border-[#141414]';
+    $blank = 'inline-block h-1.75 border-b-[0.6px] border-[#bdbdbd] align-[-1px]';
+    $fill = 'h-2 flex-1 border-b-[0.6px] border-[#bdbdbd]';
     $guidances = AttendanceSheetSection::Guidances;
     $passes = AttendanceSheetSection::Passes;
     $back = AttendanceSheetSection::FluidicRemedies;
@@ -59,34 +59,34 @@
     <div class="flex overflow-x-auto rounded-xl border border-zinc-800/10 bg-zinc-50 p-3 dark:border-white/10 dark:bg-zinc-900">
         {{-- Front --}}
         <div x-show="page === 'front'" class="{{ $paper }} mx-auto" aria-hidden="true">
-            <div class="flex items-center gap-[6px]">
+            <div class="flex items-center gap-1.5">
                 @if ($team->logo_url)
-                    <img src="{{ $team->logo_url }}" alt="" class="max-h-[35px] max-w-[72px] shrink-0">
+                    <img src="{{ $team->logo_url }}" alt="" class="max-h-8.75 max-w-18 shrink-0">
                 @endif
                 <div class="min-w-0 flex-1">
                     <div class="text-[8px] font-bold uppercase">{{ $team->display_legal_name }}</div>
                     @if ($team->address_summary)
-                        <div class="mt-[2px] text-[6px] text-[#333]">{{ $team->address_summary }}</div>
+                        <div class="mt-0.5 text-[6px] text-[#333]">{{ $team->address_summary }}</div>
                     @endif
                     @if ($team->formatted_phone)
-                        <div class="mt-[2px] text-[6px] text-[#333]">{{ $team->formatted_phone }}</div>
+                        <div class="mt-0.5 text-[6px] text-[#333]">{{ $team->formatted_phone }}</div>
                     @endif
                 </div>
-                <div class="w-[58px] shrink-0 text-center">
-                    <div class="rounded-[1.5px] border-[1.1px] border-[#141414] px-[2px] py-[3px] text-[5.5px] font-bold uppercase leading-[1.2] tracking-[0.3px]">{{ trans_choice('Attendance sheet|Attendance sheets', 1) }}</div>
-                    <div class="mt-[2px] text-[6px] text-[#333]">{{ $sheetDay->format('d/m/Y') }}</div>
+                <div class="w-14.5 shrink-0 text-center">
+                    <div class="rounded-[1.5px] border-[1.1px] border-[#141414] px-0.5 py-0.75 text-[5.5px] font-bold uppercase leading-[1.2] tracking-[0.3px]">{{ trans_choice('Attendance sheet|Attendance sheets', 1) }}</div>
+                    <div class="mt-0.5 text-[6px] text-[#333]">{{ $sheetDay->format('d/m/Y') }}</div>
                 </div>
             </div>
 
-            <div class="mt-[7px] mb-[8px] border-t-[1.6px] border-[#141414]"></div>
+            <div class="mt-1.75 mb-2 border-t-[1.6px] border-[#141414]"></div>
 
-            <div class="mb-[5px] flex items-end gap-[4px] border-b-[0.8px] border-[#141414] pb-[2px]">
+            <div class="mb-1.25 flex items-end gap-1 border-b-[0.8px] border-[#141414] pb-0.5">
                 <span class="{{ $label }}">{{ __('Name') }}:</span>
                 <span class="flex-1 text-[7.5px] italic text-[#9a9a9a]">{{ __('Name of the assisted person') }}</span>
                 <span class="{{ $label }}">{{ __('Age') }}:</span>
-                <span class="w-[40px]"></span>
+                <span class="w-10"></span>
             </div>
-            <div class="mb-[5px] flex items-end gap-[4px] border-b-[0.8px] border-[#141414] pb-[2px]">
+            <div class="mb-1.25 flex items-end gap-1 border-b-[0.8px] border-[#141414] pb-0.5">
                 <span class="{{ $label }}">{{ __('Address') }}:</span>
             </div>
 
@@ -94,9 +94,9 @@
             <template x-if="printedEntries('{{ $guidances->value }}').length > 0">
                 <div>
                     <div class="{{ $sectionLabel }}">{{ $guidances->label() }}</div>
-                    <div x-bind:class="printedEntries('{{ $guidances->value }}').length > 2 && 'columns-2 gap-x-[7px]'">
+                    <div x-bind:class="printedEntries('{{ $guidances->value }}').length > 2 && 'columns-2 gap-x-1.75'">
                         <template x-for="guidance in printedEntries('{{ $guidances->value }}')" x-bind:key="guidance.id">
-                            <div class="mb-[4.5px] flex break-inside-avoid items-start gap-[5px]">
+                            <div class="mb-1.125 flex break-inside-avoid items-start gap-1.25">
                                 <span class="{{ $box }}"></span>
                                 <span x-text="guidance.name"></span>
                             </div>
@@ -106,8 +106,8 @@
             </template>
 
             <template x-if="printedEntries('{{ $passes->value }}').length > 0">
-                <div class="mt-[5px] border-b-[0.8px] border-[#141414]">
-                    <div class="grid grid-cols-[minmax(0,1fr)_38px_45px_45px] items-center border-b-[0.8px] border-[#141414] pb-[3px] text-center text-[5.5px] font-bold text-[#333]">
+                <div class="mt-1.25 border-b-[0.8px] border-[#141414]">
+                    <div class="grid grid-cols-[minmax(0,1fr)_38px_45px_45px] items-center border-b-[0.8px] border-[#141414] pb-0.75 text-center text-[5.5px] font-bold text-[#333]">
                         <span class="{{ $label }} text-left">{{ $passes->label() }}</span>
                         <span>{{ __('Qty.') }}</span>
                         @foreach (AppointmentMode::cases() as $mode)
@@ -116,11 +116,11 @@
                     </div>
                     <div class="divide-y-[0.5px] divide-[#bdbdbd]">
                     <template x-for="pass in printedEntries('{{ $passes->value }}')" x-bind:key="pass.id">
-                        <div class="grid h-[20px] grid-cols-[minmax(0,1fr)_38px_45px_45px] items-center text-center">
+                        <div class="grid h-5 grid-cols-[minmax(0,1fr)_38px_45px_45px] items-center text-center">
                             <span class="text-left" x-text="pass.name"></span>
-                            <span><span class="{{ $blank }} w-[19px] border-[#141414]"></span></span>
+                            <span><span class="{{ $blank }} w-4.75 border-[#141414]"></span></span>
                             @foreach (AppointmentMode::cases() as $mode)
-                                <span><span class="inline-block size-[7px] rounded-full border-[0.8px] border-[#141414]"></span></span>
+                                <span><span class="inline-block size-1.75 rounded-full border-[0.8px] border-[#141414]"></span></span>
                             @endforeach
                         </div>
                     </template>
@@ -130,29 +130,29 @@
 
             <div x-show="$wire.sections.{{ AttendanceSheetSection::Infiltration->value }}">
                 <div class="{{ $sectionLabel }}">{{ AttendanceSheetSection::Infiltration->label() }}</div>
-                <div class="mb-[5px] flex items-end gap-[4px]">
+                <div class="mb-1.25 flex items-end gap-1">
                     <span>{{ __('Site or reason') }}:</span>
                     <span class="{{ $fill }}"></span>
                 </div>
-                <div class="mb-[4px]">
+                <div class="mb-1">
                     {{ __('Remove on day') }}:
-                    <span class="{{ $blank }} w-[11px]"></span>/<span class="{{ $blank }} w-[11px]"></span>/<span class="{{ $blank }} w-[18px]"></span>
-                    {{ __('at') }} <span class="{{ $blank }} w-[11px]"></span>:<span class="{{ $blank }} w-[11px]"></span>
+                    <span class="{{ $blank }} w-2.75"></span>/<span class="{{ $blank }} w-2.75"></span>/<span class="{{ $blank }} w-4.5"></span>
+                    {{ __('at') }} <span class="{{ $blank }} w-2.75"></span>:<span class="{{ $blank }} w-2.75"></span>
                 </div>
             </div>
 
             <div x-show="$wire.sections.{{ AttendanceSheetSection::Return->value }}">
                 <div class="{{ $sectionLabel }}">{{ AttendanceSheetSection::Return->label() }}</div>
-                <div class="mb-[5px] flex flex-wrap gap-x-[11px]">
+                <div class="mb-1.25 flex flex-wrap gap-x-2.75">
                     @foreach (AppointmentRecord::RETURN_INTERVALS_DAYS as $days)
-                        <span class="flex items-center gap-[4px]"><span class="{{ $box }}"></span>{{ __('+:days days', ['days' => $days]) }}</span>
+                        <span class="flex items-center gap-1"><span class="{{ $box }}"></span>{{ __('+:days days', ['days' => $days]) }}</span>
                     @endforeach
                 </div>
-                <div class="mb-[4px] flex items-end gap-[4px]">
+                <div class="mb-1 flex items-end gap-1">
                     <span class="{{ $box }}"></span>
                     <span>{{ __('Other date') }}:</span>
                     <span class="{{ $fill }}"></span>
-                    <span>{{ __('at') }} <span class="{{ $blank }} w-[11px]"></span>:<span class="{{ $blank }} w-[11px]"></span></span>
+                    <span>{{ __('at') }} <span class="{{ $blank }} w-2.75"></span>:<span class="{{ $blank }} w-2.75"></span></span>
                 </div>
             </div>
 
@@ -161,16 +161,16 @@
                 <div class="min-h-0 flex-1" style="background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 13px, #bdbdbd 13px, #bdbdbd 13.6px); margin-bottom: 8px;"></div>
             </div>
 
-            <div class="mt-auto flex items-end justify-between gap-[8px]">
+            <div class="mt-auto flex items-end justify-between gap-2">
                 <div>
                     <div>{{ $sheetDay->translatedFormat('d \d\e F \d\e Y') }}</div>
                     @if ($team->address_city_line)
                         <div class="text-[#333]">{{ $team->address_city_line }}</div>
                     @endif
                 </div>
-                <div class="w-[126px] text-center">
-                    <div class="h-[18px] border-b-[0.8px] border-[#141414]"></div>
-                    <div class="pt-[2px] text-[#333]">{{ __('Mentor signature') }}</div>
+                <div class="w-31.5 text-center">
+                    <div class="h-4.5 border-b-[0.8px] border-[#141414]"></div>
+                    <div class="pt-0.5 text-[#333]">{{ __('Mentor signature') }}</div>
                 </div>
             </div>
         </div>
@@ -178,15 +178,15 @@
         {{-- Back --}}
         <div x-show="page === 'back' && $wire.sections.{{ $back->value }}" x-cloak class="{{ $paper }} mx-auto" aria-hidden="true">
             <div class="text-[9px] font-bold uppercase tracking-[0.6px]">{{ __('Fluidic remedies') }}</div>
-            <div class="mt-[2px] text-[#333]"><span class="italic text-[#9a9a9a]">{{ __('Name of the assisted person') }}</span> · {{ $sheetDay->translatedFormat('d \d\e F \d\e Y') }}</div>
-            <div class="mt-[7px] border-t-[1.6px] border-[#141414]"></div>
+            <div class="mt-0.5 text-[#333]"><span class="italic text-[#9a9a9a]">{{ __('Name of the assisted person') }}</span> · {{ $sheetDay->translatedFormat('d \d\e F \d\e Y') }}</div>
+            <div class="mt-1.75 border-t-[1.6px] border-[#141414]"></div>
             @for ($line = 0; $line < 20; $line++)
-                <div class="h-[18px] shrink-0 border-b-[0.6px] border-[#bdbdbd]"></div>
+                <div class="h-4.5 shrink-0 border-b-[0.6px] border-[#bdbdbd]"></div>
             @endfor
-            <div class="absolute bottom-[22px] left-[25px] text-[6px] text-[#555]">{{ $team->display_legal_name }}</div>
+            <div class="absolute bottom-5.5 left-6.25 text-[6px] text-[#555]">{{ $team->display_legal_name }}</div>
         </div>
 
-        <div x-show="page === 'back' && ! $wire.sections.{{ $back->value }}" x-cloak class="mx-auto flex h-[472px] w-[333px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-sm border-[1.5px] border-dashed border-zinc-300 p-8 text-center dark:border-white/20" data-test="attendance-sheet-preview-no-back">
+        <div x-show="page === 'back' && ! $wire.sections.{{ $back->value }}" x-cloak class="mx-auto flex h-118 w-83.25 shrink-0 flex-col items-center justify-center gap-1.5 rounded-sm border-[1.5px] border-dashed border-zinc-300 p-8 text-center dark:border-white/20" data-test="attendance-sheet-preview-no-back">
             <flux:icon.document-plus class="size-5 text-zinc-400 dark:text-zinc-500" />
             <flux:heading>{{ __('No back') }}</flux:heading>
             <flux:text>{{ __('Turn on “:section” to add this page.', ['section' => $back->label()]) }}</flux:text>
