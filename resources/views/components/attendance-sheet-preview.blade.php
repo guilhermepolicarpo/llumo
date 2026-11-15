@@ -47,7 +47,7 @@
     <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div>
             <flux:heading>{{ __('Preview') }}</flux:heading>
-            <flux:text class="mt-0.5">{{ __('Blank sheet, A5 page') }}</flux:text>
+            <flux:text class="mt-0.5">{{ __('Blank sheet, A4 page') }}</flux:text>
         </div>
 
         <flux:radio.group variant="segmented" size="sm" x-model="page" data-test="attendance-sheet-preview-page">

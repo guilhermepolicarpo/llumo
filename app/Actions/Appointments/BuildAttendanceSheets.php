@@ -15,7 +15,7 @@ use Spatie\LaravelPdf\PdfBuilder;
 class BuildAttendanceSheets
 {
     /**
-     * Build the printable attendance sheets of the given appointments, one front and back A5 sheet each, shown inline.
+     * Build the printable attendance sheets of the given appointments, one front and back A4 sheet each, shown inline.
      * A completed appointment's sheet comes filled in with its record; a blank one prints only the sections, guidances
      * and passes the team chose to print.
      *
@@ -33,7 +33,7 @@ class BuildAttendanceSheets
             'guidances' => $this->blankSheetEntries($team, AttendanceSheetSection::Guidances),
             'passTypes' => $this->blankSheetEntries($team, AttendanceSheetSection::Passes),
         ])
-            ->format(Format::A5)
+            ->format(Format::A4)
             ->inline($this->fileName($appointments));
     }
 

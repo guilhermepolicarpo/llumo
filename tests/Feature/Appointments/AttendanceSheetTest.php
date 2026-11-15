@@ -37,7 +37,7 @@ test('members print the attendance sheet of a waiting appointment filled with th
 
     Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
         expect($pdf->isInline())->toBeTrue()
-            ->and($pdf->format)->toBe('a5')
+            ->and($pdf->format)->toBe('a4')
             ->and($pdf->downloadName)->toBe('ficha-de-atendimento-heloisa-garcia-da-silva.pdf')
             ->and($pdf->getHtml())->toContain(
                 'Heloisa Garcia da Silva',
@@ -45,7 +45,7 @@ test('members print the attendance sheet of a waiting appointment filled with th
                 '(34) 99729-2235',
                 'Culto no lar',
                 'Passe com 3 médiuns',
-            )->and(substr_count($pdf->getHtml(), '<span class="blank" style="width: 5mm;"></span>:<span class="blank" style="width: 5mm;"></span>'))->toBe(2);
+            )->and(substr_count($pdf->getHtml(), '<span class="blank digits"></span>:<span class="blank digits"></span>'))->toBe(2);
 
         return true;
     });
@@ -109,7 +109,7 @@ test('the attendance sheet of a completed appointment is printed filled in with 
             'Tomar em jejum',
             'Irmã Clara',
         )->not->toContain('Culto no lar', 'Passe com 3 médiuns')
-            ->and(substr_count($pdf->getHtml(), '<span class="blank" style="width: 5mm;"></span>:<span class="blank" style="width: 5mm;"></span>'))->toBe(1);
+            ->and(substr_count($pdf->getHtml(), '<span class="blank digits"></span>:<span class="blank digits"></span>'))->toBe(1);
 
         return true;
     });
