@@ -155,6 +155,7 @@ Next:
    - Volunteer records, with no llumo account required
    - Attendance list per meeting, for work (treatment, passes, front desk) and for studies
    - Studies that count toward eligibility and the monthly absence limit, set by each center
+   - Work that requires eligibility chosen by each center, such as healing treatment and passes; other work, such as front desk and welcoming, stays open to everyone
    - Month-end closing: volunteers over the limit are suspended from work that requires eligibility, with a warning on the attendance list
    - Return approved by the coordinator, with study attendance since the suspension in view
    - Absences from work tracked for follow-up only

@@ -151,6 +151,7 @@ A seguir:
    - Cadastro dos trabalhadores, sem precisar de conta no llumo
    - Lista de presença por reunião, nos trabalhos (tratamento, passes, recepção) e nos estudos
    - Estudos que contam para a aptidão e limite de faltas no mês, definidos por cada casa
+   - Trabalhos que exigem aptidão escolhidos por cada casa, como o tratamento de cura e os passes; os demais, como recepção e acolhimento, ficam liberados a todos
    - Fechamento do mês: quem passa do limite fica afastado dos trabalhos que exigem aptidão, com aviso na lista de presença
    - Retorno liberado pelo coordenador, com as presenças nos estudos desde o afastamento à vista
    - Faltas nos trabalhos apenas para acompanhamento
