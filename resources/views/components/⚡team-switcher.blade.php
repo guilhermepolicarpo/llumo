@@ -107,7 +107,7 @@ new class extends Component {
 }; ?>
 
 <div>
-    <flux:dropdown position="bottom" align="start">
+    <flux:dropdown position="bottom" align="start" class="block">
         @php($currentTeam = $this->currentTeam)
 
         <flux:button variant="ghost" class="group w-full justify-start in-data-flux-sidebar-collapsed-desktop:justify-center" data-test="team-switcher-trigger">
@@ -116,11 +116,11 @@ new class extends Component {
             @else
                 <flux:icon name="users" class="size-4 in-data-flux-sidebar-collapsed-desktop:block" />
             @endif
-            <span class="truncate font-semibold in-data-flux-sidebar-collapsed-desktop:hidden">{{ $currentTeam['name'] ?? __('Select Spiritist Center') }}</span>
+            <span class="min-w-0 truncate font-semibold in-data-flux-sidebar-collapsed-desktop:hidden">{{ $currentTeam['name'] ?? __('Select Spiritist Center') }}</span>
             <flux:icon
                 name="chevrons-up-down"
                 variant="micro"
-                class="ms-auto size-4 in-data-flux-sidebar-collapsed-desktop:hidden"
+                class="ms-auto size-4 shrink-0 in-data-flux-sidebar-collapsed-desktop:hidden"
             />
         </flux:button>
 
