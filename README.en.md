@@ -57,6 +57,8 @@ There are two ways to use llumo, with the same features:
 | Catalogs | Session types, spiritual mentors (*mentores*), fluidics (*fluídicos*), guidance and pass types; for the library, authors, publishers, categories and collections. | ✅ Ready |
 | Library | The center's books, looked up by ISBN in public catalogs (BrasilAPI and Open Library, with cover), copies with a shelf code, loans, renewals and returns, overdue tracking and loan rules set by each center. | ✅ Ready |
 | Dashboard (*Início*) | An overview of the center on sign-in: today's sessions by status, sessions from previous days awaiting a record, overdue and soon-due loans, and the sessions of the coming days. | ✅ Ready |
+| Pass count | Passes given at each meeting, counted by type (collective, with 3 mediums, with everyone), without identifying who received them. | 🚧 Planned |
+| Volunteers | The center's volunteers, attendance lists for work and study meetings, and eligibility to serve based on study attendance. | 🚧 Planned |
 | Finance | Income and expense control for the center. | 🚧 Planned |
 | Social assistance | Management of donations and assistance actions for assisted persons. | 🚧 Planned |
 
@@ -148,8 +150,17 @@ Already done: assisted persons, scheduling, sessions, mentors and fluidics, the 
 
 Next:
 
-1. **Finance** — income and expense control for the center
-2. **Social assistance** — management of donations and assistance actions for assisted persons
+1. **Pass count** — passes given at each meeting, counted by type (collective, with 3 mediums, with everyone) the way it is already done on paper: call 5, add 5. Without identifying who received them; the collective pass needs no prescription
+2. **Volunteer attendance** — the center's attendance notebook in llumo
+   - Volunteer records, with no llumo account required
+   - Attendance list per meeting, for work (treatment, passes, front desk) and for studies
+   - Studies that count toward eligibility and the monthly absence limit, set by each center
+   - Month-end closing: volunteers over the limit are suspended from work that requires eligibility, with a warning on the attendance list
+   - Return approved by the coordinator, with study attendance since the suspension in view
+   - Absences from work tracked for follow-up only
+3. **Insights** — the center's numbers on the dashboard, per month and per year: working days, participating volunteers and average attendance, passes given by type, people served, no-show rate, most requested session types, and most borrowed books
+4. **Finance** — income and expense control for the center
+5. **Social assistance** — management of donations and assistance actions for assisted persons
 
 Beyond the modules, also on the radar:
 
@@ -164,9 +175,8 @@ Beyond the modules, also on the radar:
 - **Self-scheduling** — a public page for each center where assisted persons pick the session type and day, respecting daily limits
 - **Digital card for assisted persons** — fluidic dosage and guidance available on the phone via QR code
 - **QR code check-in** — arrival registered at the front desk without typing
-- **Insights** — sessions per month, no-show rate, most requested types, and most borrowed books on the dashboard
-- **Volunteer schedule** — who attends each day, with shift swaps between mediums and pass givers
-- **Courses and study groups** — classes (ESDE, children's evangelization, youth) with attendance tracking
+- **Volunteer schedule** — who attends each day, with shift swaps between mediums and pass givers, compared with recorded attendance
+- **Courses and study groups** — classes (ESDE, children's evangelization, youth, and semester-based courses) with attendance tracking and stages; progress in a course can be required to serve at the center
 - **PWA and offline mode** — filling in sessions even with unstable internet, syncing later
 - **LGPD compliance** — consent terms, export and anonymization of assisted persons' data, and access logs
 - **Network of centers** — optional integration between instances to share library collections and refer assisted persons

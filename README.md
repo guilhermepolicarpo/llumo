@@ -57,6 +57,8 @@ Há duas formas de usar o llumo, com os mesmos recursos:
 | Cadastros | Tipos de atendimento, mentores, fluídicos, orientações e tipos de passe; na biblioteca, autores, editoras, categorias e coleções. | ✅ Pronto |
 | Biblioteca | Acervo da casa com busca pelo ISBN nos catálogos públicos (BrasilAPI e Open Library, com capa), exemplares com tombo, empréstimos, renovações e devoluções, controle de atrasos e regras de empréstimo definidas por cada casa. | ✅ Pronto |
 | Início | Visão geral da casa ao entrar: agendamentos do dia por situação, atendimentos pendentes de dias anteriores, empréstimos atrasados ou vencendo e os agendamentos dos próximos dias. | ✅ Pronto |
+| Contagem de passes | Passes aplicados em cada reunião, contados por tipo (coletivo, com 3 médiuns, com todos), sem identificar quem tomou. | 🚧 Planejado |
+| Trabalhadores | Cadastro dos trabalhadores da casa, listas de presença dos trabalhos e dos estudos e aptidão para trabalhar conforme a frequência nos estudos. | 🚧 Planejado |
 | Financeiro | Controle de receitas e despesas da casa. | 🚧 Planejado |
 | Assistência social | Gestão de doações e ações assistenciais aos assistidos. | 🚧 Planejado |
 
@@ -144,8 +146,17 @@ Já prontos: assistidos, agendamentos, atendimentos, mentores e fluídicos, bibl
 
 A seguir:
 
-1. **Financeiro** — controle de receitas e despesas da casa
-2. **Assistência social** — gestão de doações e ações assistenciais aos assistidos
+1. **Contagem de passes** — os passes aplicados em cada reunião, contados por tipo (coletivo, com 3 médiuns, com todos) do jeito que já se faz no papel: chamou 5, soma 5. Sem identificar quem tomou; o passe coletivo não exige prescrição
+2. **Frequência dos trabalhadores** — o caderno de presença da casa no llumo
+   - Cadastro dos trabalhadores, sem precisar de conta no llumo
+   - Lista de presença por reunião, nos trabalhos (tratamento, passes, recepção) e nos estudos
+   - Estudos que contam para a aptidão e limite de faltas no mês, definidos por cada casa
+   - Fechamento do mês: quem passa do limite fica afastado dos trabalhos que exigem aptidão, com aviso na lista de presença
+   - Retorno liberado pelo coordenador, com as presenças nos estudos desde o afastamento à vista
+   - Faltas nos trabalhos apenas para acompanhamento
+3. **Indicadores** — os números da casa na tela de início, por mês e por ano: dias de trabalho, trabalhadores que participaram e frequência média, passes aplicados por tipo, pessoas atendidas, taxa de faltas, tipos de atendimento mais procurados e livros mais emprestados
+4. **Financeiro** — controle de receitas e despesas da casa
+5. **Assistência social** — gestão de doações e ações assistenciais aos assistidos
 
 Além dos módulos, no radar:
 
@@ -160,9 +171,8 @@ Além dos módulos, no radar:
 - **Autoagendamento** — página pública da casa onde o assistido escolhe o tipo de atendimento e o dia, respeitando os limites diários
 - **Ficha digital do assistido** — posologia dos fluídicos e orientações acessíveis no celular por QR code
 - **Check-in por QR code** — registro da chegada na recepção sem digitação
-- **Indicadores** — atendimentos por mês, taxa de faltas, tipos mais procurados e livros mais emprestados na tela de início
-- **Escala de voluntários** — quem atende em cada dia, com troca de plantão entre médiuns e passistas
-- **Cursos e grupos de estudo** — turmas (ESDE, evangelização, mocidade) com controle de presença
+- **Escala de voluntários** — quem atende em cada dia, com troca de plantão entre médiuns e passistas, comparada com a presença registrada
+- **Cursos e grupos de estudo** — turmas (ESDE, evangelização, mocidade e cursos em semestres) com controle de presença e etapas; o progresso no curso pode ser exigido para trabalhar na casa
 - **PWA e modo offline** — preenchimento do atendimento mesmo com internet instável, sincronizando depois
 - **Conformidade com a LGPD** — termo de consentimento, exportação e anonimização dos dados do assistido e registro de acessos
 - **Rede entre casas** — integração opcional entre instâncias para compartilhar acervo e encaminhar assistidos
