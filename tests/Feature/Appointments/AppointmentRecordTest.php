@@ -62,7 +62,7 @@ test('members fill in the record of the appointment they attend', function () {
         ->set('form.passPrescriptions.0.quantity', 5)
         ->set('form.passPrescriptions.0.mode', AppointmentMode::Remote->value)
         ->set('form.infiltrationSite', 'Braço direito')
-        ->assertSet('form.infiltrationRemoveOn', $appointment->scheduled_on->addDays(3)->toDateString())
+        ->assertSet('form.infiltrationRemoveAt', $appointment->scheduled_on->addDays(3)->toDateString())
         ->set('form.infiltrationRemovalPlace', InfiltrationRemovalPlace::AtHome->value)
         ->set('form.observations', 'Observação')
         ->call('save')
@@ -76,7 +76,7 @@ test('members fill in the record of the appointment they attend', function () {
         ->and($record->guidances->sole()->pivot->detail)->toBe('7 dias')
         ->and($record->passPrescriptions->sole()->only(['pass_type_id', 'quantity', 'mode']))->toBe(['pass_type_id' => $passType->id, 'quantity' => 5, 'mode' => AppointmentMode::Remote])
         ->and($record->infiltration_site)->toBe('Braço direito')
-        ->and($record->infiltration_remove_on->toDateString())->toBe($appointment->scheduled_on->addDays(3)->toDateString())
+        ->and($record->infiltration_remove_at->toDateString())->toBe($appointment->scheduled_on->addDays(3)->toDateString())
         ->and($record->infiltration_removal_place)->toBe(InfiltrationRemovalPlace::AtHome)
         ->and($record->observations)->toBe('Observação')
         ->and($appointment->fresh())
@@ -178,13 +178,13 @@ test('the record fields are validated', function () {
         ->set('form.passPrescriptions.0.pass_type_id', (string) PassType::factory()->for($team)->create()->id)
         ->set('form.passPrescriptions.0.quantity', 100)
         ->set('form.infiltrationSite', 'Braço')
-        ->set('form.infiltrationRemoveOn', $appointment->scheduled_on->subDay()->toDateString())
+        ->set('form.infiltrationRemoveAt', $appointment->scheduled_on->subDay()->toDateString())
         ->call('save')
         ->assertHasErrors([
             'form.mentorId' => 'exists',
             'form.fluidicRemedyIds.0' => 'exists',
             'form.passPrescriptions.0.quantity' => 'between',
-            'form.infiltrationRemoveOn' => 'after',
+            'form.infiltrationRemoveAt' => 'after_or_equal',
             'form.infiltrationRemovalPlace' => 'required_with',
         ]);
 
@@ -234,7 +234,7 @@ test('a record field filled without the field it depends on is rejected', functi
     expect($appointment->record()->exists())->toBeFalse();
 })->with([
     'fluid instructions without a remedy' => [['fluidInstructions' => '3x ao dia'], 'fluidicRemedyIds'],
-    'a removal date without the infiltration site' => [['infiltrationRemoveOn' => '2026-09-23', 'infiltrationRemovalPlace' => InfiltrationRemovalPlace::AtHome->value], 'infiltrationSite'],
+    'a removal date without the infiltration site' => [['infiltrationRemoveAt' => '2026-09-23', 'infiltrationRemovalPlace' => InfiltrationRemovalPlace::AtHome->value], 'infiltrationSite'],
     'a removal place without the infiltration site' => [['infiltrationRemovalPlace' => InfiltrationRemovalPlace::AtHome->value], 'infiltrationSite'],
 ]);
 
@@ -415,11 +415,14 @@ test('follow-up dates must come after the appointment day', function (string $fi
         ->set('form.infiltrationRemovalPlace', InfiltrationRemovalPlace::AtHome->value)
         ->set('form.'.$field, $appointment->scheduled_on->toDateString())
         ->call('save')
-        ->assertHasErrors(['form.'.$field => 'after'])
+        ->assertHasErrors(['form.'.$field => 'after_or_equal'])
+        ->set('form.'.$field, $appointment->scheduled_on->toDateString().' 23:00')
+        ->call('save')
+        ->assertHasErrors(['form.'.$field => 'after_or_equal'])
         ->set('form.'.$field, $appointment->scheduled_on->addDay()->toDateString())
         ->call('save')
         ->assertHasNoErrors();
-})->with(['infiltrationRemoveOn', 'returnOn']);
+})->with(['infiltrationRemoveAt', 'returnAt']);
 
 test('the mentor is required to save the record', function () {
     $user = User::factory()->create();
@@ -511,3 +514,57 @@ test('a pass type is prescribed once in each mode', function (AppointmentMode $s
     'twice remotely' => [AppointmentMode::Remote, false],
     'remotely and in person' => [AppointmentMode::InPerson, true],
 ]);
+
+test('the record opens with a blank pass row, which records no pass and stays on the form', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->inProgress()->inPerson()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+    $blankRow = ['pass_type_id' => '', 'quantity' => 1, 'mode' => AppointmentMode::InPerson->value, 'dates' => []];
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->assertSet('form.passPrescriptions', [$blankRow])
+        ->set('form.mentorId', (string) Mentor::factory()->for($team)->create()->id)
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertSet('form.passPrescriptions', [$blankRow]);
+
+    expect($appointment->record()->sole()->passPrescriptions)->toBeEmpty();
+});
+
+test('pass rows left without a pass type are skipped while the others save and keep their errors on their own row', function () {
+    $user = User::factory()->create();
+    $team = teamOwnedBy($user);
+    $appointment = Appointment::factory()->for($team)->inProgress()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+    $passType = PassType::factory()->for($team)->create();
+
+    $this->actingAs($user);
+    $user->switchTeam($team);
+
+    Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->set('form.mentorId', (string) Mentor::factory()->for($team)->create()->id)
+        ->call('addPassPrescription')
+        ->call('addPassPrescription')
+        ->set('form.passPrescriptions.0.pass_type_id', (string) $passType->id)
+        ->set('form.passPrescriptions.0.mode', AppointmentMode::InPerson->value)
+        ->set('form.passPrescriptions.2.pass_type_id', (string) $passType->id)
+        ->set('form.passPrescriptions.2.mode', AppointmentMode::Remote->value)
+        ->set('form.passPrescriptions.2.quantity', 100)
+        ->call('save')
+        ->assertHasErrors(['form.passPrescriptions.2.quantity' => 'between'])
+        ->assertHasNoErrors(['form.passPrescriptions.1.pass_type_id', 'form.passPrescriptions.2.pass_type_id'])
+        ->set('form.passPrescriptions.2.quantity', 4)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($appointment->record()->sole()->passPrescriptions->map->only(['quantity', 'mode'])->all())->toBe([
+        ['quantity' => 1, 'mode' => AppointmentMode::InPerson],
+        ['quantity' => 4, 'mode' => AppointmentMode::Remote],
+    ]);
+});

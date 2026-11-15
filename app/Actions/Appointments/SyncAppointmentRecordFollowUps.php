@@ -20,7 +20,7 @@ class SyncAppointmentRecordFollowUps
      * Create, update, or remove the infiltration removal and return appointments requested by the record,
      * linking them to the record without saving it. New follow-ups are scheduled in the name of the given user.
      *
-     * Without a linked return, only a changed return date schedules one: saving a record again must not bring back
+     * Without a linked return, only a return moved to another day schedules one: saving a record again must not bring back
      * a return removed from the schedule, nor schedule a date kept only as an indication.
      *
      * @param  array{removal_appointment_type_id: ?int, return_appointment_type_id: ?int}  $attributes
@@ -31,7 +31,7 @@ class SyncAppointmentRecordFollowUps
             appointment: $appointment,
             user: $user,
             followUp: $record->infiltrationRemovalAppointment,
-            scheduledOn: $record->infiltration_removal_place?->schedulesRemoval() ? $record->infiltration_remove_on : null,
+            scheduledOn: $record->infiltration_removal_place?->schedulesRemoval() ? $record->infiltration_remove_at?->startOfDay() : null,
             appointmentTypeId: $attributes['removal_appointment_type_id'],
             mode: AppointmentMode::InPerson,
         );
@@ -40,7 +40,7 @@ class SyncAppointmentRecordFollowUps
             appointment: $appointment,
             user: $user,
             followUp: $record->returnAppointment,
-            scheduledOn: ($record->returnAppointment !== null || $record->isDirty('return_on')) ? $record->return_on : null,
+            scheduledOn: ($record->returnAppointment !== null || $this->returnDayChanged($record)) ? $record->return_at?->startOfDay() : null,
             appointmentTypeId: $attributes['return_appointment_type_id'],
             mode: $appointment->mode,
         );
@@ -51,7 +51,8 @@ class SyncAppointmentRecordFollowUps
      *
      * A null date means the follow-up is no longer requested. Follow-ups the assisted person already moved
      * through the queue are left untouched. When the person already has an appointment of the type on the
-     * date, that one becomes the follow-up instead of a second one being scheduled.
+     * date, that one becomes the follow-up instead of a second one being scheduled. A new follow-up starts without a reason
+     * for seeking care, while one already typed on the follow-up is kept.
      */
     private function syncFollowUp(
         Appointment $appointment,
@@ -88,6 +89,7 @@ class SyncAppointmentRecordFollowUps
             'appointment_type_id' => $appointmentTypeId,
             'assisted_person_id' => $appointment->assisted_person_id,
             'mode' => $mode->value,
+            'reason' => $followUp?->reason,
             'scheduled_on' => $scheduledOn->toDateString(),
             'notes' => $followUp?->notes,
         ];
@@ -97,5 +99,16 @@ class SyncAppointmentRecordFollowUps
         }
 
         return $this->updateAppointment->handle($followUp, $attributes)->id;
+    }
+
+    /**
+     * Determine whether the record's return falls on another day than the one saved, so changing only its time does
+     * not count.
+     */
+    private function returnDayChanged(AppointmentRecord $record): bool
+    {
+        $savedReturn = $record->getOriginal('return_at');
+
+        return $savedReturn?->toDateString() !== $record->return_at?->toDateString();
     }
 }

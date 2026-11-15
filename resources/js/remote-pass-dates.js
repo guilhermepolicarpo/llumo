@@ -56,11 +56,11 @@ export default function registerRemotePassDates(Alpine) {
          */
         chosenDates: {},
 
-        /** The remote rows of the form, each with its index among all the pass rows. */
+        /** The remote rows of the form with a pass type picked, each with its index among all the pass rows. */
         get remoteRows() {
             return (this.$wire.form.passPrescriptions ?? [])
                 .map((row, index) => ({ ...row, index }))
-                .filter((row) => row.mode === REMOTE);
+                .filter((row) => row.mode === REMOTE && row.pass_type_id !== '');
         },
 
         get hasRemoteRows() {

@@ -97,6 +97,19 @@
         </flux:radio.group>
     </div>
 
+    {{-- Shown in the browser as soon as the mode changes, as the mode is only sent to the server on save. --}}
+    <div class="mt-6" x-show="$wire.mode === @js(\App\Enums\AppointmentMode::Remote->value)" x-cloak>
+        <flux:field>
+            <flux:label>{{ __('Reason for seeking care') }}</flux:label>
+
+            <flux:description>{{ __('Describe in detail what led the assisted person to seek care: their need, symptoms or situation. This is how the team will know why the remote treatment was requested.') }}</flux:description>
+
+            <flux:textarea wire:model="reason" rows="auto" data-test="appointment-reason-input" />
+
+            <flux:error name="reason" />
+        </flux:field>
+    </div>
+
     <x-assisted-person-combobox
         class="mt-6"
         :selected="$selectedAssistedPerson"

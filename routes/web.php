@@ -39,11 +39,16 @@ Route::prefix('{current_team}')
         Route::get('appointments/attendance-sheets', function (Request $request, Team $current_team, BuildAttendanceSheets $buildAttendanceSheets) {
             Gate::authorize('viewAny', [Appointment::class, $current_team]);
 
-            $request->validate(['date' => ['nullable', 'date_format:Y-m-d']]);
+            $request->validate([
+                'date' => ['nullable', 'date_format:Y-m-d'],
+                'ids' => ['nullable', 'array'],
+                'ids.*' => ['integer'],
+            ]);
 
             $appointments = $current_team->appointments()
                 ->scheduledOn($request->date('date', 'Y-m-d') ?? today())
                 ->waitingForRecord()
+                ->when($request->array('ids'), fn ($query, array $ids) => $query->whereKey($ids))
                 ->orderBy('received_at')
                 ->get();
 
@@ -80,6 +85,7 @@ Route::prefix('{current_team}')
                 Route::livewire('members', 'pages::team-settings.members')->name('members');
                 Route::livewire('appointment-types', 'pages::catalogs.appointment-types')->name('appointment-types');
                 Route::livewire('catalogs/{catalog}', 'pages::catalogs.index')->name('catalogs');
+                Route::livewire('attendance-sheet', 'pages::team-settings.attendance-sheet')->name('attendance-sheet');
                 Route::livewire('library/{libraryCatalog}', 'pages::catalogs.index')->name('library-catalogs');
                 Route::livewire('loan-rules', 'pages::library.settings')->name('loan-rules');
             });

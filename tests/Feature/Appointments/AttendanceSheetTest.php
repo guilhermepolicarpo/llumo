@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\AppointmentMode;
+use App\Enums\AttendanceSheetSection;
 use App\Enums\TeamRole;
 use App\Models\Appointment;
 use App\Models\AppointmentRecord;
@@ -36,7 +37,7 @@ test('members print the attendance sheet of a waiting appointment filled with th
 
     Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
         expect($pdf->isInline())->toBeTrue()
-            ->and($pdf->format)->toBe('a5')
+            ->and($pdf->format)->toBe('a4')
             ->and($pdf->downloadName)->toBe('ficha-de-atendimento-heloisa-garcia-da-silva.pdf')
             ->and($pdf->getHtml())->toContain(
                 'Heloisa Garcia da Silva',
@@ -44,7 +45,7 @@ test('members print the attendance sheet of a waiting appointment filled with th
                 '(34) 99729-2235',
                 'Culto no lar',
                 'Passe com 3 médiuns',
-            );
+            )->and(substr_count($pdf->getHtml(), '<span class="blank digits"></span>:<span class="blank digits"></span>'))->toBe(2);
 
         return true;
     });
@@ -79,7 +80,9 @@ test('the attendance sheet of a completed appointment is printed filled in with 
     $record = AppointmentRecord::factory()->for($appointment)->create([
         'mentor_id' => Mentor::factory()->for($team)->create(['name' => 'Irmã Clara']),
         'fluid_instructions' => 'Tomar em jejum',
-        'return_on' => '2026-10-24',
+        'infiltration_site' => 'Braço direito',
+        'infiltration_remove_at' => '2026-10-21 18:30',
+        'return_at' => '2026-10-24',
         'observations' => 'Manter o tratamento com regularidade',
     ]);
     $record->fluidicRemedies()->attach(FluidicRemedy::factory()->for($team)->create(['name' => 'Serotonina']), ['position' => 0]);
@@ -97,12 +100,16 @@ test('the attendance sheet of a completed appointment is printed filled in with 
             'Tratamento do copo',
             'Por 21 dias',
             'Hidroterapia',
+            '21/10/2026 (quarta-feira)',
+            'às',
+            '18:30',
             '24/10/2026',
             'Manter o tratamento com regularidade',
             'Serotonina',
             'Tomar em jejum',
             'Irmã Clara',
-        )->not->toContain('Culto no lar', 'Passe com 3 médiuns');
+        )->not->toContain('Culto no lar', 'Passe com 3 médiuns')
+            ->and(substr_count($pdf->getHtml(), '<span class="blank digits"></span>:<span class="blank digits"></span>'))->toBe(1);
 
         return true;
     });
@@ -174,6 +181,80 @@ test('a filled sheet lists only the given guidances, ticked with their detail, s
     });
 });
 
+test('a blank sheet prints only the sections, guidances and passes the team chose', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $team->update(['attendance_sheet_hidden_sections' => [AttendanceSheetSection::Infiltration, AttendanceSheetSection::Observations, AttendanceSheetSection::FluidicRemedies]]);
+    Guidance::factory()->for($team)->create(['name' => 'Culto no lar']);
+    Guidance::factory()->for($team)->leftOffAttendanceSheet()->create(['name' => 'Tratamento do copo']);
+    PassType::factory()->for($team)->create(['name' => 'Passe com 3 médiuns']);
+    PassType::factory()->for($team)->leftOffAttendanceSheet()->create(['name' => 'Hidroterapia']);
+    $appointment = Appointment::factory()->for($team)->waiting()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+
+    $this->get(route('appointments.attendance-sheet', ['current_team' => $team, 'appointment' => $appointment]));
+
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
+        expect($pdf->getHtml())
+            ->toContain('Culto no lar', 'Passe com 3 médiuns', 'Retorno')
+            ->not->toContain('Tratamento do copo', 'Hidroterapia', 'Infiltração', 'Observações', 'Fluídicos', 'class="notes-line"');
+
+        return true;
+    });
+});
+
+test('a blank sheet leaves out the guidances and passes sections the team hid', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $team->update(['attendance_sheet_hidden_sections' => [AttendanceSheetSection::Guidances, AttendanceSheetSection::Passes]]);
+    Guidance::factory()->for($team)->create(['name' => 'Culto no lar']);
+    PassType::factory()->for($team)->create(['name' => 'Passe com 3 médiuns']);
+    $appointment = Appointment::factory()->for($team)->waiting()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+
+    $this->get(route('appointments.attendance-sheet', ['current_team' => $team, 'appointment' => $appointment]));
+
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
+        expect($pdf->getHtml())
+            ->toContain('Infiltração', 'Fluídicos')
+            ->not->toContain('Culto no lar', 'Passe com 3 médiuns', 'Orientações');
+
+        return true;
+    });
+});
+
+test('a filled sheet shows everything recorded, whatever the team hides from the blank sheet', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $team->update(['attendance_sheet_hidden_sections' => AttendanceSheetSection::cases()]);
+    $appointment = Appointment::factory()->for($team)->inPerson()->completed()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+    $record = AppointmentRecord::factory()->for($appointment)->create([
+        'infiltration_site' => 'Braço direito',
+        'observations' => 'Manter o tratamento com regularidade',
+    ]);
+    $record->fluidicRemedies()->attach(FluidicRemedy::factory()->for($team)->create(['name' => 'Serotonina']), ['position' => 0]);
+    $record->guidances()->attach(Guidance::factory()->for($team)->leftOffAttendanceSheet()->create(['name' => 'Tratamento do copo']));
+    PassPrescription::factory()->for($record, 'appointmentRecord')->create([
+        'pass_type_id' => PassType::factory()->for($team)->leftOffAttendanceSheet()->create(['name' => 'Hidroterapia']),
+    ]);
+
+    $this->get(route('appointments.attendance-sheet', ['current_team' => $team, 'appointment' => $appointment]));
+
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
+        expect($pdf->getHtml())->toContain(
+            'Tratamento do copo',
+            'Hidroterapia',
+            'Braço direito',
+            'Retorno',
+            'Manter o tratamento com regularidade',
+            'Serotonina',
+        );
+
+        return true;
+    });
+});
+
 test('the attendance sheet of another team appointment is not found', function () {
     [, $team] = actingAsTeamMember(TeamRole::Owner);
     $otherTeam = teamOwnedBy(User::factory()->create());
@@ -222,6 +303,33 @@ test('the batch prints the waiting appointments of the given day', function () {
     Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => $pdf->viewData['appointments']->modelKeys() === [$appointment->id]);
 });
 
+test('the batch prints only the selected sheets that can be printed, in arrival order', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $recordType = AppointmentType::factory()->for($team)->withRecord()->create();
+    $arrivedLater = Appointment::factory()->for($team)->for($recordType)->waiting()->create(['received_at' => now()]);
+    $arrivedFirst = Appointment::factory()->for($team)->for($recordType)->waiting()->create(['received_at' => now()->subHour()]);
+    Appointment::factory()->for($team)->for($recordType)->waiting()->create();
+    $inProgress = Appointment::factory()->for($team)->for($recordType)->inPerson()->inProgress()->create();
+    $otherTeam = teamOwnedBy(User::factory()->create());
+    $otherTeamAppointment = Appointment::factory()->for($otherTeam)->waiting()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($otherTeam)->withRecord(),
+    ]);
+
+    $this->get(route('appointments.attendance-sheets', [
+        'current_team' => $team,
+        'ids' => [$arrivedLater->id, $arrivedFirst->id, $inProgress->id, $otherTeamAppointment->id],
+    ]));
+
+    Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => $pdf->viewData['appointments']->modelKeys() === [$arrivedFirst->id, $arrivedLater->id]);
+});
+
+test('the batch rejects malformed selected sheets', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+
+    $this->get(route('appointments.attendance-sheets', ['current_team' => $team, 'ids' => ['abc']]))
+        ->assertSessionHasErrors('ids.0');
+});
+
 test('the batch is not found when nobody is waiting', function () {
     [, $team] = actingAsTeamMember(TeamRole::Owner);
     Appointment::factory()->for($team)->inPerson()->create([
@@ -266,4 +374,42 @@ test('the appointments list offers to print the sheet of waiting appointments on
         ->assertSeeHtml(route('appointments.attendance-sheets', ['current_team' => $team, 'date' => today()->toDateString()]));
 
     expect($component->html())->toMatch('/data-test="appointments-print-sheets-count">\s*2\s*</');
+});
+
+test('the appointments list lets only the waiting sheets be picked to print', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $recordType = AppointmentType::factory()->for($team)->withRecord()->create();
+    $selected = Appointment::factory()->for($team)->for($recordType)->waiting()->create();
+    Appointment::factory()->for($team)->for($recordType)->waiting()->create();
+    $scheduled = Appointment::factory()->for($team)->for($recordType)->inPerson()->create(['scheduled_on' => today()]);
+
+    $component = Livewire::test('pages::appointments.index')
+        ->assertSeeHtml('data-test="appointments-select-all-sheets"')
+        ->set('selectedSheetIds', [(string) $selected->id, (string) $scheduled->id])
+        ->assertSet('selectedSheetIds', [(string) $selected->id]);
+
+    expect(substr_count($component->html(), 'data-test="appointment-select-sheet"'))->toBe(2);
+});
+
+test('picking the sheets to print keeps the current page of the appointments list', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $recordType = AppointmentType::factory()->for($team)->withRecord()->create();
+    $waiting = Appointment::factory()->count(6)->for($team)->for($recordType)->waiting()->create();
+
+    Livewire::test('pages::appointments.index')
+        ->call('nextPage')
+        ->set('selectedSheetIds', [(string) $waiting->first()->id])
+        ->assertSet('paginators.page', 2)
+        ->assertSet('selectedSheetIds', [(string) $waiting->first()->id]);
+});
+
+test('changing the listed day forgets the sheets picked to print', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $recordType = AppointmentType::factory()->for($team)->withRecord()->create();
+    $waiting = Appointment::factory()->for($team)->for($recordType)->waiting()->create();
+
+    Livewire::test('pages::appointments.index')
+        ->set('selectedSheetIds', [(string) $waiting->id])
+        ->set('date', today()->addDay()->toDateString())
+        ->assertSet('selectedSheetIds', []);
 });

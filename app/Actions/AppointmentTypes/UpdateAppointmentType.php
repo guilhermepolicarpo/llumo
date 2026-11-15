@@ -9,7 +9,7 @@ class UpdateAppointmentType
     /**
      * Update the given appointment type.
      *
-     * @param  array{name: string, requires_record?: bool, daily_limit?: ?int, weekdays?: ?list<int>}  $attributes
+     * @param  array{name: string, requires_record?: bool, daily_limit?: ?int, weekdays?: ?list<int>, weekday_times?: ?array<int, string>}  $attributes
      */
     public function handle(AppointmentType $appointmentType, array $attributes): AppointmentType
     {
@@ -18,6 +18,7 @@ class UpdateAppointmentType
             'requires_record' => $attributes['requires_record'] ?? false,
             'daily_limit' => $attributes['daily_limit'] ?? null,
             'weekdays' => $attributes['weekdays'] ?? null,
+            'weekday_times' => $attributes['weekday_times'] ?? null,
         ]);
 
         return $appointmentType;

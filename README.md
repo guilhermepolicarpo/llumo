@@ -168,6 +168,8 @@ Além dos módulos, no radar:
 - **Rede entre casas** — integração opcional entre instâncias para compartilhar acervo e encaminhar assistidos
 - **Inteligência artificial** — recursos opcionais, ativados por casa, que apoiam a rotina sem nunca sugerir tratamento espiritual (fluídicos, passes e orientações cabem ao mentor e aos médiuns)
   - Digitalização de fichas de papel: fotos das fichas antigas viram assistidos e atendimentos no llumo
+  - Leitura da ficha do dia: a ficha impressa pelo llumo leva um QR code do agendamento; a foto da ficha marcada pelo médium vira o registro do atendimento, com as marcações lidas pela posição, a IA só no que foi escrito à mão e tudo revisado antes de salvar
+  - Importação de planilhas e cadernos: colunas associadas aos campos do llumo, nomes e endereços padronizados e assistidos duplicados apontados antes de importar
   - Cadastro de livros por foto da capa ou da página de créditos, inclusive livros antigos sem ISBN
   - Ditado das observações durante o atendimento
   - Perguntas em linguagem natural sobre os números da casa ("quantos atendimentos a distância em março?")

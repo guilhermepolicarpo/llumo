@@ -23,6 +23,7 @@ use Illuminate\Support\Collection as SupportCollection;
  * @property bool $requires_record
  * @property int|null $daily_limit
  * @property SupportCollection<int, Weekday>|null $weekdays
+ * @property array<int, string>|null $weekday_times
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -35,6 +36,7 @@ use Illuminate\Support\Collection as SupportCollection;
     'requires_record',
     'daily_limit',
     'weekdays',
+    'weekday_times',
 ])]
 class AppointmentType extends Model
 {
@@ -94,6 +96,15 @@ class AppointmentType extends Model
     }
 
     /**
+     * Get the time, as "H:i", at which the assisted person must be at the center for an appointment of this type on
+     * the given date's weekday, or null when the center has not set one.
+     */
+    public function startTimeOn(CarbonInterface $date): ?string
+    {
+        return $this->weekday_times[Weekday::of($date)->value] ?? null;
+    }
+
+    /**
      * Get the weekdays on which appointments of this type take place, as in "Mondays and Wednesdays".
      */
     public function weekdaysLabel(): string
@@ -102,12 +113,13 @@ class AppointmentType extends Model
     }
 
     /**
-     * Get the abbreviated weekdays on which appointments of this type take place, as in "Mon, Wed", or "Any day".
+     * Get the abbreviated weekdays on which appointments of this type take place, with their times when set, as in
+     * "Mon 19:15, Wed", or "Any day".
      */
     public function weekdaysShortLabel(): string
     {
         return $this->hasWeekdays()
-            ? $this->sortedWeekdays()->map(fn (Weekday $weekday): string => $weekday->shortLabel())->implode(', ')
+            ? $this->sortedWeekdays()->map(fn (Weekday $weekday): string => trim($weekday->shortLabel().' '.($this->weekday_times[$weekday->value] ?? '')))->implode(', ')
             : __('Any day');
     }
 
@@ -164,6 +176,7 @@ class AppointmentType extends Model
             'requires_record' => 'boolean',
             'daily_limit' => 'integer',
             'weekdays' => AsEnumCollection::of(Weekday::class),
+            'weekday_times' => 'array',
         ];
     }
 }

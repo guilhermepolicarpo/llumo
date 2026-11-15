@@ -14,7 +14,7 @@ class CreateAppointment
     /**
      * Schedule a new appointment for the given team, remembering who scheduled it.
      *
-     * @param  array{appointment_type_id: int, assisted_person_id: int, mode: string, scheduled_on: string, notes?: ?string}  $attributes
+     * @param  array{appointment_type_id: int, assisted_person_id: int, mode: string, reason?: ?string, scheduled_on: string, notes?: ?string}  $attributes
      */
     public function handle(Team $team, User $creator, array $attributes): Appointment
     {
