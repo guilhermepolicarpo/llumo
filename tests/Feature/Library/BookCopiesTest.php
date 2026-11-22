@@ -102,3 +102,20 @@ test('a copy code can be typed with or without the zeros of its label', function
     'only zeros' => ['0000', null],
     'a title' => ['Nosso Lar', null],
 ]);
+
+test('the book page shows 10 copies at first and loads 10 more at a time, counting them all in the summary', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Member);
+    $book = Book::factory()->for($team)->create();
+    $copies = BookCopy::factory()->for($book)->count(12)->sequence(fn ($sequence) => ['code' => $sequence->index + 1])->create();
+    BookLoan::factory()->for($copies->last(), 'copy')->create();
+
+    $component = Livewire::test('pages::library.books.show', ['book' => $book])
+        ->assertSee('0010')
+        ->assertDontSee('0011')
+        ->assertSeeHtml('data-test="book-copies-load-more"')
+        ->assertSee(__(':available of :total available', ['available' => 11, 'total' => 12]));
+
+    $component->call('loadMoreCopies')
+        ->assertSee('0012')
+        ->assertDontSeeHtml('data-test="book-copies-load-more"');
+});

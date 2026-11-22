@@ -28,6 +28,11 @@ new class extends Component
      */
     public const int LOANS_PER_PAGE = 10;
 
+    /**
+     * How many copies the table shows at first, and how many more each "load more" adds.
+     */
+    public const int COPIES_PER_PAGE = 10;
+
     public Book $book;
 
     public string $newCopiesCount = '1';
@@ -47,6 +52,8 @@ new class extends Component
     public ?int $deletingCopyId = null;
 
     public int $loansLimit = self::LOANS_PER_PAGE;
+
+    public int $copiesLimit = self::COPIES_PER_PAGE;
 
     public function mount(Book $book): void
     {
@@ -157,7 +164,14 @@ new class extends Component
         $this->loansLimit += self::LOANS_PER_PAGE;
     }
 
+    public function loadMoreCopies(): void
+    {
+        $this->copiesLimit += self::COPIES_PER_PAGE;
+    }
+
     /**
+     * Get the copies the table shows, plus one more to tell whether there are others to load.
+     *
      * @return Collection<int, BookCopy>
      */
     #[Computed]
@@ -166,20 +180,23 @@ new class extends Component
         return $this->book->copies()
             ->with('openLoan.assistedPerson')
             ->orderBy('code')
+            ->limit($this->copiesLimit + 1)
             ->get();
     }
 
     /**
-     * Count the copies that can be lent now among the ones still in circulation.
+     * Count the copies that can be lent now among the ones still in circulation, including those not loaded yet.
      *
      * @return array{available: int, total: int}
      */
     #[Computed]
     public function copiesSummary(): array
     {
+        $counts = Book::query()->whereKey($this->book->id)->withCopyCounts()->firstOrFail();
+
         return [
-            'available' => $this->copies->filter->isAvailable()->count(),
-            'total' => $this->copies->where('status', BookCopyStatus::Active)->count(),
+            'available' => $counts->available_copies_count,
+            'total' => $counts->active_copies_count,
         ];
     }
 
@@ -311,7 +328,7 @@ new class extends Component
                     </flux:modal.trigger>
                 </div>
 
-                <flux:card class="px-4 [--flux-bleed:1rem]">
+                <flux:card class="px-4 [--flux-bleed-x:1rem]">
                     @if ($this->copies->isNotEmpty())
                         <flux:table bleed>
                             <flux:table.columns>
@@ -322,7 +339,7 @@ new class extends Component
                             </flux:table.columns>
 
                             <flux:table.rows>
-                                @foreach ($this->copies as $copy)
+                                @foreach ($this->copies->take($copiesLimit) as $copy)
                                     <flux:table.row :key="$copy->id" @class(['relative cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800' => $this->canManage]) data-test="book-copy-row">
                                         <flux:table.cell class="text-zinc-800 dark:text-white">
                                             @if ($this->canManage)
@@ -380,6 +397,12 @@ new class extends Component
                                 @endforeach
                             </flux:table.rows>
                         </flux:table>
+
+                        @if ($this->copies->count() > $copiesLimit)
+                            <flux:card.bleed class="border-t border-zinc-200 py-3 text-center dark:border-zinc-700">
+                                <flux:button size="sm" variant="ghost" wire:click="loadMoreCopies" data-test="book-copies-load-more">{{ __('Load more') }}</flux:button>
+                            </flux:card.bleed>
+                        @endif
                     @else
                         <flux:text class="py-6 text-center text-zinc-500 dark:text-zinc-400">{{ __('This book has no copies yet.') }}</flux:text>
                     @endif
