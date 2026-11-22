@@ -356,6 +356,72 @@ test('the batch of a team the user does not belong to is forbidden', function ()
         ->assertForbidden();
 });
 
+test('the list prints the open appointments of the day without a record, grouped by type and sorted by name', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $removal = AppointmentType::factory()->for($team)->create(['name' => 'Retirada de Infiltração']);
+    $hydrotherapy = AppointmentType::factory()->for($team)->create(['name' => 'Hidroterapia']);
+    $person = fn (string $name) => ['assisted_person_id' => AssistedPerson::factory()->for($team)->create(['name' => $name])];
+    $scheduled = Appointment::factory()->for($team)->for($removal)->inPerson()->create(['scheduled_on' => today(), ...$person('Vera Lúcia')]);
+    $waiting = Appointment::factory()->for($team)->for($removal)->waiting()->create($person('Ana Paula'));
+    $inProgress = Appointment::factory()->for($team)->for($hydrotherapy)->inPerson()->inProgress()->create($person('Carlos Mendes'));
+    Appointment::factory()->for($team)->for($removal)->inPerson()->completed()->create();
+    Appointment::factory()->for($team)->for($removal)->noShow()->create(['scheduled_on' => today()]);
+    Appointment::factory()->for($team)->for($removal)->canceled()->create(['scheduled_on' => today()]);
+    Appointment::factory()->for($team)->for($removal)->inPerson()->create(['scheduled_on' => today()->addDay()]);
+    Appointment::factory()->for($team)->waiting()->create(['appointment_type_id' => AppointmentType::factory()->for($team)->withRecord()]);
+    $otherTeam = teamOwnedBy(User::factory()->create());
+    Appointment::factory()->for($otherTeam)->waiting()->create();
+
+    $this->get(route('appointments.attendance-sheets', ['current_team' => $team, 'print' => 'list']));
+
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) use ($scheduled, $waiting, $inProgress) {
+        $listGroups = $pdf->viewData['listGroups']->map(fn ($group) => $group->pluck('id')->all())->all();
+
+        expect($listGroups)->toBe([
+            'Hidroterapia' => [$inProgress->id],
+            'Retirada de Infiltração' => [$waiting->id, $scheduled->id],
+        ])->and($pdf->viewData['appointments'])->toBeEmpty()
+            ->and($pdf->downloadName)->toBe('lista-de-agendamentos-'.today()->format('Y-m-d').'.pdf');
+
+        return true;
+    });
+});
+
+test('the sheets and the list print together, the list showing each name with the age and address below', function () {
+    $this->travelTo('2026-11-20 19:00:00');
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $sheet = Appointment::factory()->for($team)->waiting()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+    Appointment::factory()->for($team)->inPerson()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->create(['name' => 'Retirada de Infiltração']),
+        'assisted_person_id' => AssistedPerson::factory()->for($team)->create([
+            'name' => 'Vera Lúcia Souza',
+            'birth_date' => '1980-05-10',
+            'city' => 'Uberlândia',
+            'state' => 'MG',
+        ]),
+        'scheduled_on' => '2026-11-20',
+    ]);
+
+    $this->get(route('appointments.attendance-sheets', ['current_team' => $team, 'print' => 'both']));
+
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) use ($sheet) {
+        expect($pdf->viewData['appointments']->modelKeys())->toBe([$sheet->id])
+            ->and($pdf->downloadName)->toBe('fichas-e-lista-2026-11-20.pdf')
+            ->and($pdf->getHtml())->toContain('Lista de agendamentos', 'Retirada de Infiltração · 1', 'Vera Lúcia Souza', '46 anos', 'Uberlândia - MG');
+
+        return true;
+    });
+});
+
+test('the batch rejects an unknown print option', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+
+    $this->get(route('appointments.attendance-sheets', ['current_team' => $team, 'print' => 'everything']))
+        ->assertSessionHasErrors('print');
+});
+
 test('the appointments list offers to print the sheet of waiting appointments only', function () {
     [, $team] = actingAsTeamMember(TeamRole::Owner);
     $recordType = AppointmentType::factory()->for($team)->withRecord()->create();
@@ -363,17 +429,23 @@ test('the appointments list offers to print the sheet of waiting appointments on
 
     Livewire::test('pages::appointments.index')
         ->assertDontSeeHtml('data-test="appointment-print-sheet-menu-item"')
-        ->assertDontSeeHtml('data-test="appointments-print-sheets-button"');
+        ->assertDontSeeHtml('data-test="appointments-print-button"');
 
     $scheduled->update(['status' => 'waiting', 'received_at' => now()]);
-    Appointment::factory()->for($team)->for($recordType)->waiting()->create();
+    $alsoWaiting = Appointment::factory()->for($team)->for($recordType)->waiting()->create();
 
     $component = Livewire::test('pages::appointments.index')
         ->assertSeeHtml('data-test="appointment-print-sheet-menu-item"')
         ->assertSeeHtml(route('appointments.attendance-sheet', ['current_team' => $team, 'appointment' => $scheduled]))
-        ->assertSeeHtml(route('appointments.attendance-sheets', ['current_team' => $team, 'date' => today()->toDateString()]));
+        ->assertSee(route('appointments.attendance-sheets', [
+            'current_team' => $team,
+            'date' => today()->toDateString(),
+            'print' => 'sheets',
+            'ids' => [$scheduled->id, $alsoWaiting->id],
+        ]))
+        ->assertDontSeeHtml('data-test="appointments-print-menu"');
 
-    expect($component->html())->toMatch('/data-test="appointments-print-sheets-count">\s*2\s*</');
+    expect($component->html())->toMatch('/data-test="appointments-print-count">\s*2\s*</');
 });
 
 test('the appointments list lets only the waiting sheets be picked to print', function () {
@@ -384,11 +456,11 @@ test('the appointments list lets only the waiting sheets be picked to print', fu
     $scheduled = Appointment::factory()->for($team)->for($recordType)->inPerson()->create(['scheduled_on' => today()]);
 
     $component = Livewire::test('pages::appointments.index')
-        ->assertSeeHtml('data-test="appointments-select-all-sheets"')
-        ->set('selectedSheetIds', [(string) $selected->id, (string) $scheduled->id])
-        ->assertSet('selectedSheetIds', [(string) $selected->id]);
+        ->assertSeeHtml('data-test="appointments-select-all-to-print"')
+        ->set('selectedPrintIds', [(string) $selected->id, (string) $scheduled->id])
+        ->assertSet('selectedPrintIds', [(string) $selected->id]);
 
-    expect(substr_count($component->html(), 'data-test="appointment-select-sheet"'))->toBe(2);
+    expect(substr_count($component->html(), 'data-test="appointment-select-to-print"'))->toBe(2);
 });
 
 test('picking the sheets to print keeps the current page of the appointments list', function () {
@@ -398,9 +470,9 @@ test('picking the sheets to print keeps the current page of the appointments lis
 
     Livewire::test('pages::appointments.index')
         ->call('nextPage')
-        ->set('selectedSheetIds', [(string) $waiting->first()->id])
+        ->set('selectedPrintIds', [(string) $waiting->first()->id])
         ->assertSet('paginators.page', 2)
-        ->assertSet('selectedSheetIds', [(string) $waiting->first()->id]);
+        ->assertSet('selectedPrintIds', [(string) $waiting->first()->id]);
 });
 
 test('changing the listed day forgets the sheets picked to print', function () {
@@ -409,7 +481,49 @@ test('changing the listed day forgets the sheets picked to print', function () {
     $waiting = Appointment::factory()->for($team)->for($recordType)->waiting()->create();
 
     Livewire::test('pages::appointments.index')
-        ->set('selectedSheetIds', [(string) $waiting->id])
+        ->set('selectedPrintIds', [(string) $waiting->id])
         ->set('date', today()->addDay()->toDateString())
-        ->assertSet('selectedSheetIds', []);
+        ->assertSet('selectedPrintIds', []);
+});
+
+test('the appointments list offers to print the list and both from the print button dropdown', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    $sheet = Appointment::factory()->for($team)->waiting()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+    $listed = Appointment::factory()->for($team)->inPerson()->create(['scheduled_on' => today()]);
+
+    $component = Livewire::test('pages::appointments.index')
+        ->assertSeeHtml('data-test="appointments-print-menu"')
+        ->assertSee(route('appointments.attendance-sheets', [
+            'current_team' => $team,
+            'date' => today()->toDateString(),
+            'print' => 'list',
+            'ids' => [$listed->id],
+        ]))
+        ->set('selectedPrintIds', [(string) $listed->id])
+        ->assertSet('selectedPrintIds', [(string) $listed->id]);
+
+    expect(substr_count($component->html(), 'data-test="appointment-select-to-print"'))->toBe(2);
+});
+
+test('the appointment type filter narrows what the appointments list prints', function () {
+    [, $team] = actingAsTeamMember(TeamRole::Owner);
+    Appointment::factory()->for($team)->waiting()->create([
+        'appointment_type_id' => AppointmentType::factory()->for($team)->withRecord(),
+    ]);
+    $removal = AppointmentType::factory()->for($team)->create(['name' => 'Retirada de Infiltração']);
+    $listed = Appointment::factory()->for($team)->for($removal)->inPerson()->create(['scheduled_on' => today()]);
+
+    $component = Livewire::test('pages::appointments.index')
+        ->set('appointmentTypeIds', [(string) $removal->id])
+        ->assertDontSeeHtml('data-test="appointments-print-menu"')
+        ->assertSee(route('appointments.attendance-sheets', [
+            'current_team' => $team,
+            'date' => today()->toDateString(),
+            'print' => 'list',
+            'ids' => [$listed->id],
+        ]));
+
+    expect($component->html())->toMatch('/data-test="appointments-print-count">\s*1\s*</');
 });

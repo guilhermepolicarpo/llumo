@@ -6,7 +6,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
-    <title>{{ trans_choice('Attendance sheet|Attendance sheets', $appointments->count()) }}</title>
+    <title>{{ $appointments->isEmpty() ? __('Appointment list') : trans_choice('Attendance sheet|Attendance sheets', $appointments->count()) }}</title>
     <style>
         @page { margin: 10mm; }
         * { box-sizing: border-box; }
@@ -79,6 +79,12 @@
         .back-columns td { width: 50%; border-bottom: 0.7pt solid #bdbdbd; }
         .back-columns .back-line { border-bottom: 0; }
         .back-footer { position: absolute; left: 0; bottom: 0; font-size: 10.6pt; color: #555; }
+
+        .list-group { margin-bottom: 2mm; }
+        .list-row { padding: 2.1mm 0; border-top: 0.7pt solid #bdbdbd; page-break-inside: avoid; }
+        .list-group .section-label + .list-row { border-top: 0; }
+        .list-name { font-weight: bold; }
+        .list-detail { margin-top: 0.7mm; font-size: 9.9pt; color: #555; }
     </style>
 </head>
 <body>
@@ -123,28 +129,7 @@
 
         {{-- Front: filled in at the reception, then marked by the medium during the attendance. --}}
         <div @class(['page', 'page-break' => ! $loop->first])>
-            <table class="header">
-                <tr>
-                    @if ($logo)
-                        <td class="logo shrink"><img src="{{ $logo }}" alt=""></td>
-                    @endif
-                    <td>
-                        <div class="team-name">{{ $team->display_legal_name }}</div>
-                        @if ($team->address_summary)
-                            <div class="team-detail">{{ $team->address_summary }}</div>
-                        @endif
-                        @if ($team->formatted_phone)
-                            <div class="team-detail">{{ $team->formatted_phone }}</div>
-                        @endif
-                    </td>
-                    <td class="badge-cell">
-                        <div class="badge">{{ trans_choice('Attendance sheet|Attendance sheets', 1) }}</div>
-                        <div class="badge-date">{{ $sheetDay->format('d/m/Y') }}</div>
-                    </td>
-                </tr>
-            </table>
-
-            <hr class="rule">
+            @include('pdf.partials.header', ['badge' => trans_choice('Attendance sheet|Attendance sheets', 1), 'date' => $sheetDay])
 
             <table class="identification">
                 <tr>
@@ -363,5 +348,29 @@
             </div>
         @endunless
     @endforeach
+
+    {{-- The appointments without a sheet to fill, listed by type; the list flows over as many pages as it needs. --}}
+    @if ($listGroups->isNotEmpty())
+        <div @class(['page-break' => $appointments->isNotEmpty()])>
+            @include('pdf.partials.header', ['badge' => __('Appointment list'), 'date' => $listDate])
+
+            @foreach ($listGroups as $appointmentTypeName => $listedAppointments)
+                <div class="list-group">
+                    <div class="label section-label">{{ $appointmentTypeName }} · {{ $listedAppointments->count() }}</div>
+                    @foreach ($listedAppointments as $listedAppointment)
+                        <div class="list-row">
+                            <div class="list-name">{{ $listedAppointment->assistedPerson->name }}</div>
+                            @php
+                                $listDetail = collect([$listedAppointment->assistedPerson->formatted_age, $listedAppointment->assistedPerson->address_summary])->filter()->implode(' · ');
+                            @endphp
+                            @if ($listDetail !== '')
+                                <div class="list-detail">{{ $listDetail }}</div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            @endforeach
+        </div>
+    @endif
 </body>
 </html>

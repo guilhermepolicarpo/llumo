@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\AppointmentAction;
 use App\Enums\AppointmentMode;
+use App\Enums\AppointmentPrint;
 use App\Enums\AppointmentStatus;
 use App\Enums\TeamPermission;
 use Carbon\CarbonImmutable;
@@ -358,6 +359,32 @@ class Appointment extends Model
     {
         $query->where('status', AppointmentStatus::Waiting)
             ->whereHas('appointmentType', fn (Builder $query) => $query->where('requires_record', true));
+    }
+
+    /**
+     * Scope the query to appointments not over yet whose type has no record, printed as a list instead of a sheet.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function openWithoutRecord(Builder $query): void
+    {
+        $query->whereIn('status', AppointmentStatus::open())
+            ->whereHas('appointmentType', fn (Builder $query) => $query->where('requires_record', false));
+    }
+
+    /**
+     * Scope the query to the appointments the given print covers: those waiting for a record get a sheet, the open ones
+     * without a record go on the list.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function printable(Builder $query, AppointmentPrint $print): void
+    {
+        $query->where(fn (Builder $query) => $query
+            ->when($print->printsSheets(), fn (Builder $query) => $query->orWhere(fn (Builder $query) => $query->waitingForRecord()))
+            ->when($print->printsList(), fn (Builder $query) => $query->orWhere(fn (Builder $query) => $query->openWithoutRecord())));
     }
 
     /**
