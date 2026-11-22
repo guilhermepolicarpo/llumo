@@ -348,7 +348,7 @@ test('the index sends record appointments to the record screen instead of starti
         ->assertDontSeeHtml('data-test="appointment-action-start"');
 });
 
-test('the history lists only completed records of the same assisted person', function () {
+test('the full history link shows only when the assisted person has other completed records', function () {
     $user = User::factory()->create();
     $team = teamOwnedBy($user);
     $recordType = AppointmentType::factory()->for($team)->withRecord()->create();
@@ -358,20 +358,22 @@ test('the history lists only completed records of the same assisted person', fun
         'assisted_person_id' => $person,
     ]);
     $previousRecord = fn (array $attributes) => AppointmentRecord::factory()
-        ->for(Appointment::factory()->for($team)->create(['appointment_type_id' => AppointmentType::factory()->for($team)->withRecord()] + $attributes))
+        ->for(Appointment::factory()->for($team)->create(['appointment_type_id' => $recordType] + $attributes))
         ->create();
 
-    $previousRecord(['assisted_person_id' => $person, 'status' => AppointmentStatus::Completed, 'scheduled_on' => '2026-08-01']);
-    $previousRecord(['assisted_person_id' => $person, 'status' => AppointmentStatus::Canceled, 'scheduled_on' => '2026-08-02']);
-    $previousRecord(['status' => AppointmentStatus::Completed, 'scheduled_on' => '2026-08-03']);
+    $previousRecord(['assisted_person_id' => $person, 'status' => AppointmentStatus::Canceled]);
+    $previousRecord(['status' => AppointmentStatus::Completed]);
 
     $this->actingAs($user);
     $user->switchTeam($team);
 
     Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
-        ->assertSee('01/08/2026')
-        ->assertDontSee('02/08/2026')
-        ->assertDontSee('03/08/2026');
+        ->assertDontSeeHtml('data-test="appointment-record-full-history-link"');
+
+    $previousRecord(['assisted_person_id' => $person, 'status' => AppointmentStatus::Completed]);
+
+    Livewire::test('pages::appointments.attend', ['appointment' => $appointment])
+        ->assertSeeHtml('data-test="appointment-record-full-history-link"');
 });
 
 test('fluidic remedies keep the order they were picked in', function () {

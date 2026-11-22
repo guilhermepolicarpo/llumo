@@ -14,7 +14,6 @@ use App\Models\AppointmentRecord;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Flux\Flux;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
@@ -25,11 +24,6 @@ new class extends Component
 {
     use InteractsWithAppointmentActions;
     use InteractsWithAppointmentRecordForm;
-
-    /**
-     * How many previous records the history block lists.
-     */
-    public const int HISTORY_LIMIT = 5;
 
     public Appointment $appointment;
 
@@ -166,18 +160,14 @@ new class extends Component
     }
 
     /**
-     * Get the latest records of the assisted person's completed appointments, of any type.
-     *
-     * @return Collection<int, AppointmentRecord>
+     * Whether the assisted person has other completed appointments with a record, of any type.
      */
     #[Computed]
-    public function history(): Collection
+    public function hasPreviousAppointments(): bool
     {
         return $this->appointment->assistedPerson->completedAppointmentRecords()
             ->where('appointments.id', '!=', $this->appointment->id)
-            ->with(['appointment.appointmentType', 'mentor', 'fluidicRemedies', 'guidances'])
-            ->limit(self::HISTORY_LIMIT)
-            ->get();
+            ->exists();
     }
 
     private function persistRecord(SaveAppointmentRecord $saveAppointmentRecord): void
@@ -278,67 +268,24 @@ new class extends Component
                     </div>
                     <flux:text>{{ $appointment->mode->label() }} · {{ $appointment->scheduled_on->format('d/m/Y') }}</flux:text>
                 </div>
+
+                @if (! $person->trashed() && Auth::user()->can('view', $person) && $this->hasPreviousAppointments)
+                    <flux:separator variant="subtle" />
+
+                    <flux:button
+                        variant="ghost"
+                        size="xs"
+                        icon="arrow-top-right-on-square"
+                        icon:variant="outline"
+                        class="-ms-2"
+                        :href="route('assisted-people.show', ['assistedPerson' => $person])"
+                        wire:navigate
+                        data-test="appointment-record-full-history-link"
+                        >
+                        {{ __('View full history') }}
+                    </flux:button>
+                @endif
             </flux:card>
-
-            @if ($this->history->isNotEmpty())
-                <div x-data="{ open: false }" class="rounded-lg border border-zinc-200 dark:border-white/10" data-test="appointment-record-history">
-                    <button
-                        type="button"
-                        x-on:click="open = ! open"
-                        x-bind:aria-expanded="open"
-                        aria-controls="appointment-record-history-entries"
-                        class="flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-start text-sm font-medium text-zinc-800 dark:text-white"
-                        data-test="appointment-record-history-toggle"
-                    >
-                        <flux:icon name="chevron-right" class="size-4 transition-transform duration-200" x-bind:class="open && 'rotate-90'" />
-                        {{ __('Previous appointments (:count)', ['count' => $this->history->count()]) }}
-                    </button>
-
-                    <div id="appointment-record-history-entries" x-show="open" x-collapse x-cloak>
-                        <div class="divide-y divide-zinc-100 border-t border-zinc-100 dark:divide-white/5 dark:border-white/5">
-                            @foreach ($this->history as $previous)
-                                <div class="space-y-1 px-4 py-3 text-sm" wire:key="history-{{ $previous->id }}" data-test="appointment-record-history-entry">
-                                    <div class="font-medium text-zinc-900 dark:text-white">
-                                        {{ $previous->appointment->scheduled_on->format('d/m/Y') }} · {{ $previous->appointment->appointmentType->name }}
-                                        @if ($previous->mentor)
-                                            <span class="font-normal text-zinc-500 dark:text-zinc-400">· {{ $previous->mentor->name }}</span>
-                                        @endif
-                                    </div>
-                                    @if ($previous->fluidicRemedies->isNotEmpty())
-                                        <div><span class="text-zinc-500 dark:text-zinc-400">{{ __('Fluidic remedies') }}:</span> {{ $previous->fluidicRemedies->pluck('name')->implode(', ') }}</div>
-                                    @endif
-                                    @if ($previous->guidances->isNotEmpty())
-                                        <div>
-                                            <span class="text-zinc-500 dark:text-zinc-400">{{ __('Guidances') }}:</span>
-                                            {{ $previous->guidance_summary }}
-                                        </div>
-                                    @endif
-                                    @if ($previous->return_at)
-                                        <div><span class="text-zinc-500 dark:text-zinc-400">{{ __('Return date') }}:</span> {{ $previous->return_summary }}</div>
-                                    @endif
-                                </div>
-                            @endforeach
-                        </div>
-
-                        @unless ($person->trashed())
-                            <div class="border-t border-zinc-100 px-4 py-2 dark:border-white/5">
-                                <flux:button
-                                    variant="ghost"
-                                    size="xs"
-                                    icon="arrow-top-right-on-square"
-                                    icon:variant="outline"
-                                    class="-ms-2"
-                                    :href="route('assisted-people.show', ['assistedPerson' => $person])"
-                                    wire:navigate
-                                    data-test="appointment-record-full-history-link"
-                                    >
-                                    {{ __('View full history') }}
-                                </flux:button>
-                            </div>
-                        @endunless
-                    </div>
-                </div>
-            @endif
         </aside>
 
         <div class="min-w-0 space-y-6">
