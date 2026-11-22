@@ -2,6 +2,7 @@
 
 use App\Actions\Appointments\BuildAttendanceSheets;
 use App\Actions\Appointments\BuildRemotePassSheet;
+use App\Enums\AppointmentPrint;
 use App\Http\Middleware\EnsureTeamMembership;
 use App\Models\Appointment;
 use App\Models\Team;
@@ -9,6 +10,7 @@ use Illuminate\Http\Middleware\SetCacheHeaders;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\Rule;
 
 // The public site is served from the CDN so the server can scale to zero: it must stay out of the web group, since session cookies prevent caching.
 Route::view('/', 'welcome')
@@ -43,18 +45,25 @@ Route::prefix('{current_team}')
                 'date' => ['nullable', 'date_format:Y-m-d'],
                 'ids' => ['nullable', 'array'],
                 'ids.*' => ['integer'],
+                'print' => ['nullable', Rule::enum(AppointmentPrint::class)],
             ]);
 
             $appointments = $current_team->appointments()
                 ->scheduledOn($request->date('date', 'Y-m-d') ?? today())
-                ->waitingForRecord()
+                ->printable($request->enum('print', AppointmentPrint::class) ?? AppointmentPrint::Sheets)
                 ->when($request->array('ids'), fn ($query, array $ids) => $query->whereKey($ids))
+                ->with('appointmentType')
                 ->orderBy('received_at')
                 ->get();
 
             abort_if($appointments->isEmpty(), 404);
 
-            return $buildAttendanceSheets->handle($current_team, $appointments);
+            // Only the appointments waiting for a record are printable with one, so they get the sheets and the rest the list.
+            [$sheetAppointments, $listedAppointments] = $appointments
+                ->partition(fn (Appointment $appointment): bool => $appointment->usesRecord())
+                ->map->values();
+
+            return $buildAttendanceSheets->handle($current_team, $sheetAppointments, $listedAppointments);
         })->name('appointments.attendance-sheets');
 
         Route::get('appointments/{appointment}/attendance-sheet', function (Team $current_team, Appointment $appointment, BuildAttendanceSheets $buildAttendanceSheets) {

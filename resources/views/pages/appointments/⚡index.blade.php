@@ -5,6 +5,7 @@ use App\Concerns\InteractsWithAppointmentActions;
 use App\Concerns\InteractsWithTableSorting;
 use App\Enums\AppointmentAction;
 use App\Enums\AppointmentMode;
+use App\Enums\AppointmentPrint;
 use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
 use App\Models\AssistedPerson;
@@ -103,13 +104,13 @@ new class extends Component
     public int $perPage = 5;
 
     /**
-     * The appointments whose attendance sheets are picked to print, every printable one when left empty.
+     * The appointments picked to print, as a sheet or on the list, every printable one when left empty.
      *
      * Bound without a request per click: the print button reads it in the browser and the server sees it on the next request.
      *
      * @var list<string>
      */
-    public array $selectedSheetIds = [];
+    public array $selectedPrintIds = [];
 
     #[Locked]
     public ?int $selectedAppointmentId = null;
@@ -277,30 +278,34 @@ new class extends Component
     }
 
     /**
-     * List the filtered day's appointments waiting to be attended whose attendance sheet can be printed.
+     * List the filtered day's appointments that can be printed, within the search and filters, keyed by what prints them:
+     * the sheets of who waits for a record, the list of the open ones without a record, and both together.
      *
-     * @return list<int>
+     * @return array{sheets: list<int>, list: list<int>, both: list<int>}
      */
     #[Computed]
-    public function printableSheetIds(): array
+    public function printIds(): array
     {
-        if ($this->pending || ! $this->filteredDate) {
-            return [];
-        }
+        $printable = fn (AppointmentPrint $print): array => $this->pending || ! $this->filteredDate
+            ? []
+            : $this->filteredAppointments()->printable($print)->pluck('id')->all();
 
-        return Auth::user()->currentTeam->appointments()
-            ->scheduledOn($this->filteredDate)
-            ->waitingForRecord()
-            ->pluck('id')
-            ->all();
+        $sheetIds = $printable(AppointmentPrint::Sheets);
+        $listIds = $printable(AppointmentPrint::List);
+
+        return [
+            AppointmentPrint::Sheets->value => $sheetIds,
+            AppointmentPrint::List->value => $listIds,
+            AppointmentPrint::Both->value => [...$sheetIds, ...$listIds],
+        ];
     }
 
     /**
-     * Drop the sheets picked to print that can no longer be printed: those of another day, or whose appointment stopped waiting.
+     * Drop the appointments picked to print that can no longer be printed: those of another day, filtered out, or whose status changed.
      */
     public function rendering(): void
     {
-        $this->selectedSheetIds = array_values(array_intersect($this->selectedSheetIds, $this->printableSheetIds));
+        $this->selectedPrintIds = array_values(array_intersect($this->selectedPrintIds, $this->printIds['both']));
     }
 
     #[Computed]
@@ -604,34 +609,94 @@ new class extends Component
             data-test="appointments-day-picker"
         />
 
-        @if ($this->printableSheetIds !== [])
+        @if ($this->printIds['both'] !== [])
             @php
-                $printSheetsUrl = route('appointments.attendance-sheets', ['date' => $this->filteredDate->toDateString()]);
+                $printParams = ['date' => $this->filteredDate->toDateString()];
+                $printHref = fn (AppointmentPrint $print): string => route('appointments.attendance-sheets', [...$printParams, 'print' => $print->value, 'ids' => $this->printIds[$print->value]]);
+                // The main button prints the sheets, or the list when nobody waits for one; the dropdown prints the rest when there are both.
+                $mainPrint = $this->printIds['sheets'] !== [] ? AppointmentPrint::Sheets : AppointmentPrint::List;
+                $menuPrints = $this->printIds['sheets'] !== [] && $this->printIds['list'] !== [] ? [AppointmentPrint::List, AppointmentPrint::Both] : [];
             @endphp
-            <flux:button
-                icon="printer"
-                icon:variant="outline"
-                :href="$printSheetsUrl"
-                x-data="{ get url() { let url = new URL({{ Js::from($printSheetsUrl) }}); $wire.selectedSheetIds.forEach((id) => url.searchParams.append('ids[]', id)); return url.href } }"
-                x-bind:href="url"
-                target="_blank"
+            {{-- Each option prints the picked appointments of its kind, or all of them when none is picked. Ids always go along, since the print follows the filters. --}}
+            <div
+                x-data="{
+                    idsOf: {{ Js::from($this->printIds) }},
+                    ids(print) {
+                        let picked = $wire.selectedPrintIds.map(Number);
+
+                        return picked.length ? this.idsOf[print].filter((id) => picked.includes(id)) : this.idsOf[print];
+                    },
+                    available(print) {
+                        return print === {{ Js::from(AppointmentPrint::Both->value) }}
+                            ? this.available({{ Js::from(AppointmentPrint::Sheets->value) }}) && this.available({{ Js::from(AppointmentPrint::List->value) }})
+                            : this.ids(print).length > 0;
+                    },
+                    url(print) {
+                        let url = new URL({{ Js::from(route('appointments.attendance-sheets', $printParams)) }});
+                        url.searchParams.set('print', print);
+                        this.ids(print).forEach((id) => url.searchParams.append('ids[]', id));
+
+                        return url.href;
+                    },
+                }"
                 class="sm:ms-auto"
-                data-test="appointments-print-sheets-button"
-                >
-                <span x-text="$wire.selectedSheetIds.length ? {{ Js::from(__('Print selected sheets')) }} : {{ Js::from(__('Print sheets')) }}">{{ __('Print sheets') }}</span>
-                <flux:badge size="sm" color="amber" inset="top bottom" x-text="$wire.selectedSheetIds.length || {{ count($this->printableSheetIds) }}" data-test="appointments-print-sheets-count">{{ count($this->printableSheetIds) }}</flux:badge>
-            </flux:button>
+            >
+                <flux:button.group>
+                    <flux:button
+                        :icon="$mainPrint->icon()"
+                        icon:variant="outline"
+                        :href="$printHref($mainPrint)"
+                        x-bind:href="url({{ Js::from($mainPrint->value) }})"
+                        x-bind:class="{ 'pointer-events-none opacity-50': ! available({{ Js::from($mainPrint->value) }}) }"
+                        target="_blank"
+                        data-test="appointments-print-button"
+                        >
+                        @if ($mainPrint === AppointmentPrint::Sheets)
+                            <span x-text="$wire.selectedPrintIds.length ? {{ Js::from(__('Print selected sheets')) }} : {{ Js::from($mainPrint->label()) }}">{{ $mainPrint->label() }}</span>
+                        @else
+                            {{ $mainPrint->label() }}
+                        @endif
+                        <flux:badge size="sm" color="amber" inset="top bottom" x-text="ids({{ Js::from($mainPrint->value) }}).length" data-test="appointments-print-count">{{ count($this->printIds[$mainPrint->value]) }}</flux:badge>
+                    </flux:button>
+
+                    @if ($menuPrints !== [])
+                        <flux:dropdown position="bottom" align="end">
+                            <flux:button icon="chevron-down" icon:variant="outline" :aria-label="__('More print options')" data-test="appointments-print-menu" />
+
+                            <flux:menu>
+                                @foreach ($menuPrints as $menuPrint)
+                                    <flux:menu.item
+                                        as="a"
+                                        :href="$printHref($menuPrint)"
+                                        x-bind:href="url({{ Js::from($menuPrint->value) }})"
+                                        x-show="available({{ Js::from($menuPrint->value) }})"
+                                        target="_blank"
+                                        :icon="$menuPrint->icon()"
+                                        icon:variant="outline"
+                                        data-test="appointments-print-{{ $menuPrint->value }}-item"
+                                        >
+                                        {{ $menuPrint->label() }}
+                                        <x-slot:suffix>
+                                            <flux:badge size="sm" color="amber" inset="top bottom" class="ms-auto ps-3" x-text="ids({{ Js::from($menuPrint->value) }}).length">{{ count($this->printIds[$menuPrint->value]) }}</flux:badge>
+                                        </x-slot:suffix>
+                                    </flux:menu.item>
+                                @endforeach
+                            </flux:menu>
+                        </flux:dropdown>
+                    @endif
+                </flux:button.group>
+            </div>
         @endif
     </div>
 
     <flux:card class="mt-4 scroll-mt-6 px-4 pb-4 [--flux-bleed:1rem]" id="appointments-table">
         @if ($this->appointments->isNotEmpty())
-            <flux:checkbox.group wire:model="selectedSheetIds">
+            <flux:checkbox.group wire:model="selectedPrintIds">
                 <flux:table bleed>
                     <flux:table.columns>
-                        @if ($this->printableSheetIds !== [])
+                        @if ($this->printIds['both'] !== [])
                             <flux:table.column class="w-12">
-                                <flux:checkbox.all :aria-label="__('Select all sheets to print')" data-test="appointments-select-all-sheets" />
+                                <flux:checkbox.all :aria-label="__('Select all to print')" data-test="appointments-select-all-to-print" />
                             </flux:table.column>
                         @endif
                         @unless ($this->filteredDate)
@@ -646,10 +711,10 @@ new class extends Component
                     <flux:table.rows>
                         @foreach ($this->appointments as $appointment)
                             <flux:table.row :key="$appointment->id" class="relative cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800" data-test="appointment-row">
-                                @if ($this->printableSheetIds !== [])
+                                @if ($this->printIds['both'] !== [])
                                     <flux:table.cell class="relative z-10">
-                                        @if (in_array($appointment->id, $this->printableSheetIds, true))
-                                            <flux:checkbox :value="(string) $appointment->id" :aria-label="__('Select the sheet of :name to print', ['name' => $appointment->assistedPerson->name])" data-test="appointment-select-sheet" />
+                                        @if (in_array($appointment->id, $this->printIds['both'], true))
+                                            <flux:checkbox :value="(string) $appointment->id" :aria-label="__('Select :name to print', ['name' => $appointment->assistedPerson->name])" data-test="appointment-select-to-print" />
                                         @endif
                                     </flux:table.cell>
                                 @endif
